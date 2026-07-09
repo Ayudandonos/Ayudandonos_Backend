@@ -61,7 +61,9 @@ index.ts
 
 **Fase 1 COMPLETADA:** configuracion base, skeleton de modulos, health check.
 
-**Siguiente:** Fase 2 — diseno BD, autenticacion JWT, usuarios.
+**Fase 2 COMPLETADA:** Auth JWT, usuarios, seed ADMIN, Docker PostgreSQL.
+
+**Siguiente:** Fase 3 — fundaciones, campanas.
 
 ## Documentacion interna
 
@@ -83,6 +85,7 @@ npm run build        # Compilar TypeScript
 npm run lint         # ESLint
 npm run prisma:generate
 npm run prisma:migrate
+npm run prisma:seed       # Administradores iniciales (requiere SEED_ADMIN_PASSWORD)
 ```
 
 ## Variables de entorno

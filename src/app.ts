@@ -1,8 +1,10 @@
-import express, { type Express } from 'express';
+import express, { type Express, type RequestHandler } from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
+import helmetImport from 'helmet';
 import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
+import rateLimitImport from 'express-rate-limit';
+import type { RateLimitRequestHandler } from 'express-rate-limit';
+import type { HelmetOptions } from 'helmet';
 import swaggerUi from 'swagger-ui-express';
 import { corsConfig } from './config/cors.config.js';
 import { rateLimitConfig } from './config/rate-limit.config.js';
@@ -10,6 +12,13 @@ import { isDevelopment } from './config/env.config.js';
 import { apiRouter } from './routes/index.js';
 import { swaggerSpec } from './docs/swagger.config.js';
 import { errorHandler, notFoundHandler } from './middlewares/index.js';
+import { resolveDefaultImport } from './utils/resolve-default-import.util.js';
+
+type HelmetMiddleware = (options?: Readonly<HelmetOptions>) => RequestHandler;
+type RateLimitMiddleware = (options: typeof rateLimitConfig) => RateLimitRequestHandler;
+
+const helmet = resolveDefaultImport<HelmetMiddleware>(helmetImport);
+const rateLimit = resolveDefaultImport<RateLimitMiddleware>(rateLimitImport);
 
 // Entrada:
 // Ninguna.

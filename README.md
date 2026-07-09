@@ -13,9 +13,26 @@ Node.js, Express, TypeScript, Prisma, PostgreSQL, JWT, Swagger.
 ```bash
 cp .env.example .env
 npm install
+npm run db:up          # PostgreSQL con Docker (opcional si ya tienes BD)
 npm run prisma:generate
+npm run db:setup       # Migraciones + administradores iniciales
 npm run dev
 ```
+
+Administradores creados por el seed (contraseña: `SEED_ADMIN_PASSWORD` en `.env`):
+
+| Email | Nombre |
+| ----- | ------ |
+| apoyo_ud@fesc.edu.co | Diego Alexander Rincon Casarubia |
+| tecnico_ud@fesc.edu.co | Erick Sebastian Perez Carvajal |
+
+Sin Docker: configura `DATABASE_URL` en `.env` y ejecuta `npm run db:setup`.
+
+## Despliegue en Vercel
+
+Ver [docs/DEPLOYMENT_VERCEL.md](./docs/DEPLOYMENT_VERCEL.md).
+
+Variables minimas: `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN` (URL del frontend).
 
 - API: `http://localhost:3000/api/v1`
 - Swagger: `http://localhost:3000/api/v1/docs`

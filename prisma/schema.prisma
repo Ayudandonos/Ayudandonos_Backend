@@ -7,5 +7,37 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Los modelos se definirán en la Fase 2.
-// La base de datos seguirá normalización 3FN con UUID como PK.
+enum UserRole {
+  USER
+  FOUNDATION
+  ADMIN
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  fullName     String   @map("full_name")
+  role         UserRole
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  foundation Foundation?
+
+  @@map("users")
+}
+
+model Foundation {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @unique @map("user_id") @db.Uuid
+  name        String
+  description String?
+  isVerified  Boolean  @default(false) @map("is_verified")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("foundations")
+}
