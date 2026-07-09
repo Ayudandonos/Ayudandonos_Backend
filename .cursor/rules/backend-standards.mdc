@@ -1,0 +1,25 @@
+---
+description: Reglas obligatorias del backend Ayudandonos
+alwaysApply: true
+---
+
+# Backend Ayudandonos
+
+Leer AGENTS.md antes de modificar codigo.
+
+## Arquitectura
+Routes -> Controller -> Service -> Repository -> Prisma. Sin logica en controllers.
+
+## Idioma
+Codigo en ingles. Comentarios Entrada/Proceso/Salida en espanol. Mensajes usuario en messages.constants.ts.
+
+## Prohibido
+Emojis. Reorganizar carpetas sin autorizacion. Prisma fuera de repositories. Codigo no solicitado.
+
+## API
+/api/v1, respuesta { success, message, data, errors }, Swagger en endpoints nuevos, Zod antes de logica.
+
+## Flujo
+Analizar -> Disenar -> Explicar -> Implementar -> build + lint -> Documentar -> Esperar aprobacion
+
+Specs: specs/ | Skills: .cursor/skills/

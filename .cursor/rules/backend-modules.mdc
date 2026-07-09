@@ -1,0 +1,17 @@
+---
+description: Patrones para modulos del backend
+globs: src/modules/**/*
+alwaysApply: false
+---
+
+# Modulos Backend
+
+Cada modulo debe tener: controller, service, repository, routes, validations, dto, index.ts.
+
+Controller: delegar al service, usar ApiResponseBuilder, asyncHandler.
+Service: AppError para errores, sin req/res.
+Repository: unica capa Prisma.
+
+Actualizar specs/modules/<nombre>.md y API_OVERVIEW.md al implementar.
+
+Plantilla: specs/MODULE_TEMPLATE.md

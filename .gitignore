@@ -1,10 +1,64 @@
+# Dependencias
 node_modules/
+
+# Compilacion TypeScript
 dist/
-.env
-.env.local
-.env.*.local
-!.env.example
-*.log
-.DS_Store
-coverage/
+build/
 *.tsbuildinfo
+
+# Variables de entorno (nunca commitear secretos)
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Pruebas
+coverage/
+.nyc_output/
+
+# Caches de gestores de paquetes
+.npm
+.pnp
+.pnp.*
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Prisma (mantener schema y migrations en el repo)
+*.db
+*.db-journal
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# IDEs y editores (configuracion local)
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Temporales
+tmp/
+temp/
+.cache/
+*.tmp
+*.temp
+
+# Documentacion interna 
+specs/
