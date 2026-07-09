@@ -34,6 +34,7 @@ const options: swaggerJsdoc.Options = {
             success: { type: 'boolean', example: true },
             message: { type: 'string', example: 'Operación exitosa' },
             data: { type: 'object' },
+            errors: { type: 'null', example: null },
             meta: { type: 'object' },
           },
         },
@@ -42,7 +43,8 @@ const options: swaggerJsdoc.Options = {
           properties: {
             success: { type: 'boolean', example: false },
             message: { type: 'string', example: 'Error en la operación' },
-            errors: { type: 'object' },
+            data: { type: 'null', example: null },
+            errors: { type: 'object', nullable: true },
           },
         },
       },

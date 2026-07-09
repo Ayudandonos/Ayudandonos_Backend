@@ -1,33 +1,66 @@
-/**
- * Auth Module — Skeleton (Fase 1)
- * Autenticación JWT. Implementación completa en Fase 2.
- */
+import type { UserRole } from '@prisma/client';
 
-// DTOs
 export interface LoginDto {
   email: string;
   password: string;
 }
 
-export interface RegisterDto {
+export interface RegisterUserDto {
   email: string;
   password: string;
   fullName: string;
-  role: 'donor' | 'foundation' | 'admin';
 }
 
-export interface AuthResponseDto {
+export interface RegisterFoundationDto {
+  email: string;
+  password: string;
+  fullName: string;
+  foundationName: string;
+  description?: string;
+}
+
+export interface PublicUserDto {
+  id: string;
+  email: string;
+  fullName: string;
+  role: UserRole;
+}
+
+export interface PublicFoundationDto {
+  id: string;
+  name: string;
+  description: string | null;
+  isVerified: boolean;
+}
+
+export interface AuthTokenResponseDto {
   accessToken: string;
-  user: {
-    id: string;
-    email: string;
-    fullName: string;
-    role: string;
-  };
+  user: PublicUserDto;
+  foundation?: PublicFoundationDto;
+}
+
+export interface MeResponseDto {
+  user: PublicUserDto;
+  foundation: PublicFoundationDto | null;
 }
 
 export interface TokenPayloadDto {
   sub: string;
   email: string;
-  role: string;
+  role: UserRole;
+}
+
+export interface CreateUserData {
+  email: string;
+  passwordHash: string;
+  fullName: string;
+  role: UserRole;
+}
+
+export interface CreateFoundationData {
+  email: string;
+  passwordHash: string;
+  fullName: string;
+  foundationName: string;
+  description?: string;
 }

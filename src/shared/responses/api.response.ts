@@ -11,13 +11,15 @@ export interface ApiSuccessResponse<T = unknown> {
   success: true;
   message: string;
   data: T;
+  errors: null;
   meta?: ApiResponseMeta;
 }
 
 export interface ApiErrorResponse {
   success: false;
   message: string;
-  errors?: Record<string, string[]>;
+  data: null;
+  errors: Record<string, string[]> | null;
 }
 
 export type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse;
@@ -40,6 +42,7 @@ export class ApiResponseBuilder {
       success: true,
       message,
       data,
+      errors: null,
       ...(meta && { meta }),
     };
   }
@@ -59,7 +62,8 @@ export class ApiResponseBuilder {
     return {
       success: false,
       message,
-      ...(errors && { errors }),
+      data: null,
+      errors: errors ?? null,
     };
   }
 }
