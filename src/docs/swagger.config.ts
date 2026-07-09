@@ -1,5 +1,23 @@
 import swaggerJsdoc from 'swagger-jsdoc';
-import { env } from '../config/env.config.js';
+import { env, isDevelopment } from '../config/env.config.js';
+
+const servers: { url: string; description: string }[] = [];
+
+if (env.VERCEL_URL) {
+  servers.push({
+    url: `https://${env.VERCEL_URL}/api/v1`,
+    description: 'Vercel (produccion)',
+  });
+}
+
+servers.push({
+  url: `http://localhost:${env.PORT}/api/v1`,
+  description: isDevelopment ? 'Desarrollo local' : 'Local',
+});
+
+const apiDocGlobs = isDevelopment
+  ? ['./src/routes/*.ts', './src/modules/**/*.routes.ts']
+  : ['./dist/routes/*.js', './dist/modules/**/*.routes.js'];
 
 const options: swaggerJsdoc.Options = {
   definition: {
@@ -13,12 +31,7 @@ const options: swaggerJsdoc.Options = {
         name: 'Ayudándonos',
       },
     },
-    servers: [
-      {
-        url: `http://localhost:${env.PORT}/api/v1`,
-        description: 'Servidor de desarrollo',
-      },
-    ],
+    servers,
     components: {
       securitySchemes: {
         bearerAuth: {
@@ -50,7 +63,7 @@ const options: swaggerJsdoc.Options = {
       },
     },
   },
-  apis: ['./src/routes/*.ts', './src/modules/**/*.routes.ts'],
+  apis: apiDocGlobs,
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

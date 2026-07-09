@@ -28,6 +28,12 @@ Administradores creados por el seed (contraseña: `SEED_ADMIN_PASSWORD` en `.env
 
 Sin Docker: configura `DATABASE_URL` en `.env` y ejecuta `npm run db:setup`.
 
+## Despliegue en Vercel
+
+Ver [docs/DEPLOYMENT_VERCEL.md](./docs/DEPLOYMENT_VERCEL.md).
+
+Variables minimas: `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN` (URL del frontend).
+
 - API: `http://localhost:3000/api/v1`
 - Swagger: `http://localhost:3000/api/v1/docs`
 - Health: `http://localhost:3000/api/v1/health`

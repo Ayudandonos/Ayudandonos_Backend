@@ -13,6 +13,7 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000),
   RATE_LIMIT_MAX: z.coerce.number().default(100),
+  VERCEL_URL: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
