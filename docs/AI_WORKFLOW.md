@@ -4,6 +4,18 @@
 
 Definir como los agentes de IA deben participar en el desarrollo del backend sin romper arquitectura ni avanzar fases sin aprobacion.
 
+## Git por tarea
+
+Antes de implementar, confirmar o crear la rama segun `docs/GIT_WORKFLOW.md`:
+
+```bash
+git checkout develop
+git pull origin develop
+git checkout -b feature/modulo-descripcion-tarea
+```
+
+Una rama por tarea. PR hacia `develop` al cerrar la iteracion.
+
 ## Flujo obligatorio por iteracion
 
 1. **Analizar** el requerimiento y leer `AGENTS.md`, `specs/` y reglas en `docs/`.

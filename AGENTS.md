@@ -35,6 +35,13 @@ Routes -> Controller -> Service -> Repository -> Prisma
 7. No implementar funcionalidades no solicitadas (YAGNI).
 8. Documentar endpoints en Swagger al crearlos.
 9. Esperar aprobacion antes de avanzar de fase.
+10. Trabajar en rama `feature/*` (una tarea por rama); PR hacia `develop`. Ver `docs/GIT_WORKFLOW.md`.
+
+## Git (GitFlow por tarea)
+
+- `main`: estable. `develop`: integracion.
+- Crear `feature/<modulo>-<tarea>` desde `develop` antes de codificar.
+- No mezclar tareas en la misma rama ni commitear directo en `main`.
 
 ## Estructura de modulos
 

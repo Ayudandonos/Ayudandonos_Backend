@@ -36,7 +36,8 @@ Reglas obligatorias para humanos y agentes de IA.
 
 ## Flujo de trabajo
 
-1. Analizar 2. Disenar 3. Explicar 4. Implementar 5. build + lint 6. Documentar 7. Esperar aprobacion
+1. Rama `feature/*` desde `develop` (ver `docs/GIT_WORKFLOW.md`)
+2. Analizar 3. Disenar 4. Explicar 5. Implementar 6. build + lint 7. Documentar 8. PR a `develop` 9. Esperar aprobacion
 
 ## Prohibido sin autorizacion
 

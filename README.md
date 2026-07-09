@@ -37,6 +37,7 @@ npm run dev
 | ------- | --------- |
 | [AGENTS.md](./AGENTS.md) | Instrucciones para agentes de IA |
 | [docs/AI_WORKFLOW.md](./docs/AI_WORKFLOW.md) | Flujo de trabajo iterativo |
+| [docs/GIT_WORKFLOW.md](./docs/GIT_WORKFLOW.md) | GitFlow: una rama por tarea |
 | [specs/](./specs/) | Especificaciones tecnicas |
 | [.cursor/skills/](./.cursor/skills/) | Skills del proyecto |
 
