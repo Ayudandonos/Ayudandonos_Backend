@@ -28,6 +28,7 @@ export const API_MESSAGES = {
   USERS_CANNOT_DEACTIVATE_SELF: 'No puedes desactivar tu propia cuenta',
   USERS_ALREADY_INACTIVE: 'El usuario ya está desactivado',
   ENDPOINT_IN_DEVELOPMENT: 'Endpoint en desarrollo — Fase 2',
+  API_ROOT_INFO: 'API Ayudandonos operativa. Usa el prefijo /api/v1 en todas las rutas.',
   RATE_LIMIT_EXCEEDED: 'Demasiadas solicitudes. Intenta de nuevo más tarde.',
 } as const;
 

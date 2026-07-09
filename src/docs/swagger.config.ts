@@ -23,12 +23,12 @@ const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Ayudándonos API',
+      title: 'Ayudandonos API',
       version: '1.0.0',
       description:
-        'API REST para la plataforma Ayudándonos — conexión entre fundaciones y donantes en especie.',
+        'API REST para la plataforma Ayudandonos — conexion entre fundaciones y donantes en especie.',
       contact: {
-        name: 'Ayudándonos',
+        name: 'Ayudandonos',
       },
     },
     servers,

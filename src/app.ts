@@ -12,6 +12,8 @@ import { isDevelopment } from './config/env.config.js';
 import { apiRouter } from './routes/index.js';
 import { swaggerSpec } from './docs/swagger.config.js';
 import { errorHandler, notFoundHandler } from './middlewares/index.js';
+import { ApiResponseBuilder } from './shared/responses/api.response.js';
+import { API_MESSAGES } from './shared/constants/messages.constants.js';
 import { resolveDefaultImport } from './utils/resolve-default-import.util.js';
 
 type HelmetMiddleware = (options?: Readonly<HelmetOptions>) => RequestHandler;
@@ -49,6 +51,22 @@ export function createApp(): Express {
 
   // Documentación Swagger
   app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+  const apiRootPayload = {
+    name: 'Ayudandonos API',
+    version: '1.0.0',
+    basePath: '/api/v1',
+    health: '/api/v1/health',
+    docs: '/api/v1/docs',
+    auth: '/api/v1/auth',
+    users: '/api/v1/users',
+  };
+
+  app.get(['/', '/api/v1'], (_req, res) => {
+    res.status(200).json(
+      ApiResponseBuilder.success(apiRootPayload, API_MESSAGES.API_ROOT_INFO),
+    );
+  });
 
   // Rutas API
   app.use('/api/v1', apiRouter);
