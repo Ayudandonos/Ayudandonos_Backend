@@ -29,8 +29,13 @@ export interface PublicUserDto {
 export interface PublicFoundationDto {
   id: string;
   name: string;
+  status: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED';
+  logoUrl: string | null;
+  category: string | null;
+  city: string | null;
   description: string | null;
-  isVerified: boolean;
+  isProfileComplete: boolean;
+  hasRequiredDocuments: boolean;
 }
 
 export interface AuthTokenResponseDto {

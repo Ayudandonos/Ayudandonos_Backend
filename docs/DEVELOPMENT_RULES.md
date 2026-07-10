@@ -20,7 +20,7 @@ Reglas obligatorias para humanos y agentes de IA.
 
 - Codigo en ingles
 - Documentacion y comentarios en espanol
-- Formato Entrada/Proceso/Salida en funciones
+- Bloque JSDoc unico con Entrada/Proceso/Salida en funciones (ver `docs/CONVENTIONS.md`)
 
 ## Comunicacion
 

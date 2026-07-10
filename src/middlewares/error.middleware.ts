@@ -5,14 +5,11 @@ import { ApiResponseBuilder } from '../shared/responses/api.response.js';
 import { isDevelopment } from '../config/env.config.js';
 import { API_MESSAGES } from '../shared/constants/messages.constants.js';
 
-// Entrada:
-// err: error capturado; _req: petición HTTP; res: respuesta HTTP; _next: siguiente middleware.
-
-// Proceso:
-// Clasifica el error (AppError, ZodError u otro) y construye la respuesta HTTP correspondiente.
-
-// Salida:
-// No retorna valor; envía la respuesta JSON con el código de estado adecuado.
+/**
+ * Entrada: err: error capturado; _req: petición HTTP; res: respuesta HTTP; _next: siguiente middleware.
+ * Proceso: Clasifica el error (AppError, ZodError u otro) y construye la respuesta HTTP correspondiente.
+ * Salida: No retorna valor; envía la respuesta JSON con el código de estado adecuado.
+ */
 export const errorHandler = (
   err: Error,
   _req: Request,

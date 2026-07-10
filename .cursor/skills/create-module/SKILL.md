@@ -22,7 +22,7 @@ Al implementar un nuevo modulo en `src/modules/<nombre>/` o completar un skeleto
    - `<nombre>.routes.ts` (con anotaciones Swagger)
    - `index.ts`
 4. Registrar rutas en `src/routes/index.ts`.
-5. Comentarios Entrada/Proceso/Salida en cada funcion.
+5. Comentarios JSDoc unico (Entrada/Proceso/Salida) en cada funcion.
 6. Ejecutar `npm run build` y `npm run lint`.
 
 ## Reglas

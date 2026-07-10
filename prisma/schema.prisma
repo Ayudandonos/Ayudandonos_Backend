@@ -13,6 +13,30 @@ enum UserRole {
   ADMIN
 }
 
+enum FoundationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  SUSPENDED
+}
+
+enum FoundationDocumentType {
+  RUT
+  LEGAL_EXISTENCE_CERTIFICATE
+  LEGAL_REPRESENTATIVE_ID
+  BANK_CERTIFICATION
+}
+
+enum SocialNetworkType {
+  FACEBOOK
+  INSTAGRAM
+  X
+  LINKEDIN
+  YOUTUBE
+  TIKTOK
+  OTHER
+}
+
 model User {
   id           String   @id @default(uuid()) @db.Uuid
   email        String   @unique
@@ -25,19 +49,97 @@ model User {
 
   foundation Foundation?
 
+  foundationObservations FoundationAdminObservation[] @relation("ObservationAuthor")
+  verifiedFoundations    Foundation[]                 @relation("FoundationVerifier")
+
   @@map("users")
 }
 
 model Foundation {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String   @unique @map("user_id") @db.Uuid
-  name        String
-  description String?
-  isVerified  Boolean  @default(false) @map("is_verified")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id                          String           @id @default(uuid()) @db.Uuid
+  userId                      String           @unique @map("user_id") @db.Uuid
+  name                        String
+  acronym                     String?
+  nit                         String?          @unique
+  category                    String?
+  mission                     String?
+  vision                      String?
+  description                 String?
+  city                        String?
+  department                  String?
+  address                     String?
+  institutionalEmail          String?          @map("institutional_email")
+  phone                       String?
+  website                     String?
+  legalRepresentativeName     String?          @map("legal_representative_name")
+  legalRepresentativeDocument String?          @map("legal_representative_document")
+  logoUrl                     String?          @map("logo_url")
+  status                      FoundationStatus @default(PENDING)
+  verifiedAt                  DateTime?        @map("verified_at")
+  verifiedById                String?          @map("verified_by_id") @db.Uuid
+  rejectedAt                  DateTime?        @map("rejected_at")
+  suspendedAt                 DateTime?        @map("suspended_at")
+  slug                        String?          @unique
+  rejectionReason             String?          @map("rejection_reason")
+  adminNotes                  String?          @map("admin_notes")
+  deletedAt                   DateTime?        @map("deleted_at")
+  createdAt                   DateTime         @default(now()) @map("created_at")
+  updatedAt                   DateTime         @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verifiedBy   User?                        @relation("FoundationVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  socialLinks  FoundationSocialLink[]
+  documents    FoundationDocument[]
+  observations FoundationAdminObservation[]
 
+  @@index([status])
+  @@index([category])
+  @@index([city])
+  @@index([department])
   @@map("foundations")
+}
+
+model FoundationSocialLink {
+  id           String            @id @default(uuid()) @db.Uuid
+  foundationId String            @map("foundation_id") @db.Uuid
+  network      SocialNetworkType
+  url          String
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  foundation Foundation @relation(fields: [foundationId], references: [id], onDelete: Cascade)
+
+  @@unique([foundationId, network])
+  @@map("foundation_social_links")
+}
+
+model FoundationDocument {
+  id           String                 @id @default(uuid()) @db.Uuid
+  foundationId String                 @map("foundation_id") @db.Uuid
+  type         FoundationDocumentType
+  fileUrl      String                 @map("file_url")
+  fileName     String                 @map("file_name")
+  mimeType     String                 @map("mime_type")
+  fileSize     Int                    @map("file_size")
+  uploadedAt   DateTime               @default(now()) @map("uploaded_at")
+  updatedAt    DateTime               @updatedAt @map("updated_at")
+
+  foundation Foundation @relation(fields: [foundationId], references: [id], onDelete: Cascade)
+
+  @@unique([foundationId, type])
+  @@map("foundation_documents")
+}
+
+model FoundationAdminObservation {
+  id           String   @id @default(uuid()) @db.Uuid
+  foundationId String   @map("foundation_id") @db.Uuid
+  authorId     String?  @map("author_id") @db.Uuid
+  content      String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  foundation Foundation @relation(fields: [foundationId], references: [id], onDelete: Cascade)
+  author     User?      @relation("ObservationAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([foundationId, createdAt])
+  @@map("foundation_admin_observations")
 }

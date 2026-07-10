@@ -1,3 +1,4 @@
+import path from 'node:path';
 import express, { type Express, type RequestHandler } from 'express';
 import cors from 'cors';
 import helmetImport from 'helmet';
@@ -8,7 +9,7 @@ import type { HelmetOptions } from 'helmet';
 import swaggerUi from 'swagger-ui-express';
 import { corsConfig } from './config/cors.config.js';
 import { rateLimitConfig } from './config/rate-limit.config.js';
-import { isDevelopment } from './config/env.config.js';
+import { isDevelopment, uploadConfig } from './config/env.config.js';
 import { apiRouter } from './routes/index.js';
 import { swaggerSpec } from './docs/swagger.config.js';
 import { errorHandler, notFoundHandler } from './middlewares/index.js';
@@ -22,34 +23,32 @@ type RateLimitMiddleware = (options: typeof rateLimitConfig) => RateLimitRequest
 const helmet = resolveDefaultImport<HelmetMiddleware>(helmetImport);
 const rateLimit = resolveDefaultImport<RateLimitMiddleware>(rateLimitImport);
 
-// Entrada:
-// Ninguna.
-
-// Proceso:
-// Configura middlewares de seguridad, parsing, logging, Swagger y rutas de la API.
-
-// Salida:
-// Retorna la instancia de Express configurada y lista para escuchar peticiones.
+/**
+ * Entrada: Ninguna.
+ * Proceso: Configura middlewares de seguridad, parsing, logging, Swagger y rutas de la API.
+ * Salida: Retorna la instancia de Express configurada y lista para escuchar peticiones.
+ */
 export function createApp(): Express {
   const app = express();
 
-  // Seguridad
   app.use(helmet());
   app.use(cors(corsConfig));
   app.use(rateLimit(rateLimitConfig));
 
-  // Parsing
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
 
-  // Logging
+  app.use(
+    '/uploads/foundations',
+    express.static(path.join(uploadConfig.rootDir, uploadConfig.foundationsDir)),
+  );
+
   if (isDevelopment) {
     app.use(morgan('dev'));
   } else {
     app.use(morgan('combined'));
   }
 
-  // Documentación Swagger
   app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
   const apiRootPayload = {
@@ -60,6 +59,7 @@ export function createApp(): Express {
     docs: '/api/v1/docs',
     auth: '/api/v1/auth',
     users: '/api/v1/users',
+    foundations: '/api/v1/foundations',
   };
 
   app.get(['/', '/api/v1'], (_req, res) => {
@@ -68,10 +68,8 @@ export function createApp(): Express {
     );
   });
 
-  // Rutas API
   app.use('/api/v1', apiRouter);
 
-  // Manejo de errores
   app.use(notFoundHandler);
   app.use(errorHandler);
 

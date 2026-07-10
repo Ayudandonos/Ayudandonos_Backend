@@ -1,4 +1,5 @@
 import type { JwtPayload } from '../utils/jwt.util.js';
+import type { FoundationWithRelations } from '../modules/foundations/foundations.repository.js';
 
 declare global {
   namespace Express {
@@ -8,6 +9,7 @@ declare global {
         email: string;
         role: string;
       };
+      foundation?: FoundationWithRelations;
     }
   }
 }
