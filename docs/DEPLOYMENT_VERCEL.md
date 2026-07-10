@@ -2,12 +2,45 @@
 
 ## URL del proyecto
 
-- Produccion: configurar dominio en Vercel Dashboard
-- Preview: `https://ayudandonos-backend-*.vercel.app`
+- **Produccion (usar en frontend):** `https://ayudandonos-backend.vercel.app`
+- Preview: `https://ayudandonos-backend-*.vercel.app` (puede tener Deployment Protection)
 
 **Health check:** `GET /api/v1/health`
 
 **Swagger:** `GET /api/v1/docs`
+
+---
+
+## Problema: CORS — Redirect is not allowed for a preflight request
+
+Si el navegador muestra este error al llamar la API desde el frontend:
+
+```
+Access to XMLHttpRequest ... has been blocked by CORS policy:
+Response to preflight request doesn't pass access control check:
+Redirect is not allowed for a preflight request.
+```
+
+### Causas habituales
+
+1. **URL incorrecta del backend en el frontend.** No usar URLs con sufijo de equipo (`*-erick-s-projects8.vercel.app`); esas suelen tener **Deployment Protection** y redirigen (302) al login de Vercel antes de llegar a Express.
+2. **`CORS_ORIGIN` sin el dominio exacto del frontend.** Debe coincidir con el `Origin` del navegador (protocolo + host, sin slash final).
+
+### Solucion
+
+**En el frontend** (`.env` de produccion):
+
+```
+VITE_API_URL=https://ayudandonos-backend.vercel.app/api/v1
+```
+
+**En Vercel (backend)** — variable `CORS_ORIGIN`:
+
+```
+https://ayudandonos-frontend.vercel.app,https://ayudandonos-frontend-erick-s-projects8.vercel.app,http://localhost:5173
+```
+
+Configurar en **Production**, **Preview** y **Development**.
 
 ---
 
@@ -97,14 +130,16 @@ El proyecto incluye:
 
 ## CORS con frontend
 
-Si el frontend esta en Vercel, ejemplo:
+**Backend (Vercel → Environment Variables):**
 
 ```
-CORS_ORIGIN=https://ayudandonos-frontend.vercel.app,http://localhost:5173
+CORS_ORIGIN=https://ayudandonos-frontend.vercel.app,https://ayudandonos-frontend-erick-s-projects8.vercel.app,http://localhost:5173
 ```
 
-En el frontend, `.env`:
+**Frontend (`.env.production`):**
 
 ```
-VITE_API_URL=https://tu-backend.vercel.app/api/v1
+VITE_API_URL=https://ayudandonos-backend.vercel.app/api/v1
 ```
+
+No usar `https://ayudandonos-backend-erick-s-projects8.vercel.app` en el frontend: esa URL puede redirigir y romper CORS.
