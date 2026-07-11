@@ -5,14 +5,11 @@ import { CONSOLE_MESSAGES } from './shared/constants/messages.constants.js';
 
 const app = createApp();
 
-// Entrada:
-// Ninguna; función de arranque del servidor.
-
-// Proceso:
-// Conecta la base de datos, inicia el servidor HTTP y registra manejadores de cierre graceful.
-
-// Salida:
-// No retorna valor; mantiene el proceso en ejecución hasta recibir señal de terminación.
+/**
+ * Entrada: Ninguna; función de arranque del servidor.
+ * Proceso: Conecta la base de datos, inicia el servidor HTTP y registra manejadores de cierre graceful.
+ * Salida: No retorna valor; mantiene el proceso en ejecución hasta recibir señal de terminación.
+ */
 async function bootstrap(): Promise<void> {
   try {
     try {
@@ -29,14 +26,11 @@ async function bootstrap(): Promise<void> {
       console.log(CONSOLE_MESSAGES.ENVIRONMENT(env.NODE_ENV));
     });
 
-    // Entrada:
-    // signal: nombre de la señal del sistema operativo (SIGTERM o SIGINT).
-
-    // Proceso:
-    // Cierra el servidor HTTP, desconecta la base de datos y termina el proceso.
-
-    // Salida:
-    // No retorna valor; finaliza el proceso con código 0.
+    /**
+     * Entrada: signal: nombre de la señal del sistema operativo (SIGTERM o SIGINT).
+     * Proceso: Cierra el servidor HTTP, desconecta la base de datos y termina el proceso.
+     * Salida: No retorna valor; finaliza el proceso con código 0.
+     */
     const shutdown = async (signal: string) => {
       console.log(CONSOLE_MESSAGES.SERVER_SHUTDOWN(signal));
       server.close(async () => {

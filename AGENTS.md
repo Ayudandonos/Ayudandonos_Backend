@@ -27,7 +27,7 @@ Routes -> Controller -> Service -> Repository -> Prisma
 ## Reglas no negociables
 
 1. Codigo en **ingles**; documentacion y comentarios en **espanol**.
-2. Comentarios en funciones: formato **Entrada / Proceso / Salida**.
+2. Comentarios en funciones: **un unico bloque JSDoc** con lineas `Entrada`, `Proceso` y `Salida` (ver `docs/CONVENTIONS.md`).
 3. Sin emojis en ningun artefacto.
 4. Mensajes al usuario en `src/shared/constants/messages.constants.ts`.
 5. Respuesta API: `{ success, message, data, errors }`.
@@ -63,7 +63,9 @@ index.ts
 
 **Fase 2 COMPLETADA:** Auth JWT, usuarios, seed ADMIN, Docker PostgreSQL.
 
-**Siguiente:** Fase 3 — fundaciones, campanas.
+**Fase 3 — Fundaciones COMPLETADA:** perfil extendido, documentos, verificacion admin, historial de observaciones (backend + frontend).
+
+**Siguiente:** Campanas (tras commit/push aprobado de fundaciones).
 
 ## Documentacion interna
 

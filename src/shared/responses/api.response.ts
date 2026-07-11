@@ -25,14 +25,11 @@ export interface ApiErrorResponse {
 export type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 export class ApiResponseBuilder {
-  // Entrada:
-  // data: cuerpo de la respuesta; message: mensaje opcional; meta: metadatos de paginación opcionales.
-
-  // Proceso:
-  // Construye un objeto de respuesta exitosa con la estructura estándar de la API.
-
-  // Salida:
-  // Retorna el objeto ApiSuccessResponse listo para serializar.
+  /**
+   * Entrada: data: cuerpo de la respuesta; message: mensaje opcional; meta: metadatos de paginación opcionales.
+   * Proceso: Construye un objeto de respuesta exitosa con la estructura estándar de la API.
+   * Salida: Retorna el objeto ApiSuccessResponse listo para serializar.
+   */
   static success<T>(
     data: T,
     message: string = API_MESSAGES.SUCCESS_DEFAULT,
@@ -47,14 +44,11 @@ export class ApiResponseBuilder {
     };
   }
 
-  // Entrada:
-  // message: mensaje de error; errors: detalle de errores por campo opcional.
-
-  // Proceso:
-  // Construye un objeto de respuesta de error con la estructura estándar de la API.
-
-  // Salida:
-  // Retorna el objeto ApiErrorResponse listo para serializar.
+  /**
+   * Entrada: message: mensaje de error; errors: detalle de errores por campo opcional.
+   * Proceso: Construye un objeto de respuesta de error con la estructura estándar de la API.
+   * Salida: Retorna el objeto ApiErrorResponse listo para serializar.
+   */
   static error(
     message: string,
     errors?: Record<string, string[]>,

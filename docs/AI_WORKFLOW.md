@@ -44,7 +44,7 @@ Una rama por tarea. PR hacia `develop` al cerrar la iteracion.
 - [ ] Errores con `AppError`
 - [ ] Mensajes desde `API_MESSAGES` o `VALIDATION_MESSAGES`
 - [ ] Documentacion Swagger en el archivo de rutas
-- [ ] Comentarios Entrada/Proceso/Salida en cada funcion
+- [ ] Comentarios JSDoc (Entrada/Proceso/Salida) en cada funcion
 - [ ] Build y lint sin errores
 
 ## Prohibiciones

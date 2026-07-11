@@ -4,15 +4,12 @@ import { asyncHandler } from '../../utils/async-handler.util.js';
 import { API_MESSAGES } from '../../shared/constants/messages.constants.js';
 
 export class NotificationsController {
+  /**
+   * Entrada: _req: peticion HTTP; res: respuesta HTTP.
+   * Proceso: Responde con estado 501 indicando que el endpoint esta pendiente de implementacion.
+   * Salida: No retorna valor; envia respuesta JSON de endpoint en desarrollo.
+   */
   findAll = asyncHandler(async (_req: Request, res: Response) => {
-    // Entrada:
-    // _req: petición HTTP; res: respuesta HTTP.
-
-    // Proceso:
-    // Responde con estado 501 indicando que el endpoint está pendiente de implementación.
-
-    // Salida:
-    // No retorna valor; envía respuesta JSON de endpoint en desarrollo.
     res.status(501).json(
       ApiResponseBuilder.error(API_MESSAGES.ENDPOINT_IN_DEVELOPMENT),
     );

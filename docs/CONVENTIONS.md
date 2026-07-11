@@ -5,22 +5,23 @@
 | Elemento | Idioma |
 | -------- | ------ |
 | Identificadores de codigo | Ingles |
-| Comentarios de funciones | Espanol (Entrada/Proceso/Salida) |
+| Comentarios de funciones | Espanol en bloque JSDoc unico (Entrada/Proceso/Salida) |
 | Documentacion | Espanol |
 | Mensajes al usuario (API) | Espanol en `API_MESSAGES` |
 
 ## Comentarios obligatorios
 
-```javascript
-// Entrada:
-// ...
+Toda funcion, metodo, servicio, repositorio, controlador, middleware y utilidad debe documentarse con **un unico bloque JSDoc** en espanol:
 
-// Proceso:
-// ...
-
-// Salida:
-// ...
+```typescript
+/**
+ * Entrada: Describe de forma clara los parametros o datos que recibe la funcion.
+ * Proceso: Explica brevemente la responsabilidad y el comportamiento de la funcion.
+ * Salida: Describe el valor retornado o el efecto que produce la funcion.
+ */
 ```
+
+No usar comentarios de linea (`//`) ni bloques separados para Entrada, Proceso o Salida.
 
 ## Nomenclatura de archivos
 

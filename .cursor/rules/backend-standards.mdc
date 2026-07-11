@@ -11,7 +11,7 @@ Leer AGENTS.md antes de modificar codigo.
 Routes -> Controller -> Service -> Repository -> Prisma. Sin logica en controllers.
 
 ## Idioma
-Codigo en ingles. Comentarios Entrada/Proceso/Salida en espanol. Mensajes usuario en messages.constants.ts.
+Codigo en ingles. Comentarios JSDoc unico (Entrada/Proceso/Salida) en espanol. Mensajes usuario en messages.constants.ts.
 
 ## Prohibido
 Emojis. Reorganizar carpetas sin autorizacion. Prisma fuera de repositories. Codigo no solicitado.

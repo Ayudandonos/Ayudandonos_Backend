@@ -38,6 +38,16 @@ Variables minimas: `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN` (URL del frontend
 - Swagger: `http://localhost:3000/api/v1/docs`
 - Health: `http://localhost:3000/api/v1/health`
 
+## Modulos API (Fase 3)
+
+| Recurso | Prefijo |
+| ------- | ------- |
+| Auth | `/api/v1/auth` |
+| Users | `/api/v1/users` |
+| Foundations | `/api/v1/foundations` |
+
+Detalle del modulo fundaciones: [docs/FOUNDATIONS_MODULE.md](./docs/FOUNDATIONS_MODULE.md).
+
 ## Scripts
 
 | Comando | Descripcion |

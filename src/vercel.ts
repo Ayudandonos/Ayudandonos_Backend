@@ -6,14 +6,11 @@ const app = createApp();
 
 let databaseInitialization: Promise<void> | null = null;
 
-// Entrada:
-// Ninguna.
-
-// Proceso:
-// Inicializa la conexion a base de datos una sola vez por instancia serverless.
-
-// Salida:
-// Retorna promesa de conexion (exitosa o con advertencia).
+/**
+ * Entrada: Ninguna.
+ * Proceso: Inicializa la conexion a base de datos una sola vez por instancia serverless.
+ * Salida: Retorna promesa de conexion (exitosa o con advertencia).
+ */
 function initializeDatabase(): Promise<void> {
   if (!databaseInitialization) {
     databaseInitialization = connectDatabase()

@@ -11,15 +11,12 @@ import type {
 } from './users.validations.js';
 
 export class UsersController {
+  /**
+   * Entrada: req: peticion con query de paginacion; res: respuesta HTTP.
+   * Proceso: Delega el listado paginado al servicio de usuarios.
+   * Salida: No retorna valor; responde 200 con listado y meta de paginacion.
+   */
   findAll = asyncHandler(async (req: Request, res: Response) => {
-    // Entrada:
-    // req: peticion con query de paginacion; res: respuesta HTTP.
-
-    // Proceso:
-    // Delega el listado paginado al servicio de usuarios.
-
-    // Salida:
-    // No retorna valor; responde 200 con listado y meta de paginacion.
     const { user } = req as AuthenticatedRequest;
     const query = req.query as unknown as ListUsersQueryInput;
     const result = await usersService.listUsers(query, user);
@@ -33,15 +30,12 @@ export class UsersController {
     );
   });
 
+  /**
+   * Entrada: req: peticion con id en params; res: respuesta HTTP.
+   * Proceso: Delega la obtencion de detalle al servicio de usuarios.
+   * Salida: No retorna valor; responde 200 con detalle del usuario.
+   */
   findById = asyncHandler(async (req: Request, res: Response) => {
-    // Entrada:
-    // req: peticion con id en params; res: respuesta HTTP.
-
-    // Proceso:
-    // Delega la obtencion de detalle al servicio de usuarios.
-
-    // Salida:
-    // No retorna valor; responde 200 con detalle del usuario.
     const { user } = req as AuthenticatedRequest;
     const { id } = req.params as UserIdParamInput;
     const data = await usersService.getUserById(id, user);
@@ -51,15 +45,12 @@ export class UsersController {
     );
   });
 
+  /**
+   * Entrada: req: peticion con id y body de actualizacion; res: respuesta HTTP.
+   * Proceso: Delega la actualizacion de perfil al servicio de usuarios.
+   * Salida: No retorna valor; responde 200 con usuario actualizado.
+   */
   update = asyncHandler(async (req: Request, res: Response) => {
-    // Entrada:
-    // req: peticion con id y body de actualizacion; res: respuesta HTTP.
-
-    // Proceso:
-    // Delega la actualizacion de perfil al servicio de usuarios.
-
-    // Salida:
-    // No retorna valor; responde 200 con usuario actualizado.
     const { user } = req as AuthenticatedRequest;
     const { id } = req.params as UserIdParamInput;
     const body = req.body as UpdateUserInput;
@@ -70,15 +61,12 @@ export class UsersController {
     );
   });
 
+  /**
+   * Entrada: req: peticion con id del usuario a desactivar; res: respuesta HTTP.
+   * Proceso: Delega la desactivacion (soft delete) al servicio de usuarios.
+   * Salida: No retorna valor; responde 200 con usuario desactivado.
+   */
   deactivate = asyncHandler(async (req: Request, res: Response) => {
-    // Entrada:
-    // req: peticion con id del usuario a desactivar; res: respuesta HTTP.
-
-    // Proceso:
-    // Delega la desactivacion (soft delete) al servicio de usuarios.
-
-    // Salida:
-    // No retorna valor; responde 200 con usuario desactivado.
     const { user } = req as AuthenticatedRequest;
     const { id } = req.params as UserIdParamInput;
     const data = await usersService.deactivateUser(id, user);

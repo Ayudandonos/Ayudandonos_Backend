@@ -60,6 +60,9 @@ temp/
 *.tmp
 *.temp
 
+# Archivos subidos localmente
+uploads/
+
 # Documentacion interna 
 specs/
 .vercel

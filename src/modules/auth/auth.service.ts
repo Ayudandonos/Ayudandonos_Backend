@@ -7,25 +7,22 @@ import type {
   AuthTokenResponseDto,
   LoginDto,
   MeResponseDto,
-  PublicFoundationDto,
   PublicUserDto,
   RegisterFoundationDto,
   RegisterUserDto,
 } from './auth.dto.js';
+import { toPublicFoundationDto } from '../foundations/public-foundation.mapper.js';
 import {
   authRepository,
   type UserWithFoundation,
 } from './auth.repository.js';
 
 export class AuthService {
-  // Entrada:
-  // input: credenciales de registro del donante.
-
-  // Proceso:
-  // Valida unicidad del email, hashea la contraseña, crea usuario con rol USER y genera JWT.
-
-  // Salida:
-  // Retorna token de acceso y datos públicos del usuario registrado.
+  /**
+   * Entrada: input: credenciales de registro del donante.
+   * Proceso: Valida unicidad del email, hashea la contraseña, crea usuario con rol USER y genera JWT.
+   * Salida: Retorna token de acceso y datos públicos del usuario registrado.
+   */
   async registerUser(input: RegisterUserDto): Promise<AuthTokenResponseDto> {
     await this.ensureEmailIsAvailable(input.email);
 
@@ -45,14 +42,11 @@ export class AuthService {
     }
   }
 
-  // Entrada:
-  // input: credenciales y datos de la fundación a registrar.
-
-  // Proceso:
-  // Valida unicidad del email, hashea la contraseña y crea usuario + fundación en transacción.
-
-  // Salida:
-  // Retorna token de acceso, usuario y fundación creados.
+  /**
+   * Entrada: input: credenciales y datos de la fundación a registrar.
+   * Proceso: Valida unicidad del email, hashea la contraseña y crea usuario + fundación en transacción.
+   * Salida: Retorna token de acceso, usuario y fundación creados.
+   */
   async registerFoundation(
     input: RegisterFoundationDto,
   ): Promise<AuthTokenResponseDto> {
@@ -75,14 +69,11 @@ export class AuthService {
     }
   }
 
-  // Entrada:
-  // input: credenciales de inicio de sesión.
-
-  // Proceso:
-  // Busca usuario por email, valida contraseña y estado activo; genera JWT para cualquier rol.
-
-  // Salida:
-  // Retorna token de acceso y datos públicos del usuario autenticado.
+  /**
+   * Entrada: input: credenciales de inicio de sesión.
+   * Proceso: Busca usuario por email, valida contraseña y estado activo; genera JWT para cualquier rol.
+   * Salida: Retorna token de acceso y datos públicos del usuario autenticado.
+   */
   async login(input: LoginDto): Promise<AuthTokenResponseDto> {
     const user = await authRepository.findByEmail(input.email);
 
@@ -104,26 +95,20 @@ export class AuthService {
     return this.buildAuthResponse(user);
   }
 
-  // Entrada:
-  // Ninguna (logout stateless basado en JWT).
-
-  // Proceso:
-  // Confirma el cierre de sesión; la invalidación del token ocurre en el cliente.
-
-  // Salida:
-  // Retorna void al completar la operación lógica de logout.
+  /**
+   * Entrada: Ninguna (logout stateless basado en JWT).
+   * Proceso: Confirma el cierre de sesión; la invalidación del token ocurre en el cliente.
+   * Salida: Retorna void al completar la operación lógica de logout.
+   */
   async logout(): Promise<void> {
     return;
   }
 
-  // Entrada:
-  // userId: identificador del usuario autenticado.
-
-  // Proceso:
-  // Obtiene el perfil del usuario y su fundación si el rol es FOUNDATION.
-
-  // Salida:
-  // Retorna datos públicos del usuario y fundación cuando corresponda.
+  /**
+   * Entrada: userId: identificador del usuario autenticado.
+   * Proceso: Obtiene el perfil del usuario y su fundación si el rol es FOUNDATION.
+   * Salida: Retorna datos públicos del usuario y fundación cuando corresponda.
+   */
   async getMe(userId: string): Promise<MeResponseDto> {
     const user = await authRepository.findById(userId);
 
@@ -137,19 +122,16 @@ export class AuthService {
       user: this.toPublicUser(user),
       foundation:
         user.role === 'FOUNDATION' && user.foundation
-          ? this.toPublicFoundation(user.foundation)
+          ? toPublicFoundationDto(user.foundation)
           : null,
     };
   }
 
-  // Entrada:
-  // email: correo a validar antes de registrar.
-
-  // Proceso:
-  // Verifica que no exista otro usuario con el mismo email.
-
-  // Salida:
-  // Retorna void o lanza AppError 409 si el email ya está registrado.
+  /**
+   * Entrada: email: correo a validar antes de registrar.
+   * Proceso: Verifica que no exista otro usuario con el mismo email.
+   * Salida: Retorna void o lanza AppError 409 si el email ya está registrado.
+   */
   private async ensureEmailIsAvailable(email: string): Promise<void> {
     const existingUser = await authRepository.findByEmail(email);
 
@@ -158,28 +140,22 @@ export class AuthService {
     }
   }
 
-  // Entrada:
-  // user: entidad de usuario con estado activo.
-
-  // Proceso:
-  // Verifica que la cuenta del usuario esté habilitada.
-
-  // Salida:
-  // Retorna void o lanza AppError 403 si la cuenta está desactivada.
+  /**
+   * Entrada: user: entidad de usuario con estado activo.
+   * Proceso: Verifica que la cuenta del usuario esté habilitada.
+   * Salida: Retorna void o lanza AppError 403 si la cuenta está desactivada.
+   */
   private ensureUserIsActive(user: UserWithFoundation): void {
     if (!user.isActive) {
       throw new AppError(API_MESSAGES.AUTH_USER_INACTIVE, 403);
     }
   }
 
-  // Entrada:
-  // user: usuario con o sin fundación asociada.
-
-  // Proceso:
-  // Genera JWT y construye la respuesta de autenticación sin datos sensibles.
-
-  // Salida:
-  // Retorna token y datos públicos del usuario (y fundación si aplica).
+  /**
+   * Entrada: user: usuario con o sin fundación asociada.
+   * Proceso: Genera JWT y construye la respuesta de autenticación sin datos sensibles.
+   * Salida: Retorna token y datos públicos del usuario (y fundación si aplica).
+   */
   private buildAuthResponse(
     user: UserWithFoundation | (UserWithFoundation & { foundation?: null }),
   ): AuthTokenResponseDto {
@@ -195,20 +171,17 @@ export class AuthService {
     };
 
     if (user.role === 'FOUNDATION' && user.foundation) {
-      response.foundation = this.toPublicFoundation(user.foundation);
+      response.foundation = toPublicFoundationDto(user.foundation);
     }
 
     return response;
   }
 
-  // Entrada:
-  // user: entidad de usuario de Prisma.
-
-  // Proceso:
-  // Mapea el usuario a un DTO público excluyendo contraseña y campos internos.
-
-  // Salida:
-  // Retorna el DTO público del usuario.
+  /**
+   * Entrada: user: entidad de usuario de Prisma.
+   * Proceso: Mapea el usuario a un DTO público excluyendo contraseña y campos internos.
+   * Salida: Retorna el DTO público del usuario.
+   */
   private toPublicUser(user: UserWithFoundation): PublicUserDto {
     return {
       id: user.id,
@@ -218,33 +191,11 @@ export class AuthService {
     };
   }
 
-  // Entrada:
-  // foundation: entidad de fundación de Prisma.
-
-  // Proceso:
-  // Mapea la fundación a un DTO público para respuestas de API.
-
-  // Salida:
-  // Retorna el DTO público de la fundación.
-  private toPublicFoundation(
-    foundation: NonNullable<UserWithFoundation['foundation']>,
-  ): PublicFoundationDto {
-    return {
-      id: foundation.id,
-      name: foundation.name,
-      description: foundation.description,
-      isVerified: foundation.isVerified,
-    };
-  }
-
-  // Entrada:
-  // error: error capturado durante operaciones de persistencia.
-
-  // Proceso:
-  // Traduce errores de Prisma a AppError con códigos HTTP apropiados.
-
-  // Salida:
-  // Retorna void o relanza AppError; nunca retorna en caso de error no controlado.
+  /**
+   * Entrada: error: error capturado durante operaciones de persistencia.
+   * Proceso: Traduce errores de Prisma a AppError con códigos HTTP apropiados.
+   * Salida: Retorna void o relanza AppError; nunca retorna en caso de error no controlado.
+   */
   private handlePersistenceError(error: unknown): never {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&

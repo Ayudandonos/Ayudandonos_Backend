@@ -11,15 +11,12 @@ import type {
 } from './auth.validations.js';
 
 export class AuthController {
+  /**
+   * Entrada: req: peticion HTTP con datos de registro de usuario; res: respuesta HTTP.
+   * Proceso: Delega el registro de donante al servicio de autenticacion.
+   * Salida: No retorna valor; responde 201 con token y usuario creado.
+   */
   registerUser = asyncHandler(async (req: Request, res: Response) => {
-    // Entrada:
-    // req: petición HTTP con datos de registro de usuario; res: respuesta HTTP.
-
-    // Proceso:
-    // Delega el registro de donante al servicio de autenticación.
-
-    // Salida:
-    // No retorna valor; responde 201 con token y usuario creado.
     const body = req.body as RegisterUserInput;
     const data = await authService.registerUser(body);
 
@@ -28,15 +25,12 @@ export class AuthController {
     );
   });
 
+  /**
+   * Entrada: req: peticion HTTP con datos de registro de fundacion; res: respuesta HTTP.
+   * Proceso: Delega el registro de fundacion al servicio de autenticacion.
+   * Salida: No retorna valor; responde 201 con token, usuario y fundacion creados.
+   */
   registerFoundation = asyncHandler(async (req: Request, res: Response) => {
-    // Entrada:
-    // req: petición HTTP con datos de registro de fundación; res: respuesta HTTP.
-
-    // Proceso:
-    // Delega el registro de fundación al servicio de autenticación.
-
-    // Salida:
-    // No retorna valor; responde 201 con token, usuario y fundación creados.
     const body = req.body as RegisterFoundationInput;
     const data = await authService.registerFoundation(body);
 
@@ -48,15 +42,12 @@ export class AuthController {
     );
   });
 
+  /**
+   * Entrada: req: peticion HTTP con credenciales; res: respuesta HTTP.
+   * Proceso: Delega la autenticacion al servicio de autenticacion.
+   * Salida: No retorna valor; responde 200 con token y usuario autenticado.
+   */
   login = asyncHandler(async (req: Request, res: Response) => {
-    // Entrada:
-    // req: petición HTTP con credenciales; res: respuesta HTTP.
-
-    // Proceso:
-    // Delega la autenticación al servicio de autenticación.
-
-    // Salida:
-    // No retorna valor; responde 200 con token y usuario autenticado.
     const body = req.body as LoginInput;
     const data = await authService.login(body);
 
@@ -65,15 +56,12 @@ export class AuthController {
     );
   });
 
+  /**
+   * Entrada: _req: peticion HTTP autenticada; res: respuesta HTTP.
+   * Proceso: Delega el cierre de sesion stateless al servicio de autenticacion.
+   * Salida: No retorna valor; responde 200 confirmando cierre de sesion.
+   */
   logout = asyncHandler(async (_req: Request, res: Response) => {
-    // Entrada:
-    // _req: petición HTTP autenticada; res: respuesta HTTP.
-
-    // Proceso:
-    // Delega el cierre de sesión stateless al servicio de autenticación.
-
-    // Salida:
-    // No retorna valor; responde 200 confirmando cierre de sesión.
     await authService.logout();
 
     res.status(200).json(
@@ -81,15 +69,12 @@ export class AuthController {
     );
   });
 
+  /**
+   * Entrada: req: peticion HTTP autenticada con req.user; res: respuesta HTTP.
+   * Proceso: Delega la obtencion del perfil autenticado al servicio de autenticacion.
+   * Salida: No retorna valor; responde 200 con usuario y fundacion si aplica.
+   */
   me = asyncHandler(async (req: Request, res: Response) => {
-    // Entrada:
-    // req: petición HTTP autenticada con req.user; res: respuesta HTTP.
-
-    // Proceso:
-    // Delega la obtención del perfil autenticado al servicio de autenticación.
-
-    // Salida:
-    // No retorna valor; responde 200 con usuario y fundación si aplica.
     const { user } = req as AuthenticatedRequest;
     const data = await authService.getMe(user.id);
 

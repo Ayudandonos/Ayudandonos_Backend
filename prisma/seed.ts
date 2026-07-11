@@ -24,26 +24,20 @@ const ADMIN_USERS: AdminSeedUser[] = [
   },
 ];
 
-// Entrada:
-// plainText: contraseña en texto plano.
-
-// Proceso:
-// Genera hash bcrypt con las mismas rondas de sal que el módulo de autenticación.
-
-// Salida:
-// Retorna el hash listo para persistir en base de datos.
+/**
+ * Entrada: plainText: contraseña en texto plano.
+ * Proceso: Genera hash bcrypt con las mismas rondas de sal que el modulo de autenticacion.
+ * Salida: Retorna el hash listo para persistir en base de datos.
+ */
 async function hashPassword(plainText: string): Promise<string> {
   return bcrypt.hash(plainText, SALT_ROUNDS);
 }
 
-// Entrada:
-// admin: datos del administrador a sembrar; passwordHash: hash de la contraseña.
-
-// Proceso:
-// Crea o actualiza un usuario ADMIN por email (idempotente).
-
-// Salida:
-// Retorna el usuario persistido.
+/**
+ * Entrada: admin: datos del administrador a sembrar; passwordHash: hash de la contraseña.
+ * Proceso: Crea o actualiza un usuario ADMIN por email (idempotente).
+ * Salida: Retorna el usuario persistido.
+ */
 async function upsertAdmin(admin: AdminSeedUser, passwordHash: string) {
   return prisma.user.upsert({
     where: { email: admin.email },
@@ -63,14 +57,11 @@ async function upsertAdmin(admin: AdminSeedUser, passwordHash: string) {
   });
 }
 
-// Entrada:
-// Ninguna.
-
-// Proceso:
-// Valida SEED_ADMIN_PASSWORD, hashea una vez y crea o actualiza los administradores.
-
-// Salida:
-// Retorna void al completar el seed.
+/**
+ * Entrada: Ninguna.
+ * Proceso: Valida SEED_ADMIN_PASSWORD, hashea una vez y crea o actualiza los administradores.
+ * Salida: No retorna valor al completar el seed.
+ */
 async function main(): Promise<void> {
   const password = process.env.SEED_ADMIN_PASSWORD;
 

@@ -1,7 +1,7 @@
 import type { UserRole } from '@prisma/client';
 import { AppError } from '../../shared/errors/app.error.js';
 import { API_MESSAGES } from '../../shared/constants/messages.constants.js';
-import type { PublicFoundationDto } from '../auth/auth.dto.js';
+import { toPublicFoundationDto } from '../foundations/public-foundation.mapper.js';
 import type {
   ListUsersQueryDto,
   UpdateUserData,
@@ -21,14 +21,11 @@ interface RequesterContext {
 }
 
 export class UsersService {
-  // Entrada:
-  // query: filtros y paginacion; requester: usuario autenticado que realiza la consulta.
-
-  // Proceso:
-  // Valida rol admin y retorna listado paginado de usuarios.
-
-  // Salida:
-  // Retorna items y metadatos de paginacion.
+  /**
+   * Entrada: query: filtros y paginacion; requester: usuario autenticado que realiza la consulta.
+   * Proceso: Valida rol admin y retorna listado paginado de usuarios.
+   * Salida: Retorna items y metadatos de paginacion.
+   */
   async listUsers(
     query: ListUsersQueryDto,
     requester: RequesterContext,
@@ -51,14 +48,11 @@ export class UsersService {
     };
   }
 
-  // Entrada:
-  // id: identificador del usuario; requester: usuario autenticado.
-
-  // Proceso:
-  // Permite acceso a admin o al propio usuario; obtiene detalle con fundacion si aplica.
-
-  // Salida:
-  // Retorna detalle publico del usuario.
+  /**
+   * Entrada: id: identificador del usuario; requester: usuario autenticado.
+   * Proceso: Permite acceso a admin o al propio usuario; obtiene detalle con fundacion si aplica.
+   * Salida: Retorna detalle publico del usuario.
+   */
   async getUserById(
     id: string,
     requester: RequesterContext,
@@ -74,14 +68,11 @@ export class UsersService {
     return this.toDetailResponse(user);
   }
 
-  // Entrada:
-  // id: identificador del usuario; input: datos a actualizar; requester: usuario autenticado.
-
-  // Proceso:
-  // Admin puede actualizar perfil y campos administrativos; el usuario solo su fullName.
-
-  // Salida:
-  // Retorna el usuario actualizado con fundacion si aplica.
+  /**
+   * Entrada: id: identificador del usuario; input: datos a actualizar; requester: usuario autenticado.
+   * Proceso: Admin puede actualizar perfil y campos administrativos; el usuario solo su fullName.
+   * Salida: Retorna el usuario actualizado con fundacion si aplica.
+   */
   async updateUser(
     id: string,
     input: UpdateUserDto,
@@ -102,14 +93,11 @@ export class UsersService {
     return this.toDetailResponse(updatedUser);
   }
 
-  // Entrada:
-  // id: identificador del usuario; requester: administrador autenticado.
-
-  // Proceso:
-  // Desactiva la cuenta (soft delete); impide que un admin se desactive a si mismo.
-
-  // Salida:
-  // Retorna el usuario desactivado en formato de listado.
+  /**
+   * Entrada: id: identificador del usuario; requester: administrador autenticado.
+   * Proceso: Desactiva la cuenta (soft delete); impide que un admin se desactive a si mismo.
+   * Salida: Retorna el usuario desactivado en formato de listado.
+   */
   async deactivateUser(
     id: string,
     requester: RequesterContext,
@@ -135,28 +123,22 @@ export class UsersService {
     return this.toListItem(deactivatedUser);
   }
 
-  // Entrada:
-  // requester: usuario autenticado.
-
-  // Proceso:
-  // Verifica que el rol sea ADMIN.
-
-  // Salida:
-  // Retorna void o lanza AppError 403.
+  /**
+   * Entrada: requester: usuario autenticado.
+   * Proceso: Verifica que el rol sea ADMIN.
+   * Salida: Retorna void o lanza AppError 403.
+   */
   private assertIsAdmin(requester: RequesterContext): void {
     if (requester.role !== 'ADMIN') {
       throw new AppError(API_MESSAGES.AUTH_FORBIDDEN, 403);
     }
   }
 
-  // Entrada:
-  // targetUserId: id del recurso; requester: usuario autenticado.
-
-  // Proceso:
-  // Permite acceso si es admin o si el id coincide con el solicitante.
-
-  // Salida:
-  // Retorna void o lanza AppError 403.
+  /**
+   * Entrada: targetUserId: id del recurso; requester: usuario autenticado.
+   * Proceso: Permite acceso si es admin o si el id coincide con el solicitante.
+   * Salida: Retorna void o lanza AppError 403.
+   */
   private assertIsAdminOrSelf(
     targetUserId: string,
     requester: RequesterContext,
@@ -168,14 +150,11 @@ export class UsersService {
     throw new AppError(API_MESSAGES.USERS_CANNOT_ACCESS_OTHERS, 403);
   }
 
-  // Entrada:
-  // input: datos del body; requester: usuario que ejecuta la actualizacion.
-
-  // Proceso:
-  // Filtra campos permitidos segun rol (admin vs self).
-
-  // Salida:
-  // Retorna objeto listo para el repository.
+  /**
+   * Entrada: input: datos del body; requester: usuario que ejecuta la actualizacion.
+   * Proceso: Filtra campos permitidos segun rol (admin vs self).
+   * Salida: Retorna objeto listo para el repository.
+   */
   private buildUpdateData(
     input: UpdateUserDto,
     requester: RequesterContext,
@@ -193,14 +172,11 @@ export class UsersService {
     };
   }
 
-  // Entrada:
-  // user: entidad de usuario de Prisma.
-
-  // Proceso:
-  // Mapea a DTO de item de listado sin datos sensibles.
-
-  // Salida:
-  // Retorna UserListItemDto.
+  /**
+   * Entrada: user: entidad de usuario de Prisma.
+   * Proceso: Mapea a DTO de item de listado sin datos sensibles.
+   * Salida: Retorna UserListItemDto.
+   */
   private toListItem(user: {
     id: string;
     email: string;
@@ -219,14 +195,11 @@ export class UsersService {
     };
   }
 
-  // Entrada:
-  // user: usuario con fundacion opcional.
-
-  // Proceso:
-  // Mapea a respuesta de detalle publica.
-
-  // Salida:
-  // Retorna UserDetailResponseDto.
+  /**
+   * Entrada: user: usuario con fundacion opcional.
+   * Proceso: Mapea a respuesta de detalle publica.
+   * Salida: Retorna UserDetailResponseDto.
+   */
   private toDetailResponse(user: UserWithFoundation): UserDetailResponseDto {
     return {
       user: {
@@ -240,27 +213,8 @@ export class UsersService {
       },
       foundation:
         user.role === 'FOUNDATION' && user.foundation
-          ? this.toPublicFoundation(user.foundation)
+          ? toPublicFoundationDto(user.foundation)
           : null,
-    };
-  }
-
-  // Entrada:
-  // foundation: entidad de fundacion.
-
-  // Proceso:
-  // Mapea fundacion a DTO publico.
-
-  // Salida:
-  // Retorna PublicFoundationDto.
-  private toPublicFoundation(
-    foundation: NonNullable<UserWithFoundation['foundation']>,
-  ): PublicFoundationDto {
-    return {
-      id: foundation.id,
-      name: foundation.name,
-      description: foundation.description,
-      isVerified: foundation.isVerified,
     };
   }
 }
