@@ -1,14 +1,11 @@
 import type { CorsOptions } from 'cors';
 import { env } from './env.config.js';
 
-// Entrada:
-// Ninguna.
-
-// Proceso:
-// Parsea los origenes permitidos desde CORS_ORIGIN (lista separada por comas).
-
-// Salida:
-// Retorna arreglo de origenes sin espacios ni slash final.
+/**
+ * Entrada: origins: cadena con URLs permitidas separadas por comas.
+ * Proceso: Parsea y normaliza los origenes CORS sin espacios ni slash final.
+ * Salida: Retorna arreglo de origenes permitidos.
+ */
 function parseAllowedOrigins(origins: string): string[] {
   return origins
     .split(',')
