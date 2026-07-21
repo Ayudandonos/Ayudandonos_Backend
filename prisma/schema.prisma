@@ -37,6 +37,27 @@ enum SocialNetworkType {
   OTHER
 }
 
+enum CampaignStatus {
+  DRAFT
+  PUBLISHED
+  FINISHED
+  CANCELLED
+}
+
+enum NeedPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum DonationStatus {
+  COMMITTED
+  IN_TRANSIT
+  DELIVERED
+  CONFIRMED
+  CANCELLED
+}
+
 model User {
   id           String   @id @default(uuid()) @db.Uuid
   email        String   @unique
@@ -51,6 +72,9 @@ model User {
 
   foundationObservations FoundationAdminObservation[] @relation("ObservationAuthor")
   verifiedFoundations    Foundation[]                 @relation("FoundationVerifier")
+  donations              Donation[]                   @relation("DonationDonor")
+  donationStatusChanges  DonationStatusHistory[]      @relation("DonationStatusChanger")
+  messages               Message[]
 
   @@map("users")
 }
@@ -91,6 +115,7 @@ model Foundation {
   socialLinks  FoundationSocialLink[]
   documents    FoundationDocument[]
   observations FoundationAdminObservation[]
+  campaigns    Campaign[]
 
   @@index([status])
   @@index([category])
@@ -142,4 +167,118 @@ model FoundationAdminObservation {
 
   @@index([foundationId, createdAt])
   @@map("foundation_admin_observations")
+}
+
+model Campaign {
+  id                 String         @id @default(uuid()) @db.Uuid
+  foundationId       String         @map("foundation_id") @db.Uuid
+  title              String
+  description        String
+  imageUrl           String?        @map("image_url")
+  status             CampaignStatus @default(DRAFT)
+  startDate          DateTime?      @map("start_date")
+  endDate            DateTime?      @map("end_date")
+  deliveryAddress    String?        @map("delivery_address")
+  deliveryLatitude   Float?         @map("delivery_latitude")
+  deliveryLongitude  Float?         @map("delivery_longitude")
+  deletedAt          DateTime?      @map("deleted_at")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  foundation Foundation @relation(fields: [foundationId], references: [id], onDelete: Cascade)
+  needs      Need[]
+
+  @@index([foundationId])
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+  @@map("campaigns")
+}
+
+model Need {
+  id                String       @id @default(uuid()) @db.Uuid
+  campaignId        String       @map("campaign_id") @db.Uuid
+  name              String
+  description       String?
+  quantity          Int
+  unit              String
+  priority          NeedPriority @default(MEDIUM)
+  fulfilledQuantity Int          @default(0) @map("fulfilled_quantity")
+  deletedAt         DateTime?    @map("deleted_at")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  campaign  Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  donations Donation[]
+
+  @@index([campaignId])
+  @@index([priority])
+  @@map("needs")
+}
+
+model Donation {
+  id                   String         @id @default(uuid()) @db.Uuid
+  needId               String         @map("need_id") @db.Uuid
+  donorUserId          String         @map("donor_user_id") @db.Uuid
+  status               DonationStatus @default(COMMITTED)
+  quantity             Int
+  notes                String?
+  estimatedDeliveryAt  DateTime?      @map("estimated_delivery_at")
+  deliveryAddress      String?        @map("delivery_address")
+  deliveryLatitude     Float?         @map("delivery_latitude")
+  deliveryLongitude    Float?         @map("delivery_longitude")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+
+  need         Need                    @relation(fields: [needId], references: [id], onDelete: Cascade)
+  donor        User                    @relation("DonationDonor", fields: [donorUserId], references: [id], onDelete: Cascade)
+  statusHistory DonationStatusHistory[]
+  conversation Conversation?
+
+  @@index([needId])
+  @@index([donorUserId])
+  @@index([status])
+  @@map("donations")
+}
+
+model DonationStatusHistory {
+  id          String          @id @default(uuid()) @db.Uuid
+  donationId  String          @map("donation_id") @db.Uuid
+  fromStatus  DonationStatus? @map("from_status")
+  toStatus    DonationStatus  @map("to_status")
+  changedById String?         @map("changed_by_id") @db.Uuid
+  note        String?
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  donation  Donation @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  changedBy User?    @relation("DonationStatusChanger", fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([donationId, createdAt])
+  @@map("donation_status_history")
+}
+
+model Conversation {
+  id         String   @id @default(uuid()) @db.Uuid
+  donationId String   @unique @map("donation_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  donation Donation  @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String   @id @default(uuid()) @db.Uuid
+  conversationId String   @map("conversation_id") @db.Uuid
+  senderId       String   @map("sender_id") @db.Uuid
+  body           String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
 }

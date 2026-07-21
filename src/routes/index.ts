@@ -7,8 +7,6 @@ import { foundationsRoutes } from '../modules/foundations/foundations.routes.js'
 import { campaignsRoutes } from '../modules/campaigns/campaigns.routes.js';
 import { needsRoutes } from '../modules/needs/needs.routes.js';
 import { donationsRoutes } from '../modules/donations/donations.routes.js';
-import { authenticate } from '../middlewares/auth.middleware.js';
-import { requireFoundationOperational } from '../middlewares/foundation-access.middleware.js';
 
 const apiRouter = Router();
 
@@ -17,18 +15,8 @@ apiRouter.use('/auth', authRoutes);
 apiRouter.use('/users', usersRoutes);
 apiRouter.use('/foundations', foundationsRoutes);
 apiRouter.use('/foundation', foundationOperationalRouter);
-apiRouter.use(
-  '/campaigns',
-  authenticate,
-  requireFoundationOperational,
-  campaignsRoutes,
-);
-apiRouter.use('/needs', authenticate, requireFoundationOperational, needsRoutes);
-apiRouter.use(
-  '/donations',
-  authenticate,
-  requireFoundationOperational,
-  donationsRoutes,
-);
+apiRouter.use('/campaigns', campaignsRoutes);
+apiRouter.use('/needs', needsRoutes);
+apiRouter.use('/donations', donationsRoutes);
 
 export { apiRouter };

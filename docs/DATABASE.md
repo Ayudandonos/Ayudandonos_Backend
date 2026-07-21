@@ -1,6 +1,6 @@
 # Base de datos — Ayudandonos Backend
 
-Estado del esquema: **Fase 3 — Fundaciones extendidas**.
+Estado del esquema: **Fase 4 — Campanas**.
 
 Motor: PostgreSQL. ORM: Prisma.
 
@@ -111,6 +111,7 @@ erDiagram
 
 - `foundations`: `status`, `category`, `city`, `department`
 - `foundation_admin_observations`: `(foundation_id, created_at)`
+- `campaigns`: `foundation_id`, `status`, `start_date`, `end_date`
 
 ## Migraciones relevantes
 
@@ -118,14 +119,14 @@ erDiagram
 | ------- | ----------- |
 | `20250710180000_foundation_extended_profile` | Schema extendido, enum status, redes y documentos |
 | `20250710190000_foundation_acronym_observations` | Sigla (`acronym`) e historial de observaciones admin |
+| `20260720190000_campaigns` | Tabla `campaigns` y enum `CampaignStatus` |
 
 ## Extension futura
 
-El modelo de `foundations` esta disenado para soportar modulos posteriores sin refactor mayor:
+El modelo de `foundations` y `campaigns` esta disenado para soportar modulos posteriores sin refactor mayor:
 
-- **Campanas**: FK `foundation_id` en tabla futura `campaigns`
-- **Necesidades / Donaciones**: relacion via campana o fundacion
+- **Necesidades / Donaciones**: relacion via `campaign_id`
 - **Voluntariado**: perfil de fundacion como ancla organizacional
 - **Reportes**: agregaciones por `status`, `category`, `city`, `department`
 
-No eliminar campos de perfil al agregar campanas; mantener separacion entre identidad organizacional (fundacion) y operacion (campanas).
+No eliminar campos de perfil al agregar necesidades; mantener separacion entre identidad organizacional (fundacion) y operacion (campanas).
