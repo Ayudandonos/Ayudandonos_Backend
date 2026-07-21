@@ -89,6 +89,7 @@ export const API_MESSAGES = {
   ENDPOINT_IN_DEVELOPMENT: 'Endpoint en desarrollo — Fase 2',
   API_ROOT_INFO: 'API Ayudandonos operativa. Usa el prefijo /api/v1 en todas las rutas.',
   RATE_LIMIT_EXCEEDED: 'Demasiadas solicitudes. Intenta de nuevo más tarde.',
+  ADMIN_DASHBOARD_SUCCESS: 'Panel administrativo obtenido correctamente',
 } as const;
 
 /**

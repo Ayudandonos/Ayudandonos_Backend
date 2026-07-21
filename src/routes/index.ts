@@ -7,6 +7,7 @@ import { foundationsRoutes } from '../modules/foundations/foundations.routes.js'
 import { campaignsRoutes } from '../modules/campaigns/campaigns.routes.js';
 import { needsRoutes } from '../modules/needs/needs.routes.js';
 import { donationsRoutes } from '../modules/donations/donations.routes.js';
+import { adminRoutes } from '../modules/admin/admin.routes.js';
 
 const apiRouter = Router();
 
@@ -18,5 +19,6 @@ apiRouter.use('/foundation', foundationOperationalRouter);
 apiRouter.use('/campaigns', campaignsRoutes);
 apiRouter.use('/needs', needsRoutes);
 apiRouter.use('/donations', donationsRoutes);
+apiRouter.use('/admin', adminRoutes);
 
 export { apiRouter };

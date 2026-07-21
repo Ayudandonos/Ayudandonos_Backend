@@ -67,7 +67,7 @@ index.ts
 
 **Fase 4 — Campanas COMPLETADA:** CRUD, estados, listado publico, punto de entrega, Needs, Donations (historial + chat + delivery) en rama `feature/campaigns`.
 
-**Siguiente:** PR/merge de Campanas; Notificaciones y Storage en fases posteriores.
+**Siguiente:** PR/merge de Campanas; Notificaciones y Storage en fases posteriores. Panel admin dashboard (`GET /admin/dashboard`) implementado en backend.
 
 ## Documentacion interna
 
