@@ -65,7 +65,9 @@ index.ts
 
 **Fase 3 — Fundaciones COMPLETADA:** perfil extendido, documentos, verificacion admin, historial de observaciones (backend + frontend).
 
-**Siguiente:** Campanas (tras commit/push aprobado de fundaciones).
+**Fase 4 — Campanas COMPLETADA:** CRUD, estados, listado publico, punto de entrega, Needs, Donations (historial + chat + delivery) en rama `feature/campaigns`.
+
+**Siguiente:** PR/merge de Campanas; Notificaciones y Storage en fases posteriores.
 
 ## Documentacion interna
 

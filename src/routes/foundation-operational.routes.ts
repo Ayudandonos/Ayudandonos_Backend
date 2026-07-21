@@ -4,17 +4,38 @@ import { API_MESSAGES } from '../shared/constants/messages.constants.js';
 import { asyncHandler } from '../utils/async-handler.util.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { requireFoundationOperational } from '../middlewares/foundation-access.middleware.js';
+import { validate } from '../middlewares/validate.middleware.js';
+import { AppError } from '../shared/errors/app.error.js';
+import type { AuthenticatedRequest } from '../types/express.d.js';
+import { donationsService } from '../modules/donations/donations.service.js';
+import {
+  listDonationsQuerySchema,
+  type ListDonationsQueryInput,
+} from '../modules/donations/donations.validations.js';
 
 const foundationOperationalRouter = Router();
 
 /**
- * Entrada: Ninguna (fundacion autenticada y verificada).
- * Proceso: Reserva el endpoint de solicitudes de ayuda para la fase de donaciones.
- * Salida: No retorna valor; responde 501 indicando endpoint en desarrollo.
+ * Entrada: req: fundacion autenticada y operativa; res: respuesta HTTP.
+ * Proceso: Lista solicitudes de donacion recibidas por la fundacion con paginacion.
+ * Salida: No retorna valor; responde 200 con listado y meta.
  */
-const listFoundationRequestsHandler = asyncHandler(async (_req, res) => {
-  res.status(501).json(
-    ApiResponseBuilder.error(API_MESSAGES.ENDPOINT_IN_DEVELOPMENT),
+const listFoundationRequestsHandler = asyncHandler(async (req, res) => {
+  const { foundation } = req as AuthenticatedRequest;
+  const query = req.query as unknown as ListDonationsQueryInput;
+
+  if (!foundation) {
+    throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
+  }
+
+  const result = await donationsService.listFoundationRequests(foundation.id, query);
+
+  res.status(200).json(
+    ApiResponseBuilder.success(
+      result.data,
+      API_MESSAGES.DONATIONS_LIST_SUCCESS,
+      result.meta,
+    ),
   );
 });
 
@@ -22,6 +43,7 @@ foundationOperationalRouter.get(
   '/requests',
   authenticate,
   requireFoundationOperational,
+  validate(listDonationsQuerySchema, 'query'),
   listFoundationRequestsHandler,
 );
 
