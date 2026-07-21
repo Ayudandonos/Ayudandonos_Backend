@@ -26,6 +26,14 @@ Administradores creados por el seed (contraseña: `SEED_ADMIN_PASSWORD` en `.env
 | apoyo_ud@fesc.edu.co | Diego Alexander Rincon Casarubia |
 | tecnico_ud@fesc.edu.co | Erick Sebastian Perez Carvajal |
 
+En **desarrollo** (`NODE_ENV` distinto de `production`), el seed también crea o actualiza:
+
+| Email | Contraseña (por defecto) |
+| ----- | ------------------------ |
+| admin@gmail.com | `dmin12345` (o `SEED_DEV_ADMIN_PASSWORD` en `.env`) |
+
+Útil para probar login y `/admin/dashboard` en el frontend.
+
 Sin Docker: configura `DATABASE_URL` en `.env` y ejecuta `npm run db:setup`.
 
 ## Despliegue en Vercel
@@ -38,15 +46,18 @@ Variables minimas: `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN` (URL del frontend
 - Swagger: `http://localhost:3000/api/v1/docs`
 - Health: `http://localhost:3000/api/v1/health`
 
-## Modulos API (Fase 3)
+## Modulos API
 
 | Recurso | Prefijo |
 | ------- | ------- |
 | Auth | `/api/v1/auth` |
 | Users | `/api/v1/users` |
 | Foundations | `/api/v1/foundations` |
+| Campaigns | `/api/v1/campaigns` |
+| Admin (dashboard) | `/api/v1/admin` |
 
-Detalle del modulo fundaciones: [docs/FOUNDATIONS_MODULE.md](./docs/FOUNDATIONS_MODULE.md).
+Detalle fundaciones: [docs/FOUNDATIONS_MODULE.md](./docs/FOUNDATIONS_MODULE.md).  
+Detalle panel admin: [docs/ADMIN_MODULE.md](./docs/ADMIN_MODULE.md).
 
 ## Scripts
 
@@ -56,6 +67,7 @@ Detalle del modulo fundaciones: [docs/FOUNDATIONS_MODULE.md](./docs/FOUNDATIONS_
 | `npm run build` | Compilar TypeScript |
 | `npm run start` | Ejecutar build de produccion |
 | `npm run lint` | ESLint |
+| `npm run test` | Pruebas unitarias e integracion |
 | `npm run prisma:migrate` | Ejecutar migraciones |
 
 ## Desarrollo con IA

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import path from 'node:path';
 import { z } from 'zod';
 import { CONSOLE_MESSAGES } from '../shared/constants/messages.constants.js';

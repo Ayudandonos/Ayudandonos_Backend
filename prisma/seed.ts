@@ -24,6 +24,14 @@ const ADMIN_USERS: AdminSeedUser[] = [
   },
 ];
 
+/** Administrador local para pruebas de login en desarrollo (panel admin). */
+const DEV_TEST_ADMIN: AdminSeedUser = {
+  email: 'admin@gmail.com',
+  fullName: 'Administrador de prueba',
+};
+
+const DEV_TEST_ADMIN_DEFAULT_PASSWORD = 'dmin12345';
+
 /**
  * Entrada: plainText: contraseña en texto plano.
  * Proceso: Genera hash bcrypt con las mismas rondas de sal que el modulo de autenticacion.
@@ -76,6 +84,21 @@ async function main(): Promise<void> {
   for (const admin of ADMIN_USERS) {
     const user = await upsertAdmin(admin, passwordHash);
     console.log(`[SEED] Admin listo: ${user.fullName} <${user.email}>`);
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    const devPassword =
+      process.env.SEED_DEV_ADMIN_PASSWORD?.trim() || DEV_TEST_ADMIN_DEFAULT_PASSWORD;
+
+    if (devPassword.length < 8) {
+      throw new Error(
+        'SEED_DEV_ADMIN_PASSWORD debe tener al menos 8 caracteres cuando se define.',
+      );
+    }
+
+    const devPasswordHash = await hashPassword(devPassword);
+    const devUser = await upsertAdmin(DEV_TEST_ADMIN, devPasswordHash);
+    console.log(`[SEED] Admin de prueba (dev): ${devUser.fullName} <${devUser.email}>`);
   }
 }
 
