@@ -16,6 +16,8 @@ const envSchema = z.object({
   UPLOAD_DIR: z.string().default('uploads'),
   UPLOAD_MAX_FILE_SIZE_MB: z.coerce.number().default(10),
   PUBLIC_BASE_URL: z.string().default('http://localhost:3000'),
+  BLOB_READ_WRITE_TOKEN: z.string().min(1).optional(),
+  BLOB_ACCESS: z.enum(['public', 'private']).default('public'),
   CSC_API_KEY: z.string().min(1).optional(),
   CSC_API_BASE_URL: z.string().url().default('https://api.countrystatecity.in/v1'),
   CSC_CACHE_TTL_MS: z.coerce.number().default(86_400_000),
@@ -45,6 +47,8 @@ export const uploadConfig = {
   allowedLogoMimeTypes: ['image/jpeg', 'image/png', 'image/webp'] as const,
   allowedDocumentMimeTypes: ['application/pdf', 'image/jpeg', 'image/png'] as const,
   publicBaseUrl: env.PUBLIC_BASE_URL.replace(/\/$/, ''),
+  blobReadWriteToken: env.BLOB_READ_WRITE_TOKEN,
+  blobAccess: env.BLOB_ACCESS,
 };
 
 export const cscConfig = {

@@ -128,7 +128,7 @@ Historial de observaciones administrativas (1:N). Se crea registro al cambiar es
 2. La verificacion (`VERIFIED`) la realiza **unicamente un ADMIN** y exige perfil completo + documentos obligatorios.
 3. El NIT debe ser unico en la plataforma.
 4. Rechazo requiere `rejectionReason`.
-5. Documentos legales en almacenamiento **privado** (`uploads/private/`). Solo logos se sirven via `/uploads/foundations`.
+5. Documentos legales y logos se almacenan en **Vercel Blob** en produccion (`BLOB_READ_WRITE_TOKEN`). En local sin token, se usa disco (`uploads/`).
 6. DTO de detalle filtrado por rol: publico no recibe documentos, email del representante ni datos legales sensibles.
 7. Descarga de documentos restringida a owner y ADMIN.
 8. **Acceso operativo (frontend):** una fundacion solo puede usar campanas, necesidades, solicitudes y entregas cuando `isProfileComplete`, `hasRequiredDocuments` y `status === VERIFIED`. Mientras tanto, el dashboard la mantiene en `/foundation/profile`.
@@ -137,8 +137,8 @@ Historial de observaciones administrativas (1:N). Se crea registro al cambiar es
 
 ## Seguridad de archivos
 
-- Logos: publicos en `/uploads/foundations/{id}/logo/`.
-- Documentos: privados en `/uploads/private/foundations/{id}/documents/`.
+- Logos: URL publica de Vercel Blob (store `BLOB_ACCESS=public`) o `/uploads/foundations/{id}/logo/` en local.
+- Documentos: referencia Blob u ruta privada local; nunca se expone `fileUrl` en el DTO publico.
 - Acceso a documentos solo via endpoint autenticado de descarga.
 
 ## Informe de validacion
@@ -165,7 +165,9 @@ Util geo: `src/shared/utils/geo.util.ts` (Haversine + bounding box).
 | -------- | ----------- |
 | `UPLOAD_DIR` | Directorio local de archivos (default `./uploads`) |
 | `UPLOAD_MAX_FILE_SIZE_MB` | Tamano maximo por archivo |
-| `PUBLIC_BASE_URL` | URL base para construir `fileUrl` y `logoUrl` |
+| `PUBLIC_BASE_URL` | URL base para construir `logoUrl` en almacenamiento local |
+| `BLOB_READ_WRITE_TOKEN` | Token de Vercel Blob (obligatorio en Vercel) |
+| `BLOB_ACCESS` | `public` o `private` (debe coincidir con el store; usar `public` para logos) |
 
 ## Frontend relacionado
 
