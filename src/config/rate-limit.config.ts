@@ -8,7 +8,7 @@ export const rateLimitConfig = {
   legacyHeaders: false,
   skip: (req: { path?: string; originalUrl?: string }) => {
     const path = req.originalUrl ?? req.path ?? '';
-    return path.includes('/health');
+    return path.includes('/health') || path.includes('/notifications/unread-count');
   },
   message: {
     success: false,
