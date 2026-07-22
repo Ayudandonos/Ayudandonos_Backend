@@ -1,5 +1,5 @@
-import { Prisma } from '@prisma/client';
 import { AppError } from '../../shared/errors/app.error.js';
+import { mapUnknownError } from '../../shared/errors/map-unknown-error.js';
 import { API_MESSAGES } from '../../shared/constants/messages.constants.js';
 import { hashUtil } from '../../utils/hash.util.js';
 import { jwtUtil } from '../../utils/jwt.util.js';
@@ -110,21 +110,25 @@ export class AuthService {
    * Salida: Retorna datos públicos del usuario y fundación cuando corresponda.
    */
   async getMe(userId: string): Promise<MeResponseDto> {
-    const user = await authRepository.findById(userId);
+    try {
+      const user = await authRepository.findById(userId);
 
-    if (!user) {
-      throw new AppError(API_MESSAGES.AUTH_USER_NOT_FOUND, 404);
+      if (!user) {
+        throw new AppError(API_MESSAGES.AUTH_USER_NOT_FOUND, 404);
+      }
+
+      this.ensureUserIsActive(user);
+
+      return {
+        user: this.toPublicUser(user),
+        foundation:
+          user.role === 'FOUNDATION' && user.foundation
+            ? toPublicFoundationDto(user.foundation)
+            : null,
+      };
+    } catch (error) {
+      throw mapUnknownError(error);
     }
-
-    this.ensureUserIsActive(user);
-
-    return {
-      user: this.toPublicUser(user),
-      foundation:
-        user.role === 'FOUNDATION' && user.foundation
-          ? toPublicFoundationDto(user.foundation)
-          : null,
-    };
   }
 
   /**
@@ -202,14 +206,7 @@ export class AuthService {
    * Salida: Retorna void o relanza AppError; nunca retorna en caso de error no controlado.
    */
   private handlePersistenceError(error: unknown): never {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2002'
-    ) {
-      throw new AppError(API_MESSAGES.AUTH_EMAIL_ALREADY_EXISTS, 409);
-    }
-
-    throw error;
+    throw mapUnknownError(error);
   }
 }
 

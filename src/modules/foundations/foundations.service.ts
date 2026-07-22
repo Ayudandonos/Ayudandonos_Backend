@@ -1,5 +1,6 @@
-import { FoundationDocumentType, FoundationStatus, Prisma } from '@prisma/client';
+import { FoundationDocumentType, FoundationStatus } from '@prisma/client';
 import { AppError } from '../../shared/errors/app.error.js';
+import { mapUnknownError } from '../../shared/errors/map-unknown-error.js';
 import { API_MESSAGES } from '../../shared/constants/messages.constants.js';
 import { deleteStoredFile, resolveStoragePath, saveFoundationFile } from '../../shared/utils/upload.util.js';
 import {
@@ -177,13 +178,17 @@ export class FoundationsService {
       throw new AppError(API_MESSAGES.AUTH_FORBIDDEN, 403);
     }
 
-    const foundation = await foundationsRepository.findByUserId(requester.id);
+    try {
+      const foundation = await foundationsRepository.findByUserId(requester.id);
 
-    if (!foundation || !foundation.user.isActive) {
-      throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
+      if (!foundation || !foundation.user.isActive) {
+        throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
+      }
+
+      return this.toDetailResponse(foundation, requester);
+    } catch (error) {
+      throw mapUnknownError(error);
     }
-
-    return this.toDetailResponse(foundation, requester);
   }
 
   /**
@@ -196,24 +201,24 @@ export class FoundationsService {
     input: UpdateFoundationDto,
     requester: RequesterContext,
   ): Promise<FoundationDetailDto> {
-    const foundation = await foundationsRepository.findByIdWithRelations(id);
-
-    if (!foundation || !foundation.user.isActive) {
-      throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
-    }
-
-    this.assertCanManageFoundation(foundation, requester);
-
-    if (input.nit && input.nit !== foundation.nit) {
-      const existing = await foundationsRepository.findByNit(input.nit);
-      if (existing && existing.id !== foundation.id) {
-        throw new AppError(API_MESSAGES.FOUNDATIONS_NIT_ALREADY_EXISTS, 409);
-      }
-    }
-
-    const { socialLinks, ...profileData } = input;
-
     try {
+      const foundation = await foundationsRepository.findByIdWithRelations(id);
+
+      if (!foundation || !foundation.user.isActive) {
+        throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
+      }
+
+      this.assertCanManageFoundation(foundation, requester);
+
+      if (input.nit && input.nit !== foundation.nit) {
+        const existing = await foundationsRepository.findByNit(input.nit);
+        if (existing && existing.id !== foundation.id) {
+          throw new AppError(API_MESSAGES.FOUNDATIONS_NIT_ALREADY_EXISTS, 409);
+        }
+      }
+
+      const { socialLinks, ...profileData } = input;
+
       const updated = await foundationsRepository.updateProfileWithSocialLinks(
         id,
         profileData,
@@ -222,7 +227,7 @@ export class FoundationsService {
 
       return this.toDetailResponse(updated, requester);
     } catch (error) {
-      this.handlePersistenceError(error);
+      throw mapUnknownError(error);
     }
   }
 
@@ -266,34 +271,38 @@ export class FoundationsService {
     file: Express.Multer.File,
     requester: RequesterContext,
   ): Promise<FoundationDetailDto> {
-    const foundation = await foundationsRepository.findByIdWithRelations(id);
-
-    if (!foundation || !foundation.user.isActive) {
-      throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
-    }
-
-    this.assertCanManageFoundation(foundation, requester);
-
-    const saved = await saveFoundationFile(id, 'logo', file);
-    const previousLogo = foundation.logoUrl;
-
     try {
-      await foundationsRepository.updateById(id, { logoUrl: saved.publicUrl });
+      const foundation = await foundationsRepository.findByIdWithRelations(id);
+
+      if (!foundation || !foundation.user.isActive) {
+        throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
+      }
+
+      this.assertCanManageFoundation(foundation, requester);
+
+      const saved = await saveFoundationFile(id, 'logo', file);
+      const previousLogo = foundation.logoUrl;
+
+      try {
+        await foundationsRepository.updateById(id, { logoUrl: saved.publicUrl });
+      } catch (error) {
+        await deleteStoredFile(saved.storageKey);
+        throw mapUnknownError(error);
+      }
+
+      if (previousLogo) {
+        await deleteStoredFile(previousLogo);
+      }
+
+      const refreshed = await foundationsRepository.findByIdWithRelations(id);
+      if (!refreshed) {
+        throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
+      }
+
+      return this.toDetailResponse(refreshed, requester);
     } catch (error) {
-      await deleteStoredFile(saved.storageKey);
-      this.handlePersistenceError(error);
+      throw mapUnknownError(error);
     }
-
-    if (previousLogo) {
-      await deleteStoredFile(previousLogo);
-    }
-
-    const refreshed = await foundationsRepository.findByIdWithRelations(id);
-    if (!refreshed) {
-      throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
-    }
-
-    return this.toDetailResponse(refreshed, requester);
   }
 
   /**
@@ -307,39 +316,43 @@ export class FoundationsService {
     file: Express.Multer.File,
     requester: RequesterContext,
   ): Promise<FoundationDetailDto> {
-    const foundation = await foundationsRepository.findByIdWithRelations(id);
-
-    if (!foundation || !foundation.user.isActive) {
-      throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
-    }
-
-    this.assertCanManageFoundation(foundation, requester);
-
-    const existing = foundation.documents.find((doc) => doc.type === type);
-    const saved = await saveFoundationFile(id, 'documents', file);
-
     try {
-      await foundationsRepository.upsertDocument(id, type, {
-        fileUrl: saved.storageKey,
-        fileName: saved.fileName,
-        mimeType: saved.mimeType,
-        fileSize: saved.fileSize,
-      });
+      const foundation = await foundationsRepository.findByIdWithRelations(id);
+
+      if (!foundation || !foundation.user.isActive) {
+        throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
+      }
+
+      this.assertCanManageFoundation(foundation, requester);
+
+      const existing = foundation.documents.find((doc) => doc.type === type);
+      const saved = await saveFoundationFile(id, 'documents', file);
+
+      try {
+        await foundationsRepository.upsertDocument(id, type, {
+          fileUrl: saved.storageKey,
+          fileName: saved.fileName,
+          mimeType: saved.mimeType,
+          fileSize: saved.fileSize,
+        });
+      } catch (error) {
+        await deleteStoredFile(saved.storageKey);
+        throw mapUnknownError(error);
+      }
+
+      if (existing?.fileUrl) {
+        await deleteStoredFile(existing.fileUrl);
+      }
+
+      const refreshed = await foundationsRepository.findByIdWithRelations(id);
+      if (!refreshed) {
+        throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
+      }
+
+      return this.toDetailResponse(refreshed, requester);
     } catch (error) {
-      await deleteStoredFile(saved.storageKey);
-      this.handlePersistenceError(error);
+      throw mapUnknownError(error);
     }
-
-    if (existing?.fileUrl) {
-      await deleteStoredFile(existing.fileUrl);
-    }
-
-    const refreshed = await foundationsRepository.findByIdWithRelations(id);
-    if (!refreshed) {
-      throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
-    }
-
-    return this.toDetailResponse(refreshed, requester);
   }
 
   /**
@@ -352,31 +365,35 @@ export class FoundationsService {
     type: FoundationDocumentType,
     requester: RequesterContext,
   ): Promise<{ absolutePath: string; fileName: string; mimeType: string }> {
-    const foundation = await foundationsRepository.findByIdWithRelations(id);
+    try {
+      const foundation = await foundationsRepository.findByIdWithRelations(id);
 
-    if (!foundation || !foundation.user.isActive) {
-      throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
+      if (!foundation || !foundation.user.isActive) {
+        throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
+      }
+
+      this.assertCanManageFoundation(foundation, requester);
+
+      const document = foundation.documents.find((doc) => doc.type === type);
+
+      if (!document) {
+        throw new AppError(API_MESSAGES.FOUNDATIONS_DOCUMENT_NOT_FOUND, 404);
+      }
+
+      const absolutePath = resolveStoragePath(document.fileUrl);
+
+      if (!absolutePath) {
+        throw new AppError(API_MESSAGES.FOUNDATIONS_DOCUMENT_NOT_FOUND, 404);
+      }
+
+      return {
+        absolutePath,
+        fileName: document.fileName,
+        mimeType: document.mimeType,
+      };
+    } catch (error) {
+      throw mapUnknownError(error);
     }
-
-    this.assertCanManageFoundation(foundation, requester);
-
-    const document = foundation.documents.find((doc) => doc.type === type);
-
-    if (!document) {
-      throw new AppError(API_MESSAGES.FOUNDATIONS_DOCUMENT_NOT_FOUND, 404);
-    }
-
-    const absolutePath = resolveStoragePath(document.fileUrl);
-
-    if (!absolutePath) {
-      throw new AppError(API_MESSAGES.FOUNDATIONS_DOCUMENT_NOT_FOUND, 404);
-    }
-
-    return {
-      absolutePath,
-      fileName: document.fileName,
-      mimeType: document.mimeType,
-    };
   }
 
   /**
@@ -461,22 +478,6 @@ export class FoundationsService {
       isFoundationProfileComplete(foundation),
       hasRequiredFoundationDocuments(foundation.documents),
     );
-  }
-
-  /**
-   * Entrada: error: error capturado durante operaciones de persistencia.
-   * Proceso: Traduce errores de Prisma a AppError con codigos HTTP apropiados.
-   * Salida: Retorna void o relanza AppError; nunca retorna en caso de error no controlado.
-   */
-  private handlePersistenceError(error: unknown): never {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2002'
-    ) {
-      throw new AppError(API_MESSAGES.FOUNDATIONS_NIT_ALREADY_EXISTS, 409);
-    }
-
-    throw error;
   }
 }
 
