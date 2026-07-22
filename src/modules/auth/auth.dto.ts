@@ -24,6 +24,11 @@ export interface PublicUserDto {
   email: string;
   fullName: string;
   role: UserRole;
+  phone: string | null;
+  city: string | null;
+  department: string | null;
+  bio: string | null;
+  avatarUrl: string | null;
 }
 
 export interface PublicFoundationDto {
@@ -34,6 +39,8 @@ export interface PublicFoundationDto {
   category: string | null;
   city: string | null;
   description: string | null;
+  latitude: number | null;
+  longitude: number | null;
   isProfileComplete: boolean;
   hasRequiredDocuments: boolean;
 }

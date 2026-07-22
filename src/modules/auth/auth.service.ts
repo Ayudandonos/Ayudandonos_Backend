@@ -188,6 +188,11 @@ export class AuthService {
       email: user.email,
       fullName: user.fullName,
       role: user.role,
+      phone: user.phone,
+      city: user.city,
+      department: user.department,
+      bio: user.bio,
+      avatarUrl: user.avatarUrl,
     };
   }
 

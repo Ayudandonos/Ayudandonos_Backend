@@ -1,5 +1,6 @@
 import type { UserRole } from '@prisma/client';
 import type { PublicFoundationDto, PublicUserDto } from '../auth/auth.dto.js';
+import type { DonorDonationStatsDto } from '../donations/donations.dto.js';
 
 export interface UserDetailDto extends PublicUserDto {
   isActive: boolean;
@@ -10,6 +11,7 @@ export interface UserDetailDto extends PublicUserDto {
 export interface UserDetailResponseDto {
   user: UserDetailDto;
   foundation: PublicFoundationDto | null;
+  donationStats: DonorDonationStatsDto | null;
 }
 
 export interface UserListItemDto extends PublicUserDto {
@@ -23,6 +25,11 @@ export interface PaginatedUsersDto {
 
 export interface UpdateUserDto {
   fullName?: string;
+  phone?: string | null;
+  city?: string | null;
+  department?: string | null;
+  bio?: string | null;
+  avatarUrl?: string | null;
   isActive?: boolean;
   role?: UserRole;
 }
@@ -36,6 +43,11 @@ export interface ListUsersQueryDto {
 
 export interface UpdateUserData {
   fullName?: string;
+  phone?: string | null;
+  city?: string | null;
+  department?: string | null;
+  bio?: string | null;
+  avatarUrl?: string | null;
   isActive?: boolean;
   role?: UserRole;
 }

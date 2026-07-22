@@ -61,7 +61,9 @@ Una rama por tarea. PR hacia `develop` al cerrar la iteracion.
 | Fase | Estado | Alcance |
 | ---- | ------ | ------- |
 | 1 | COMPLETADO | Configuracion, skeleton, health |
-| 2 | PENDIENTE | BD, auth JWT, usuarios |
-| 3 | PENDIENTE | Fundaciones, campanas |
-| 4 | PENDIENTE | Donaciones, ciclo de vida |
-| 5 | PENDIENTE | Notificaciones, reportes, despliegue |
+| 2 | COMPLETADO | BD, auth JWT, usuarios, seed ADMIN |
+| 3 | COMPLETADO | Fundaciones, documentos, verificacion admin |
+| 4 | COMPLETADO | Campanas, needs, donations, chat, delivery |
+| 5 | COMPLETADO | Notificaciones in-app |
+| — | COMPLETADO (rama) | Perfil donante + stats; foundations nearby |
+| — | PENDIENTE | Storage cloud; merge/PR de ramas pendientes |

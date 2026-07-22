@@ -70,6 +70,18 @@ export const updateFoundationSchema = z
       .min(2, VALIDATION_MESSAGES.FOUNDATION_DEPARTMENT_MIN_LENGTH)
       .optional(),
     address: z.string().trim().min(5, VALIDATION_MESSAGES.FOUNDATION_ADDRESS_MIN_LENGTH).optional(),
+    latitude: z
+      .number()
+      .min(-90, VALIDATION_MESSAGES.INVALID_LATITUDE)
+      .max(90, VALIDATION_MESSAGES.INVALID_LATITUDE)
+      .nullable()
+      .optional(),
+    longitude: z
+      .number()
+      .min(-180, VALIDATION_MESSAGES.INVALID_LONGITUDE)
+      .max(180, VALIDATION_MESSAGES.INVALID_LONGITUDE)
+      .nullable()
+      .optional(),
     institutionalEmail: z.string().trim().email(VALIDATION_MESSAGES.INVALID_EMAIL).optional(),
     phone: phoneField.optional(),
     website: urlField.nullable().optional(),
@@ -87,7 +99,48 @@ export const updateFoundationSchema = z
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: VALIDATION_MESSAGES.UPDATE_EMPTY_BODY,
+  })
+  .superRefine((data, ctx) => {
+    const hasLat = data.latitude !== undefined;
+    const hasLng = data.longitude !== undefined;
+    if (hasLat !== hasLng) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: VALIDATION_MESSAGES.FOUNDATION_COORDS_INCOMPLETE,
+        path: ['latitude'],
+      });
+    }
+    if (data.latitude === null && data.longitude !== null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: VALIDATION_MESSAGES.FOUNDATION_COORDS_INCOMPLETE,
+        path: ['longitude'],
+      });
+    }
+    if (data.longitude === null && data.latitude !== null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: VALIDATION_MESSAGES.FOUNDATION_COORDS_INCOMPLETE,
+        path: ['latitude'],
+      });
+    }
   });
+
+export const nearbyFoundationsQuerySchema = z.object({
+  latitude: z.coerce
+    .number()
+    .min(-90, VALIDATION_MESSAGES.INVALID_LATITUDE)
+    .max(90, VALIDATION_MESSAGES.INVALID_LATITUDE),
+  longitude: z.coerce
+    .number()
+    .min(-180, VALIDATION_MESSAGES.INVALID_LONGITUDE)
+    .max(180, VALIDATION_MESSAGES.INVALID_LONGITUDE),
+  radiusKm: z.coerce
+    .number()
+    .min(1, VALIDATION_MESSAGES.NEARBY_RADIUS_MIN)
+    .max(10, VALIDATION_MESSAGES.NEARBY_RADIUS_MAX)
+    .default(5),
+});
 
 export const updateFoundationStatusSchema = z
   .object({
@@ -125,6 +178,7 @@ export const foundationDocumentTypeParamSchema = z.object({
 });
 
 export type ListFoundationsQueryInput = z.infer<typeof listFoundationsQuerySchema>;
+export type NearbyFoundationsQueryInput = z.infer<typeof nearbyFoundationsQuerySchema>;
 export type FoundationIdParamInput = z.infer<typeof foundationIdParamSchema>;
 export type FoundationDocumentTypeParamInput = z.infer<typeof foundationDocumentTypeParamSchema>;
 export type UpdateFoundationInput = z.infer<typeof updateFoundationSchema>;

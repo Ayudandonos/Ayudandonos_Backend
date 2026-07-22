@@ -72,6 +72,11 @@ model User {
   fullName     String   @map("full_name")
   role         UserRole
   isActive     Boolean  @default(true) @map("is_active")
+  phone        String?
+  city         String?
+  department   String?
+  bio          String?
+  avatarUrl    String?  @map("avatar_url")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -100,6 +105,8 @@ model Foundation {
   city                        String?
   department                  String?
   address                     String?
+  latitude                    Float?
+  longitude                   Float?
   institutionalEmail          String?          @map("institutional_email")
   phone                       String?
   website                     String?

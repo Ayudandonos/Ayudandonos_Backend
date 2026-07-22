@@ -3,6 +3,7 @@ import { CampaignStatus, FoundationStatus } from '@prisma/client';
 import { prisma } from '../../database/prisma.client.js';
 import type {
   CreateDonationDto,
+  DonorDonationStatsDto,
   ListDonationsQueryDto,
   ListMessagesQueryDto,
   UpdateDonationDeliveryDto,
@@ -418,6 +419,65 @@ export class DonationsRepository {
         },
       },
     });
+  }
+
+  /**
+   * Entrada: donorUserId: identificador del donante.
+   * Proceso: Agrega conteos y sumas de quantity por estado de donacion.
+   * Salida: Retorna estadisticas consolidadas del donante.
+   */
+  async getDonorStats(donorUserId: string): Promise<DonorDonationStatsDto> {
+    const grouped = await prisma.donation.groupBy({
+      by: ['status'],
+      where: { donorUserId },
+      _count: { _all: true },
+      _sum: { quantity: true },
+    });
+
+    const emptyStats = (): { count: number; quantity: number } => ({
+      count: 0,
+      quantity: 0,
+    });
+
+    const byStatus: DonorDonationStatsDto['byStatus'] = {
+      COMMITTED: emptyStats(),
+      IN_TRANSIT: emptyStats(),
+      DELIVERED: emptyStats(),
+      CONFIRMED: emptyStats(),
+      CANCELLED: emptyStats(),
+    };
+
+    for (const row of grouped) {
+      byStatus[row.status] = {
+        count: row._count._all,
+        quantity: row._sum.quantity ?? 0,
+      };
+    }
+
+    const cancelledDonations = byStatus.CANCELLED.count;
+    const totalDonations =
+      byStatus.COMMITTED.count +
+      byStatus.IN_TRANSIT.count +
+      byStatus.DELIVERED.count +
+      byStatus.CONFIRMED.count +
+      byStatus.CANCELLED.count;
+
+    const totalQuantity =
+      byStatus.COMMITTED.quantity +
+      byStatus.IN_TRANSIT.quantity +
+      byStatus.DELIVERED.quantity +
+      byStatus.CONFIRMED.quantity;
+
+    const deliveredQuantity =
+      byStatus.DELIVERED.quantity + byStatus.CONFIRMED.quantity;
+
+    return {
+      totalDonations,
+      totalQuantity,
+      deliveredQuantity,
+      cancelledDonations,
+      byStatus,
+    };
   }
 }
 

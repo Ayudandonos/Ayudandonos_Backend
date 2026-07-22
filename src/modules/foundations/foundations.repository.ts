@@ -7,6 +7,7 @@ import type {
   UpdateFoundationStatusDto,
 } from './foundations.dto.js';
 import type { FoundationSocialLinkDto } from './foundations.dto.js';
+import type { GeoBoundingBox } from '../../shared/utils/geo.util.js';
 
 const foundationInclude = {
   user: true,
@@ -118,6 +119,35 @@ export class FoundationsRepository {
     return prisma.foundation.findUnique({
       where: { id },
       include: foundationInclude,
+    });
+  }
+
+  /**
+   * Entrada: box: bounding box aproximado alrededor del origen.
+   * Proceso: Lista fundaciones VERIFIED con coordenadas dentro del box.
+   * Salida: Retorna candidatas con relaciones basicas.
+   */
+  async findVerifiedInBoundingBox(
+    box: GeoBoundingBox,
+  ): Promise<FoundationWithRelations[]> {
+    return prisma.foundation.findMany({
+      where: {
+        status: FoundationStatus.VERIFIED,
+        deletedAt: null,
+        latitude: {
+          not: null,
+          gte: box.minLatitude,
+          lte: box.maxLatitude,
+        },
+        longitude: {
+          not: null,
+          gte: box.minLongitude,
+          lte: box.maxLongitude,
+        },
+        user: { isActive: true },
+      },
+      include: foundationInclude,
+      orderBy: { name: 'asc' },
     });
   }
 

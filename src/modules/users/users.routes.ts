@@ -62,6 +62,64 @@ usersRoutes.get(
 
 /**
  * @swagger
+ * /users/me:
+ *   get:
+ *     summary: Obtener perfil propio (con stats de donaciones si es USER)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Perfil obtenido
+ *       401:
+ *         description: No autenticado
+ *   patch:
+ *     summary: Actualizar perfil propio
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *                 nullable: true
+ *               city:
+ *                 type: string
+ *                 nullable: true
+ *               department:
+ *                 type: string
+ *                 nullable: true
+ *               bio:
+ *                 type: string
+ *                 nullable: true
+ *               avatarUrl:
+ *                 type: string
+ *                 format: uri
+ *                 nullable: true
+ *     responses:
+ *       200:
+ *         description: Perfil actualizado
+ *       400:
+ *         description: Validacion
+ *       401:
+ *         description: No autenticado
+ */
+usersRoutes.get('/me', usersController.findMe);
+usersRoutes.patch(
+  '/me',
+  validate(updateUserSchema),
+  usersController.updateMe,
+);
+
+/**
+ * @swagger
  * /users/{id}:
  *   get:
  *     summary: Obtener usuario por id
@@ -112,6 +170,22 @@ usersRoutes.get(
  *             properties:
  *               fullName:
  *                 type: string
+ *               phone:
+ *                 type: string
+ *                 nullable: true
+ *               city:
+ *                 type: string
+ *                 nullable: true
+ *               department:
+ *                 type: string
+ *                 nullable: true
+ *               bio:
+ *                 type: string
+ *                 nullable: true
+ *               avatarUrl:
+ *                 type: string
+ *                 format: uri
+ *                 nullable: true
  *               isActive:
  *                 type: boolean
  *               role:

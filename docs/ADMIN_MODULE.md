@@ -2,7 +2,10 @@
 
 Estado: **IMPLEMENTADO** (dashboard v1).
 
-## Endpoint
+Incluye tambien la **verificacion de fundaciones** via el modulo Foundations
+(`PATCH /foundations/:id/status`, solo rol `ADMIN`). Ver `docs/FOUNDATIONS_MODULE.md`.
+
+## Endpoint dashboard
 
 Base: `/api/v1/admin`
 

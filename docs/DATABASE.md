@@ -1,6 +1,6 @@
 # Base de datos — Ayudandonos Backend
 
-Estado del esquema: **Fase 5 — Notificaciones**.
+Estado del esquema: **Perfil donante + coordenadas de fundaciones** (sobre Fase 5).
 
 Motor: PostgreSQL. ORM: Prisma.
 
@@ -21,6 +21,11 @@ erDiagram
     string full_name
     enum role
     boolean is_active
+    string phone
+    string city
+    string department
+    string bio
+    string avatar_url
     datetime created_at
     datetime updated_at
   }
@@ -38,6 +43,8 @@ erDiagram
     string city
     string department
     string address
+    float latitude
+    float longitude
     string institutional_email
     string phone
     string website
@@ -112,6 +119,7 @@ erDiagram
 - `foundations`: `status`, `category`, `city`, `department`
 - `foundation_admin_observations`: `(foundation_id, created_at)`
 - `campaigns`: `foundation_id`, `status`, `start_date`, `end_date`
+- `donations`: `donor_user_id`, `status` (stats de donante)
 
 ## Migraciones relevantes
 
@@ -122,6 +130,8 @@ erDiagram
 | `20260720190000_campaigns` | Tabla `campaigns` y enum `CampaignStatus` |
 | `20260720210000_campaigns_needs_donations` | Needs, Donations, Conversation, Message, historial |
 | `20260722010000_notifications` | Tabla `notifications` y enum `NotificationType` |
+| `20260722020000_user_profile_fields` | Perfil donante: phone, city, department, bio, avatar_url |
+| `20260722030000_foundation_coordinates` | Coordenadas latitude/longitude en fundaciones |
 
 ## Extension futura
 

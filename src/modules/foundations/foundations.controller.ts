@@ -8,6 +8,7 @@ import type {
   FoundationDocumentTypeParamInput,
   FoundationIdParamInput,
   ListFoundationsQueryInput,
+  NearbyFoundationsQueryInput,
   UpdateFoundationInput,
   UpdateFoundationStatusInput,
   UploadDocumentBodyInput,
@@ -29,6 +30,20 @@ export class FoundationsController {
         API_MESSAGES.FOUNDATIONS_LIST_SUCCESS,
         result.meta,
       ),
+    );
+  });
+
+  /**
+   * Entrada: req: peticion con lat/lng y radio; res: respuesta HTTP.
+   * Proceso: Delega busqueda de fundaciones cercanas y tipos al servicio.
+   * Salida: No retorna valor; responde 200 con categorias e items.
+   */
+  findNearby = asyncHandler(async (req: Request, res: Response) => {
+    const query = req.query as unknown as NearbyFoundationsQueryInput;
+    const data = await foundationsService.findNearby(query);
+
+    res.status(200).json(
+      ApiResponseBuilder.success(data, API_MESSAGES.FOUNDATIONS_NEARBY_SUCCESS),
     );
   });
 

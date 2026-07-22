@@ -25,6 +25,8 @@ export function toPublicFoundationDto(foundation: FoundationWithDocuments): Publ
     category: foundation.category,
     city: foundation.city,
     description: foundation.description,
+    latitude: foundation.latitude,
+    longitude: foundation.longitude,
     isProfileComplete: isFoundationProfileComplete(foundation),
     hasRequiredDocuments: hasRequiredFoundationDocuments(documents),
   };

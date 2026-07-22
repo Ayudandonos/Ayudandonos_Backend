@@ -51,6 +51,8 @@ export interface FoundationListItemDto {
   department: string | null;
   description: string | null;
   logoUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
   status: FoundationStatus;
   createdAt: string;
   representative: FoundationRepresentativeDto;
@@ -90,6 +92,8 @@ export interface UpdateFoundationDto {
   city?: string;
   department?: string;
   address?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   institutionalEmail?: string;
   phone?: string;
   website?: string | null;
@@ -109,6 +113,8 @@ export interface UpdateFoundationData {
   city?: string;
   department?: string;
   address?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   institutionalEmail?: string;
   phone?: string;
   website?: string | null;
@@ -144,4 +150,38 @@ export interface PaginatedFoundationsResult {
     total: number;
     totalPages: number;
   };
+}
+
+export interface NearbyFoundationsQueryDto {
+  latitude: number;
+  longitude: number;
+  radiusKm: number;
+}
+
+export interface NearbyFoundationItemDto {
+  id: string;
+  name: string;
+  acronym: string | null;
+  category: string | null;
+  city: string | null;
+  logoUrl: string | null;
+  latitude: number;
+  longitude: number;
+  distanceKm: number;
+}
+
+export interface NearbyFoundationCategoryDto {
+  category: string;
+  count: number;
+}
+
+export interface NearbyFoundationsResultDto {
+  radiusKm: number;
+  origin: {
+    latitude: number;
+    longitude: number;
+  };
+  total: number;
+  categories: NearbyFoundationCategoryDto[];
+  items: NearbyFoundationItemDto[];
 }

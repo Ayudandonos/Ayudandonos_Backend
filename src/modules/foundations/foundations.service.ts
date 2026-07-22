@@ -10,6 +10,8 @@ import {
 import type {
   FoundationDetailDto,
   ListFoundationsQueryDto,
+  NearbyFoundationsQueryDto,
+  NearbyFoundationsResultDto,
   PaginatedFoundationsResult,
   UpdateFoundationDto,
   UpdateFoundationStatusDto,
@@ -23,6 +25,10 @@ import {
   foundationsRepository,
   type FoundationWithRelations,
 } from './foundations.repository.js';
+import {
+  boundingBoxForRadius,
+  haversineDistanceKm,
+} from '../../shared/utils/geo.util.js';
 
 interface RequesterContext {
   id: string;
@@ -80,6 +86,64 @@ export class FoundationsService {
         total,
         totalPages,
       },
+    };
+  }
+
+  /**
+   * Entrada: query: origen GPS y radio en km (1-10).
+   * Proceso: Filtra fundaciones VERIFIED cercanas y agrega tipos (categorias).
+   * Salida: Retorna resumen por categoria e items ordenados por distancia.
+   */
+  async findNearby(query: NearbyFoundationsQueryDto): Promise<NearbyFoundationsResultDto> {
+    const origin = {
+      latitude: query.latitude,
+      longitude: query.longitude,
+    };
+    const box = boundingBoxForRadius(origin, query.radiusKm);
+    const candidates = await foundationsRepository.findVerifiedInBoundingBox(box);
+
+    const items = candidates
+      .filter(
+        (foundation) =>
+          foundation.latitude !== null && foundation.longitude !== null,
+      )
+      .map((foundation) => {
+        const distanceKm = haversineDistanceKm(origin, {
+          latitude: foundation.latitude as number,
+          longitude: foundation.longitude as number,
+        });
+
+        return {
+          id: foundation.id,
+          name: foundation.name,
+          acronym: foundation.acronym,
+          category: foundation.category,
+          city: foundation.city,
+          logoUrl: foundation.logoUrl,
+          latitude: foundation.latitude as number,
+          longitude: foundation.longitude as number,
+          distanceKm: Math.round(distanceKm * 100) / 100,
+        };
+      })
+      .filter((item) => item.distanceKm <= query.radiusKm)
+      .sort((a, b) => a.distanceKm - b.distanceKm);
+
+    const categoryMap = new Map<string, number>();
+    for (const item of items) {
+      const key = item.category?.trim() || 'Sin categoria';
+      categoryMap.set(key, (categoryMap.get(key) ?? 0) + 1);
+    }
+
+    const categories = Array.from(categoryMap.entries())
+      .map(([category, count]) => ({ category, count }))
+      .sort((a, b) => b.count - a.count || a.category.localeCompare(b.category));
+
+    return {
+      radiusKm: query.radiusKm,
+      origin,
+      total: items.length,
+      categories,
+      items,
     };
   }
 

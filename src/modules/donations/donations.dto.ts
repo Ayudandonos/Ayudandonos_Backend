@@ -91,3 +91,16 @@ export type ListMessagesQueryDto = {
   page: number;
   limit: number;
 };
+
+export type DonationStatusStatsDto = {
+  count: number;
+  quantity: number;
+};
+
+export type DonorDonationStatsDto = {
+  totalDonations: number;
+  totalQuantity: number;
+  deliveredQuantity: number;
+  cancelledDonations: number;
+  byStatus: Record<DonationStatus, DonationStatusStatsDto>;
+};
