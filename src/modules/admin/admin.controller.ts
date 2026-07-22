@@ -19,6 +19,19 @@ export class AdminController {
       ApiResponseBuilder.success(data, API_MESSAGES.ADMIN_DASHBOARD_SUCCESS),
     );
   });
+
+  /**
+   * Entrada: req: peticion autenticada ADMIN; res: respuesta HTTP.
+   * Proceso: Delega la agregacion de reportes y series al servicio admin.
+   * Salida: No retorna valor; responde 200 con resumen y series para graficos.
+   */
+  getReports = asyncHandler(async (_req: Request, res: Response) => {
+    const data = await adminService.getReports();
+
+    res.status(200).json(
+      ApiResponseBuilder.success(data, API_MESSAGES.ADMIN_REPORTS_SUCCESS),
+    );
+  });
 }
 
 export const adminController = new AdminController();

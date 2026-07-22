@@ -31,7 +31,12 @@ const rateLimit = resolveDefaultImport<RateLimitMiddleware>(rateLimitImport);
 export function createApp(): Express {
   const app = express();
 
-  app.use(helmet());
+  // cross-origin: el frontend (otro origen) puede embeber /uploads y assets de la API.
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
   app.use(cors(corsConfig));
   app.use(rateLimit(rateLimitConfig));
 

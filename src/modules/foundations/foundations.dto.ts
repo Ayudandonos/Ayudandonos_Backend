@@ -10,6 +10,7 @@ export interface ListFoundationsQueryDto {
   search?: string;
   status?: FoundationStatus;
   category?: string;
+  country?: string;
   city?: string;
   department?: string;
 }

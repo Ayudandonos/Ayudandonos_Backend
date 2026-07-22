@@ -55,4 +55,27 @@ adminRoutes.get(
   adminController.getDashboard,
 );
 
+/**
+ * @swagger
+ * /admin/reports:
+ *   get:
+ *     summary: Obtener series y resumen para reportes administrativos
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Reportes administrativos obtenidos correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: Solo administradores
+ */
+adminRoutes.get('/reports', adminController.getReports);
+
 export { adminRoutes };

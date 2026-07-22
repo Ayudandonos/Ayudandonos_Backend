@@ -46,6 +46,7 @@ export const listFoundationsQuerySchema = z.object({
   search: z.string().trim().min(1).optional(),
   status: z.nativeEnum(FoundationStatus).optional(),
   category: z.string().trim().min(1).optional(),
+  country: z.string().trim().min(1).optional(),
   city: z.string().trim().min(1).optional(),
   department: z.string().trim().min(1).optional(),
 });

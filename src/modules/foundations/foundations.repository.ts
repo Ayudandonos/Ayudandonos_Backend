@@ -46,6 +46,10 @@ export class FoundationsRepository {
       where.category = { equals: query.category, mode: 'insensitive' };
     }
 
+    if (query.country) {
+      where.country = { equals: query.country, mode: 'insensitive' };
+    }
+
     if (query.city) {
       where.city = { equals: query.city, mode: 'insensitive' };
     }

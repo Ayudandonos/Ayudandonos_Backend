@@ -2,11 +2,58 @@ import type {
   AdminDashboardDataDto,
   AdminDashboardQueryDto,
   AdminFeaturedCampaignItemDto,
+  AdminReportMonthlyItemDto,
+  AdminReportSeriesItemDto,
+  AdminReportsDataDto,
   CampaignWithNeedProgressRow,
 } from './admin.dto.js';
 import { adminRepository } from './admin.repository.js';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const REPORT_MONTHS = 6;
+
+const ROLE_LABELS: Record<string, string> = {
+  USER: 'Donantes',
+  FOUNDATION: 'Fundaciones',
+  ADMIN: 'Administradores',
+};
+
+const FOUNDATION_STATUS_LABELS: Record<string, string> = {
+  PENDING: 'Pendientes',
+  VERIFIED: 'Verificadas',
+  REJECTED: 'Rechazadas',
+  SUSPENDED: 'Suspendidas',
+};
+
+const DONATION_STATUS_LABELS: Record<string, string> = {
+  COMMITTED: 'Comprometidas',
+  IN_TRANSIT: 'En tránsito',
+  DELIVERED: 'Entregadas',
+  CONFIRMED: 'Confirmadas',
+  CANCELLED: 'Canceladas',
+};
+
+const CAMPAIGN_STATUS_LABELS: Record<string, string> = {
+  DRAFT: 'Borrador',
+  PUBLISHED: 'Publicadas',
+  FINISHED: 'Finalizadas',
+  CANCELLED: 'Canceladas',
+};
+
+const MONTH_LABELS = [
+  'Ene',
+  'Feb',
+  'Mar',
+  'Abr',
+  'May',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dic',
+];
 
 export class AdminService {
   /**
@@ -70,6 +117,40 @@ export class AdminService {
   }
 
   /**
+   * Entrada: Ninguna.
+   * Proceso: Agrega resumen, series por estado/rol y actividad mensual de los ultimos meses.
+   * Salida: Retorna el payload de reportes administrativos.
+   */
+  async getReports(): Promise<AdminReportsDataDto> {
+    const from = this.getReportsPeriodStart(new Date(), REPORT_MONTHS);
+
+    const [
+      summary,
+      usersByRole,
+      foundationsByStatus,
+      donationsByStatus,
+      campaignsByStatus,
+      monthlyRows,
+    ] = await Promise.all([
+      adminRepository.getReportSummaryCounts(),
+      adminRepository.groupUsersByRole(),
+      adminRepository.groupFoundationsByStatus(),
+      adminRepository.groupDonationsByStatus(),
+      adminRepository.groupCampaignsByStatus(),
+      adminRepository.getMonthlyActivitySince(from),
+    ]);
+
+    return {
+      summary,
+      usersByRole: this.mapSeries(usersByRole, ROLE_LABELS),
+      foundationsByStatus: this.mapSeries(foundationsByStatus, FOUNDATION_STATUS_LABELS),
+      donationsByStatus: this.mapSeries(donationsByStatus, DONATION_STATUS_LABELS),
+      campaignsByStatus: this.mapSeries(campaignsByStatus, CAMPAIGN_STATUS_LABELS),
+      monthlyActivity: this.buildMonthlyActivity(monthlyRows, REPORT_MONTHS),
+    };
+  }
+
+  /**
    * Entrada: current: valor actual; previous: valor del periodo anterior.
    * Proceso: Calcula variacion porcentual redondeada; null si el denominador es cero.
    * Salida: Retorna el porcentaje de tendencia o null.
@@ -110,6 +191,75 @@ export class AdminService {
 
     const diffMs = endDate.getTime() - now.getTime();
     return Math.ceil(diffMs / MS_PER_DAY);
+  }
+
+  /**
+   * Entrada: now: instante actual; months: cantidad de meses a cubrir.
+   * Proceso: Calcula el inicio del mes mas antiguo del periodo de reportes.
+   * Salida: Retorna la fecha de inicio del primer mes incluido.
+   */
+  private getReportsPeriodStart(now: Date, months: number): Date {
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1));
+  }
+
+  /**
+   * Entrada: rows: pares clave/valor; labels: etiquetas en espanol por clave.
+   * Proceso: Transforma filas crudas en series etiquetadas para graficos.
+   * Salida: Retorna items de serie ordenados por valor descendente.
+   */
+  private mapSeries(
+    rows: Array<{ key: string; value: number }>,
+    labels: Record<string, string>,
+  ): AdminReportSeriesItemDto[] {
+    return rows
+      .map((row) => ({
+        key: row.key,
+        label: labels[row.key] ?? row.key,
+        value: row.value,
+      }))
+      .sort((a, b) => b.value - a.value);
+  }
+
+  /**
+   * Entrada: rows: altas mensuales; months: cantidad de meses a completar.
+   * Proceso: Rellena meses sin datos con ceros y genera etiquetas cortas.
+   * Salida: Retorna la serie mensual continua para graficos de lineas y barras.
+   */
+  private buildMonthlyActivity(
+    rows: Array<{
+      monthKey: string;
+      users: number;
+      foundations: number;
+      donations: number;
+      campaigns: number;
+    }>,
+    months: number,
+  ): AdminReportMonthlyItemDto[] {
+    const byMonth = new Map(rows.map((row) => [row.monthKey, row]));
+    const now = new Date();
+    const result: AdminReportMonthlyItemDto[] = [];
+
+    for (let offset = months - 1; offset >= 0; offset -= 1) {
+      const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - offset, 1));
+      const monthKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+      const values = byMonth.get(monthKey) ?? {
+        users: 0,
+        foundations: 0,
+        donations: 0,
+        campaigns: 0,
+      };
+
+      result.push({
+        monthKey,
+        label: MONTH_LABELS[date.getUTCMonth()] ?? monthKey,
+        users: values.users,
+        foundations: values.foundations,
+        donations: values.donations,
+        campaigns: values.campaigns,
+      });
+    }
+
+    return result;
   }
 
   /**

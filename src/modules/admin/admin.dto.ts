@@ -38,6 +38,41 @@ export interface AdminDashboardDataDto {
   featuredCampaigns?: AdminFeaturedCampaignItemDto[];
 }
 
+export interface AdminReportSeriesItemDto {
+  key: string;
+  label: string;
+  value: number;
+}
+
+export interface AdminReportMonthlyItemDto {
+  monthKey: string;
+  label: string;
+  users: number;
+  foundations: number;
+  donations: number;
+  campaigns: number;
+}
+
+export interface AdminReportsSummaryDto {
+  totalUsers: number;
+  totalFoundations: number;
+  totalDonations: number;
+  totalCampaigns: number;
+  totalNeeds: number;
+  activeUsers: number;
+  verifiedFoundations: number;
+  deliveredDonations: number;
+}
+
+export interface AdminReportsDataDto {
+  summary: AdminReportsSummaryDto;
+  usersByRole: AdminReportSeriesItemDto[];
+  foundationsByStatus: AdminReportSeriesItemDto[];
+  donationsByStatus: AdminReportSeriesItemDto[];
+  campaignsByStatus: AdminReportSeriesItemDto[];
+  monthlyActivity: AdminReportMonthlyItemDto[];
+}
+
 export interface CampaignWithNeedProgressRow {
   id: string;
   title: string;
