@@ -104,6 +104,21 @@ export class UsersController {
       ApiResponseBuilder.success(data, API_MESSAGES.USERS_DEACTIVATE_SUCCESS),
     );
   });
+
+  /**
+   * Entrada: req: peticion con id del usuario a reactivar; res: respuesta HTTP.
+   * Proceso: Delega la reactivacion de acceso de login al servicio de usuarios.
+   * Salida: No retorna valor; responde 200 con usuario reactivado.
+   */
+  reactivate = asyncHandler(async (req: Request, res: Response) => {
+    const { user } = req as AuthenticatedRequest;
+    const { id } = req.params as UserIdParamInput;
+    const data = await usersService.reactivateUser(id, user);
+
+    res.status(200).json(
+      ApiResponseBuilder.success(data, API_MESSAGES.USERS_REACTIVATE_SUCCESS),
+    );
+  });
 }
 
 export const usersController = new UsersController();

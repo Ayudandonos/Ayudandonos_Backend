@@ -39,6 +39,7 @@ export interface ListUsersQueryDto {
   limit: number;
   role?: UserRole;
   isActive?: boolean;
+  search?: string;
 }
 
 export interface UpdateUserData {

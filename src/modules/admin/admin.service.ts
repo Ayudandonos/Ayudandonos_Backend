@@ -1,4 +1,6 @@
 import type {
+  AdminCampaignListItemDto,
+  AdminCampaignsQueryDto,
   AdminDashboardDataDto,
   AdminDashboardQueryDto,
   AdminFeaturedCampaignItemDto,
@@ -8,6 +10,7 @@ import type {
   CampaignWithNeedProgressRow,
 } from './admin.dto.js';
 import { adminRepository } from './admin.repository.js';
+import type { ApiResponseMeta } from '../../shared/responses/api.response.js';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const REPORT_MONTHS = 6;
@@ -147,6 +150,53 @@ export class AdminService {
       donationsByStatus: this.mapSeries(donationsByStatus, DONATION_STATUS_LABELS),
       campaignsByStatus: this.mapSeries(campaignsByStatus, CAMPAIGN_STATUS_LABELS),
       monthlyActivity: this.buildMonthlyActivity(monthlyRows, REPORT_MONTHS),
+    };
+  }
+
+  /**
+   * Entrada: query: paginacion y filtros de campanas.
+   * Proceso: Lista campanas administrativas con fundacion, creador y conteo de donaciones.
+   * Salida: Retorna items y meta de paginacion.
+   */
+  async listCampaigns(
+    query: AdminCampaignsQueryDto,
+  ): Promise<{ data: { items: AdminCampaignListItemDto[] }; meta: ApiResponseMeta }> {
+    const { items, total } = await adminRepository.findCampaignsForAdmin(query);
+    const totalPages = Math.ceil(total / query.limit) || 1;
+
+    return {
+      data: {
+        items: items.map((campaign) => ({
+          id: campaign.id,
+          title: campaign.title,
+          status: campaign.status,
+          imageUrl: campaign.imageUrl,
+          startDate: campaign.startDate?.toISOString() ?? null,
+          endDate: campaign.endDate?.toISOString() ?? null,
+          createdAt: campaign.createdAt.toISOString(),
+          needsCount: campaign.needs.length,
+          donationsCount: campaign.needs.reduce(
+            (sum, need) => sum + need._count.donations,
+            0,
+          ),
+          foundation: {
+            id: campaign.foundation.id,
+            name: campaign.foundation.name,
+            city: campaign.foundation.city,
+            department: campaign.foundation.department,
+          },
+          createdBy: {
+            fullName: campaign.foundation.user.fullName,
+            email: campaign.foundation.user.email,
+          },
+        })),
+      },
+      meta: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages,
+      },
     };
   }
 

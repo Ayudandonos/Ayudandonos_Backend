@@ -45,10 +45,20 @@ export class UsersRepository {
 
     if (query.role !== undefined) {
       where.role = query.role;
+    } else {
+      // El panel admin solo gestiona donantes y fundaciones.
+      where.role = { in: ['USER', 'FOUNDATION'] };
     }
 
     if (query.isActive !== undefined) {
       where.isActive = query.isActive;
+    }
+
+    if (query.search) {
+      where.OR = [
+        { email: { contains: query.search, mode: 'insensitive' } },
+        { fullName: { contains: query.search, mode: 'insensitive' } },
+      ];
     }
 
     const skip = (query.page - 1) * query.limit;
@@ -116,6 +126,19 @@ export class UsersRepository {
     return prisma.user.update({
       where: { id },
       data: { isActive: false },
+      select: userPublicSelect,
+    });
+  }
+
+  /**
+   * Entrada: id: identificador del usuario a reactivar.
+   * Proceso: Marca isActive en true para restaurar el acceso de login.
+   * Salida: Retorna el usuario reactivado.
+   */
+  async softReactivate(id: string): Promise<UserPublicRecord> {
+    return prisma.user.update({
+      where: { id },
+      data: { isActive: true },
       select: userPublicSelect,
     });
   }

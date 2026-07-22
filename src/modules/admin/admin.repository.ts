@@ -1,6 +1,6 @@
 import { CampaignStatus, DonationStatus, FoundationStatus, Prisma } from '@prisma/client';
 import { prisma } from '../../database/prisma.client.js';
-import type { CampaignWithNeedProgressRow } from './admin.dto.js';
+import type { AdminCampaignsQueryDto, CampaignWithNeedProgressRow } from './admin.dto.js';
 
 export interface AdminLatestNeedRow {
   id: string;
@@ -370,6 +370,92 @@ export class AdminRepository {
         monthKey,
         ...values,
       }));
+  }
+
+  /**
+   * Entrada: query: paginacion, busqueda y estado opcional.
+   * Proceso: Lista campanas no eliminadas con fundacion, creador y conteos de needs/donaciones.
+   * Salida: Retorna items enriquecidos y total de registros.
+   */
+  async findCampaignsForAdmin(query: AdminCampaignsQueryDto): Promise<{
+    items: Array<{
+      id: string;
+      title: string;
+      status: CampaignStatus;
+      imageUrl: string | null;
+      startDate: Date | null;
+      endDate: Date | null;
+      createdAt: Date;
+      foundation: {
+        id: string;
+        name: string;
+        city: string | null;
+        department: string | null;
+        user: { fullName: string; email: string };
+      };
+      needs: Array<{ _count: { donations: number } }>;
+    }>;
+    total: number;
+  }> {
+    const where: Prisma.CampaignWhereInput = {
+      deletedAt: null,
+    };
+
+    if (query.status) {
+      where.status = query.status;
+    }
+
+    if (query.search) {
+      where.OR = [
+        { title: { contains: query.search, mode: 'insensitive' } },
+        { description: { contains: query.search, mode: 'insensitive' } },
+        { foundation: { name: { contains: query.search, mode: 'insensitive' } } },
+        { foundation: { user: { fullName: { contains: query.search, mode: 'insensitive' } } } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      prisma.campaign.findMany({
+        where,
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          imageUrl: true,
+          startDate: true,
+          endDate: true,
+          createdAt: true,
+          foundation: {
+            select: {
+              id: true,
+              name: true,
+              city: true,
+              department: true,
+              user: {
+                select: {
+                  fullName: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          needs: {
+            where: { deletedAt: null },
+            select: {
+              _count: {
+                select: { donations: true },
+              },
+            },
+          },
+        },
+        orderBy: [{ createdAt: 'desc' }],
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+      prisma.campaign.count({ where }),
+    ]);
+
+    return { items, total };
   }
 }
 

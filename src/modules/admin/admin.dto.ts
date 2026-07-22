@@ -73,6 +73,35 @@ export interface AdminReportsDataDto {
   monthlyActivity: AdminReportMonthlyItemDto[];
 }
 
+export interface AdminCampaignsQueryDto {
+  page: number;
+  limit: number;
+  search?: string;
+  status?: 'DRAFT' | 'PUBLISHED' | 'FINISHED' | 'CANCELLED';
+}
+
+export interface AdminCampaignListItemDto {
+  id: string;
+  title: string;
+  status: 'DRAFT' | 'PUBLISHED' | 'FINISHED' | 'CANCELLED';
+  imageUrl: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  createdAt: string;
+  donationsCount: number;
+  needsCount: number;
+  foundation: {
+    id: string;
+    name: string;
+    city: string | null;
+    department: string | null;
+  };
+  createdBy: {
+    fullName: string;
+    email: string;
+  };
+}
+
 export interface CampaignWithNeedProgressRow {
   id: string;
   title: string;

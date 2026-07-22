@@ -2,7 +2,10 @@ import { Router } from 'express';
 import { authenticate, authorize } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { adminController } from './admin.controller.js';
-import { adminDashboardQuerySchema } from './admin.validations.js';
+import {
+  adminCampaignsQuerySchema,
+  adminDashboardQuerySchema,
+} from './admin.validations.js';
 
 const adminRoutes = Router();
 
@@ -77,5 +80,47 @@ adminRoutes.get(
  *         description: Solo administradores
  */
 adminRoutes.get('/reports', adminController.getReports);
+
+/**
+ * @swagger
+ * /admin/campaigns:
+ *   get:
+ *     summary: Listar campanas con creador, fechas y donaciones
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [DRAFT, PUBLISHED, FINISHED, CANCELLED]
+ *     responses:
+ *       200:
+ *         description: Listado administrativo de campanas obtenido correctamente
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: Solo administradores
+ */
+adminRoutes.get(
+  '/campaigns',
+  validate(adminCampaignsQuerySchema, 'query'),
+  adminController.listCampaigns,
+);
 
 export { adminRoutes };

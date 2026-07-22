@@ -13,11 +13,12 @@ const optionalNullableTrimmed = (min: number, max: number, minMsg: string, maxMs
 export const listUsersQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
-  role: z.enum(['USER', 'FOUNDATION', 'ADMIN']).optional(),
+  role: z.enum(['USER', 'FOUNDATION']).optional(),
   isActive: z
     .enum(['true', 'false'])
     .transform((value) => value === 'true')
     .optional(),
+  search: z.string().trim().min(1).max(120).optional(),
 });
 
 export const userIdParamSchema = z.object({

@@ -42,7 +42,7 @@ usersRoutes.use(authenticate);
  *         name: role
  *         schema:
  *           type: string
- *           enum: [USER, FOUNDATION, ADMIN]
+ *           enum: [USER, FOUNDATION]
  *       - in: query
  *         name: isActive
  *         schema:
@@ -236,6 +236,38 @@ usersRoutes.delete(
   authorize('ADMIN'),
   validate(userIdParamSchema, 'params'),
   usersController.deactivate,
+);
+
+/**
+ * @swagger
+ * /users/{id}/reactivate:
+ *   patch:
+ *     summary: Reactivar acceso de login de un usuario
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Usuario reactivado
+ *       400:
+ *         description: Ya activo u operacion no permitida
+ *       403:
+ *         description: Solo administradores
+ *       404:
+ *         description: Usuario no encontrado
+ */
+usersRoutes.patch(
+  '/:id/reactivate',
+  authorize('ADMIN'),
+  validate(userIdParamSchema, 'params'),
+  usersController.reactivate,
 );
 
 export { usersRoutes };

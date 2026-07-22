@@ -3,7 +3,10 @@ import { ApiResponseBuilder } from '../../shared/responses/api.response.js';
 import { API_MESSAGES } from '../../shared/constants/messages.constants.js';
 import { asyncHandler } from '../../utils/async-handler.util.js';
 import { adminService } from './admin.service.js';
-import type { AdminDashboardQueryInput } from './admin.validations.js';
+import type {
+  AdminCampaignsQueryInput,
+  AdminDashboardQueryInput,
+} from './admin.validations.js';
 
 export class AdminController {
   /**
@@ -30,6 +33,24 @@ export class AdminController {
 
     res.status(200).json(
       ApiResponseBuilder.success(data, API_MESSAGES.ADMIN_REPORTS_SUCCESS),
+    );
+  });
+
+  /**
+   * Entrada: req: peticion autenticada ADMIN con query de listado; res: respuesta HTTP.
+   * Proceso: Delega el listado administrativo de campanas al servicio.
+   * Salida: No retorna valor; responde 200 con items y meta de paginacion.
+   */
+  listCampaigns = asyncHandler(async (req: Request, res: Response) => {
+    const query = req.query as unknown as AdminCampaignsQueryInput;
+    const result = await adminService.listCampaigns(query);
+
+    res.status(200).json(
+      ApiResponseBuilder.success(
+        result.data,
+        API_MESSAGES.ADMIN_CAMPAIGNS_LIST_SUCCESS,
+        result.meta,
+      ),
     );
   });
 }

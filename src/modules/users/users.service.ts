@@ -108,6 +108,14 @@ export class UsersService {
       throw new AppError(API_MESSAGES.AUTH_USER_NOT_FOUND, 404);
     }
 
+    if (input.isActive === false && requester.id === id) {
+      throw new AppError(API_MESSAGES.USERS_CANNOT_DEACTIVATE_SELF, 400);
+    }
+
+    if (input.isActive === false && existingUser.role === 'ADMIN') {
+      throw new AppError(API_MESSAGES.USERS_CANNOT_DEACTIVATE_ADMIN, 400);
+    }
+
     const updateData = this.buildUpdateData(input, requester);
 
     const updatedUser = await usersRepository.updateById(id, updateData);
@@ -136,6 +144,10 @@ export class UsersService {
       throw new AppError(API_MESSAGES.AUTH_USER_NOT_FOUND, 404);
     }
 
+    if (existingUser.role === 'ADMIN') {
+      throw new AppError(API_MESSAGES.USERS_CANNOT_DEACTIVATE_ADMIN, 400);
+    }
+
     if (!existingUser.isActive) {
       throw new AppError(API_MESSAGES.USERS_ALREADY_INACTIVE, 400);
     }
@@ -143,6 +155,32 @@ export class UsersService {
     const deactivatedUser = await usersRepository.softDeactivate(id);
 
     return this.toListItem(deactivatedUser);
+  }
+
+  /**
+   * Entrada: id: identificador del usuario; requester: administrador autenticado.
+   * Proceso: Reactiva la cuenta para restaurar el acceso de login.
+   * Salida: Retorna el usuario reactivado en formato de listado.
+   */
+  async reactivateUser(
+    id: string,
+    requester: RequesterContext,
+  ): Promise<UserListItemDto> {
+    this.assertIsAdmin(requester);
+
+    const existingUser = await usersRepository.findByIdWithFoundation(id);
+
+    if (!existingUser) {
+      throw new AppError(API_MESSAGES.AUTH_USER_NOT_FOUND, 404);
+    }
+
+    if (existingUser.isActive) {
+      throw new AppError(API_MESSAGES.USERS_ALREADY_ACTIVE, 400);
+    }
+
+    const reactivatedUser = await usersRepository.softReactivate(id);
+
+    return this.toListItem(reactivatedUser);
   }
 
   /**
