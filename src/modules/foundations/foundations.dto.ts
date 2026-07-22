@@ -49,6 +49,7 @@ export interface FoundationListItemDto {
   category: string | null;
   city: string | null;
   department: string | null;
+  country: string | null;
   description: string | null;
   logoUrl: string | null;
   latitude: number | null;
@@ -91,6 +92,7 @@ export interface UpdateFoundationDto {
   description?: string | null;
   city?: string;
   department?: string;
+  country?: string;
   address?: string;
   latitude?: number | null;
   longitude?: number | null;
@@ -112,6 +114,7 @@ export interface UpdateFoundationData {
   description?: string | null;
   city?: string;
   department?: string;
+  country?: string;
   address?: string;
   latitude?: number | null;
   longitude?: number | null;

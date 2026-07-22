@@ -68,8 +68,11 @@ Configurar en **Settings → Environment Variables**:
 | `JWT_SECRET` | clave larga aleatoria | min 10 caracteres |
 | `JWT_EXPIRES_IN` | `7d` | |
 | `CORS_ORIGIN` | `https://tu-frontend.vercel.app` | Varias URLs separadas por coma |
-| `RATE_LIMIT_WINDOW_MS` | `900000` | |
-| `RATE_LIMIT_MAX` | `100` | |
+| `RATE_LIMIT_WINDOW_MS` | `900000` | Ventana de 15 minutos |
+| `RATE_LIMIT_MAX` | `1000` | En desarrollo el backend usa al menos 5000 |
+| `CSC_API_KEY` | clave de countrystatecity.in | Obligatoria para `/locations/*` |
+| `CSC_API_BASE_URL` | `https://api.countrystatecity.in/v1` | Opcional |
+| `CSC_CACHE_TTL_MS` | `86400000` | Cache en memoria (24h por defecto) |
 
 Opcional (Vercel la inyecta automaticamente):
 
@@ -95,28 +98,62 @@ El proyecto incluye:
 
 | Archivo | Funcion |
 | ------- | ------- |
-| `vercel.json` | Rewrite todas las rutas a `/api` |
+| `vercel.json` | Rewrite todas las rutas a `/api` + `buildCommand` |
 | `api/index.js` | Entry serverless (Express) |
 | `src/vercel.ts` | App Express + conexion lazy a BD |
-| `npm run vercel-build` | `prisma generate` + `migrate deploy` + `tsc` |
+| `scripts/vercel-build.mjs` | Build de deploy: generate + **migrate deploy** + tsc |
+| `npm run vercel-build` | Ejecuta `scripts/vercel-build.mjs` |
 
-### Build en Vercel
+### Build en Vercel (cada despliegue)
+
+En **cada** deploy, el build hace:
+
+1. `prisma generate`
+2. `prisma migrate deploy` (aplica migraciones pendientes sobre `DATABASE_URL`)
+3. `tsc` (compila la API)
+
+Si `DATABASE_URL` falta o una migracion falla, **el deploy se aborta** (no publica una version con schema desfasado).
 
 - **Root Directory:** `.` (raiz del repo backend)
-- **Build Command:** `npm run vercel-build` (definido en `vercel.json`)
-- **Install Command:** `npm install`
+- **Build Command:** `npm run vercel-build` (definido en `vercel.json`; no lo sobrescribas en el dashboard)
+- **Install Command:** `npm install --include=dev`
 - **Output Directory:** vacio (serverless)
+
+### Seed en deploy (opcional)
+
+Por defecto **no** se ejecuta seed en cada deploy (evita pisar datos).
+
+Para un seed puntual en un deploy:
+
+1. En Vercel → Environment Variables: `SEED_ON_DEPLOY=true`
+2. Redeploy
+3. Quitar o poner `false` despues
+
+Tambien puedes sembrar desde local apuntando a la BD de prod:
+
+```bash
+DATABASE_URL="postgresql://..." npm run prisma:seed
+```
 
 ---
 
 ## Primer despliegue
 
 1. Conectar repo `Ayudandonos_Backend` en Vercel
-2. Agregar variables de entorno
-3. Desplegar
+2. Agregar variables de entorno (**obligatorio `DATABASE_URL` en Production y Preview**)
+3. Desplegar (el build correra migraciones automaticamente)
 4. Verificar: `GET https://tu-url.vercel.app/api/v1/health`
-5. (Opcional) Ejecutar seed una vez con BD de produccion desde local apuntando a `DATABASE_URL` de prod
+5. (Opcional) Seed una vez con `SEED_ON_DEPLOY=true` o desde local
 
+### Comprobar migraciones en logs de Vercel
+
+En el log de Build debes ver lineas como:
+
+```
+[vercel-build] > npx prisma migrate deploy
+```
+
+Si no aparecen, el Build Command del dashboard esta sobrescribiendo `vercel.json`.
 ---
 
 ## Desarrollo local vs Vercel

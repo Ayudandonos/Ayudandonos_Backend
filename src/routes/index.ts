@@ -9,6 +9,7 @@ import { needsRoutes } from '../modules/needs/needs.routes.js';
 import { donationsRoutes } from '../modules/donations/donations.routes.js';
 import { adminRoutes } from '../modules/admin/admin.routes.js';
 import { notificationsRoutes } from '../modules/notifications/notifications.routes.js';
+import { locationsRoutes } from '../modules/locations/locations.routes.js';
 
 const apiRouter = Router();
 
@@ -22,5 +23,6 @@ apiRouter.use('/needs', needsRoutes);
 apiRouter.use('/donations', donationsRoutes);
 apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/notifications', notificationsRoutes);
+apiRouter.use('/locations', locationsRoutes);
 
 export { apiRouter };

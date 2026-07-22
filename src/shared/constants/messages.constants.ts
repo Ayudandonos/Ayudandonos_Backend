@@ -7,6 +7,17 @@ export const API_MESSAGES = {
   ROUTE_NOT_FOUND: 'Ruta no encontrada',
   VALIDATION_ERROR: 'Error de validación',
   INTERNAL_SERVER_ERROR: 'Error interno del servidor',
+  DATABASE_SCHEMA_OUTDATED:
+    'La base de datos no está actualizada. Faltan migraciones pendientes en el servidor.',
+  DATABASE_CONNECTION_ERROR: 'No se pudo conectar con la base de datos.',
+  DATABASE_VALIDATION_ERROR: 'Los datos enviados no son válidos para la base de datos.',
+  DATABASE_QUERY_FAILED: 'Error al consultar o guardar en la base de datos.',
+  DATABASE_DUPLICATE_RECORD: 'Ya existe un registro con esos datos.',
+  UPLOAD_STORAGE_UNAVAILABLE:
+    'No se pudo guardar el archivo. El almacenamiento local no está disponible en este entorno (usa Storage cloud en producción).',
+  UPLOAD_STORAGE_FULL: 'No hay espacio disponible para guardar el archivo.',
+  UPLOAD_STORAGE_FAILED: 'Error al guardar o eliminar el archivo en el servidor.',
+  UPLOAD_FILE_NOT_FOUND: 'El archivo solicitado no existe en el almacenamiento.',
   AUTH_TOKEN_REQUIRED: 'Token de autenticación requerido',
   AUTH_TOKEN_INVALID: 'Token inválido o expirado',
   AUTH_UNAUTHORIZED: 'No autenticado',
@@ -97,6 +108,15 @@ export const API_MESSAGES = {
   NOTIFICATIONS_MARK_READ_SUCCESS: 'Notificación marcada como leída',
   NOTIFICATIONS_MARK_ALL_READ_SUCCESS: 'Todas las notificaciones fueron marcadas como leídas',
   NOTIFICATIONS_NOT_FOUND: 'Notificación no encontrada',
+  LOCATIONS_COUNTRIES_SUCCESS: 'Listado de países obtenido correctamente',
+  LOCATIONS_STATES_SUCCESS: 'Listado de estados obtenido correctamente',
+  LOCATIONS_CITIES_SUCCESS: 'Listado de ciudades obtenido correctamente',
+  LOCATIONS_PROVIDER_UNAVAILABLE:
+    'El servicio de ubicaciones no está disponible. Intenta de nuevo más tarde.',
+  LOCATIONS_PROVIDER_NOT_CONFIGURED:
+    'El servicio de ubicaciones no está configurado (falta CSC_API_KEY).',
+  LOCATIONS_COUNTRY_NOT_FOUND: 'País no encontrado',
+  LOCATIONS_STATE_NOT_FOUND: 'Estado o departamento no encontrado',
 } as const;
 
 /**
@@ -127,6 +147,7 @@ export const VALIDATION_MESSAGES = {
   FOUNDATION_CATEGORY_MIN_LENGTH: 'La categoría debe tener al menos 2 caracteres',
   FOUNDATION_CITY_MIN_LENGTH: 'La ciudad debe tener al menos 2 caracteres',
   FOUNDATION_DEPARTMENT_MIN_LENGTH: 'El departamento debe tener al menos 2 caracteres',
+  FOUNDATION_COUNTRY_MIN_LENGTH: 'El país debe tener al menos 2 caracteres',
   FOUNDATION_ADDRESS_MIN_LENGTH: 'La dirección debe tener al menos 5 caracteres',
   FOUNDATION_PHONE_MIN_LENGTH: 'El teléfono debe tener al menos 7 caracteres',
   FOUNDATION_PHONE_MAX_LENGTH: 'El teléfono no puede superar los 20 caracteres',
@@ -171,6 +192,8 @@ export const VALIDATION_MESSAGES = {
   DELIVERY_COORDS_INCOMPLETE: 'Debes indicar latitud y longitud juntas',
   DELIVERY_ADDRESS_MIN_LENGTH: 'La dirección de entrega debe tener al menos 5 caracteres',
   INVALID_NOTIFICATION_UUID: 'Identificador de notificación inválido',
+  INVALID_COUNTRY_ISO: 'Código de país ISO inválido',
+  INVALID_STATE_ISO: 'Código de estado ISO inválido',
 } as const;
 
 

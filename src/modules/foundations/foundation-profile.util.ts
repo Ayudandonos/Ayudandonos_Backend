@@ -16,6 +16,7 @@ export function isFoundationProfileComplete(foundation: Foundation): boolean {
     foundation.name?.trim() &&
       foundation.nit?.trim() &&
       foundation.category?.trim() &&
+      foundation.country?.trim() &&
       foundation.city?.trim() &&
       foundation.department?.trim() &&
       foundation.address?.trim() &&

@@ -46,6 +46,7 @@ export function toFoundationListItem(
     category: foundation.category,
     city: foundation.city,
     department: hideContact ? null : foundation.department,
+    country: foundation.country,
     description: foundation.description,
     logoUrl: foundation.logoUrl,
     latitude: foundation.latitude,

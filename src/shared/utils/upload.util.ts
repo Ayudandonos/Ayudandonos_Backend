@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { uploadConfig } from '../../config/env.config.js';
+import { mapUnknownError } from '../errors/map-unknown-error.js';
 
 const PUBLIC_UPLOAD_PREFIX = `${uploadConfig.publicBaseUrl}/uploads/`;
 
@@ -32,29 +33,33 @@ export async function saveFoundationFile(
   mimeType: string;
   fileSize: number;
 }> {
-  const extension = path.extname(file.originalname) || inferExtension(file.mimetype);
-  const safeName = `${randomUUID()}${extension}`;
-  const isDocument = subfolder === 'documents';
-  const relativeDir = isDocument
-    ? path.join('private', uploadConfig.foundationsDir, foundationId, subfolder)
-    : path.join(uploadConfig.foundationsDir, foundationId, subfolder);
-  const absoluteDir = path.join(uploadConfig.rootDir, relativeDir);
+  try {
+    const extension = path.extname(file.originalname) || inferExtension(file.mimetype);
+    const safeName = `${randomUUID()}${extension}`;
+    const isDocument = subfolder === 'documents';
+    const relativeDir = isDocument
+      ? path.join('private', uploadConfig.foundationsDir, foundationId, subfolder)
+      : path.join(uploadConfig.foundationsDir, foundationId, subfolder);
+    const absoluteDir = path.join(uploadConfig.rootDir, relativeDir);
 
-  await fs.mkdir(absoluteDir, { recursive: true });
+    await fs.mkdir(absoluteDir, { recursive: true });
 
-  const relativePath = path.join(relativeDir, safeName).replace(/\\/g, '/');
-  const absolutePath = path.join(uploadConfig.rootDir, relativePath);
+    const relativePath = path.join(relativeDir, safeName).replace(/\\/g, '/');
+    const absolutePath = path.join(uploadConfig.rootDir, relativePath);
 
-  await fs.writeFile(absolutePath, file.buffer);
+    await fs.writeFile(absolutePath, file.buffer);
 
-  return {
-    relativePath,
-    storageKey: relativePath,
-    publicUrl: isDocument ? null : buildPublicUploadUrl(relativePath),
-    fileName: file.originalname,
-    mimeType: file.mimetype,
-    fileSize: file.size,
-  };
+    return {
+      relativePath,
+      storageKey: relativePath,
+      publicUrl: isDocument ? null : buildPublicUploadUrl(relativePath),
+      fileName: file.originalname,
+      mimeType: file.mimetype,
+      fileSize: file.size,
+    };
+  } catch (error) {
+    throw mapUnknownError(error);
+  }
 }
 
 /**

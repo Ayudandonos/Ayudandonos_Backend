@@ -11,11 +11,14 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('7d'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000),
-  RATE_LIMIT_MAX: z.coerce.number().default(100),
+  RATE_LIMIT_MAX: z.coerce.number().default(1000),
   VERCEL_URL: z.string().optional(),
   UPLOAD_DIR: z.string().default('uploads'),
   UPLOAD_MAX_FILE_SIZE_MB: z.coerce.number().default(10),
   PUBLIC_BASE_URL: z.string().default('http://localhost:3000'),
+  CSC_API_KEY: z.string().min(1).optional(),
+  CSC_API_BASE_URL: z.string().url().default('https://api.countrystatecity.in/v1'),
+  CSC_CACHE_TTL_MS: z.coerce.number().default(86_400_000),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -29,12 +32,23 @@ export const env = parsed.data;
 
 export const isDevelopment = env.NODE_ENV === 'development';
 export const isProduction = env.NODE_ENV === 'production';
+export const isVercelRuntime = Boolean(process.env.VERCEL);
+
+const resolvedUploadRoot = isVercelRuntime
+  ? path.join('/tmp', env.UPLOAD_DIR)
+  : path.resolve(process.cwd(), env.UPLOAD_DIR);
 
 export const uploadConfig = {
-  rootDir: path.resolve(process.cwd(), env.UPLOAD_DIR),
+  rootDir: resolvedUploadRoot,
   foundationsDir: 'foundations',
   maxFileSizeBytes: env.UPLOAD_MAX_FILE_SIZE_MB * 1024 * 1024,
   allowedLogoMimeTypes: ['image/jpeg', 'image/png', 'image/webp'] as const,
   allowedDocumentMimeTypes: ['application/pdf', 'image/jpeg', 'image/png'] as const,
   publicBaseUrl: env.PUBLIC_BASE_URL.replace(/\/$/, ''),
+};
+
+export const cscConfig = {
+  apiKey: env.CSC_API_KEY ?? '',
+  baseUrl: env.CSC_API_BASE_URL.replace(/\/$/, ''),
+  cacheTtlMs: env.CSC_CACHE_TTL_MS,
 };

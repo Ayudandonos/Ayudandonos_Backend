@@ -69,6 +69,11 @@ export const updateFoundationSchema = z
       .trim()
       .min(2, VALIDATION_MESSAGES.FOUNDATION_DEPARTMENT_MIN_LENGTH)
       .optional(),
+    country: z
+      .string()
+      .trim()
+      .min(2, VALIDATION_MESSAGES.FOUNDATION_COUNTRY_MIN_LENGTH)
+      .optional(),
     address: z.string().trim().min(5, VALIDATION_MESSAGES.FOUNDATION_ADDRESS_MIN_LENGTH).optional(),
     latitude: z
       .number()
