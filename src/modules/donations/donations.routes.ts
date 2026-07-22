@@ -49,6 +49,9 @@ const donationsRoutes = Router();
  *               estimatedDeliveryAt:
  *                 type: string
  *                 format: date-time
+ *               initialMessage:
+ *                 type: string
+ *                 description: Primer mensaje al chat de la donacion
  *     responses:
  *       201:
  *         description: Donacion creada

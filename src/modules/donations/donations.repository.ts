@@ -65,11 +65,13 @@ const needForDonationInclude = {
   campaign: {
     select: {
       id: true,
+      title: true,
       status: true,
       deletedAt: true,
       foundation: {
         select: {
           id: true,
+          userId: true,
           status: true,
           deletedAt: true,
         },
@@ -227,6 +229,20 @@ export class DonationsRepository {
           donationId: donation.id,
         },
       });
+
+      if (data.initialMessage?.trim()) {
+        const conversation = await tx.conversation.findUniqueOrThrow({
+          where: { donationId: donation.id },
+        });
+
+        await tx.message.create({
+          data: {
+            conversationId: conversation.id,
+            senderId: donorUserId,
+            body: data.initialMessage.trim(),
+          },
+        });
+      }
 
       await tx.need.update({
         where: { id: needId },

@@ -65,9 +65,13 @@ index.ts
 
 **Fase 3 — Fundaciones COMPLETADA:** perfil extendido, documentos, verificacion admin, historial de observaciones (backend + frontend).
 
-**Fase 4 — Campanas COMPLETADA:** CRUD, estados, listado publico, punto de entrega, Needs, Donations (historial + chat + delivery) en rama `feature/campaigns`.
+**Fase 4 — Campanas COMPLETADA:** CRUD, estados, listado publico, punto de entrega, Needs, Donations (historial + chat + delivery).
 
-**Siguiente:** PR/merge de Campanas; Notificaciones y Storage en fases posteriores. Panel admin dashboard (`GET /admin/dashboard`) implementado en backend.
+**Panel admin:** `GET /admin/dashboard` implementado.
+
+**Fase 5 — Notificaciones COMPLETADA:** modulo in-app; hooks desde Donations; `initialMessage` al crear donacion.
+
+**Siguiente:** Storage (Blob/S3) y UI de notificaciones en frontend.
 
 ## Documentacion interna
 
@@ -78,6 +82,7 @@ index.ts
 | Convenciones | `docs/CONVENTIONS.md` |
 | Reglas de desarrollo | `docs/DEVELOPMENT_RULES.md` |
 | Especificaciones API | `specs/API_OVERVIEW.md` |
+| Referencia de API | `docs/API_REFERENCE.md` |
 | Plantilla de modulo | `specs/MODULE_TEMPLATE.md` |
 | Skills del proyecto | `.cursor/skills/` |
 

@@ -47,6 +47,12 @@ export const createDonationSchema = z.object({
     .string()
     .datetime({ message: VALIDATION_MESSAGES.DONATION_INVALID_DATE })
     .optional(),
+  initialMessage: z
+    .string()
+    .trim()
+    .min(1, VALIDATION_MESSAGES.MESSAGE_BODY_MIN_LENGTH)
+    .max(2000, VALIDATION_MESSAGES.MESSAGE_BODY_MAX_LENGTH)
+    .optional(),
 });
 
 export const updateDonationStatusSchema = z.object({

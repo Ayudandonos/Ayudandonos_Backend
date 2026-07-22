@@ -54,6 +54,7 @@ export type CreateDonationDto = {
   quantity: number;
   notes?: string;
   estimatedDeliveryAt?: string;
+  initialMessage?: string;
 };
 
 export type UpdateDonationStatusDto = {

@@ -16,6 +16,46 @@ import {
 const foundationOperationalRouter = Router();
 
 /**
+ * @swagger
+ * tags:
+ *   name: FoundationRequests
+ *   description: Solicitudes de donacion recibidas por la fundacion operativa
+ */
+
+/**
+ * @swagger
+ * /foundation/requests:
+ *   get:
+ *     summary: Listar solicitudes de donacion de la fundacion
+ *     tags: [FoundationRequests]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [COMMITTED, IN_TRANSIT, DELIVERED, CONFIRMED, CANCELLED]
+ *     responses:
+ *       200:
+ *         description: Listado obtenido
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: Fundacion no operativa
+ */
+
+/**
  * Entrada: req: fundacion autenticada y operativa; res: respuesta HTTP.
  * Proceso: Lista solicitudes de donacion recibidas por la fundacion con paginacion.
  * Salida: No retorna valor; responde 200 con listado y meta.

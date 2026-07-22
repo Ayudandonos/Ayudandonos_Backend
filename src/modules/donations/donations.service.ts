@@ -22,6 +22,7 @@ import {
   FoundationStatus,
   type DonationWithRelations,
 } from './donations.repository.js';
+import { notificationsService } from '../notifications/notifications.service.js';
 
 type RequesterContext = {
   id: string;
@@ -70,6 +71,26 @@ export class DonationsService {
       need.id,
       input,
     );
+
+    await this.safeNotify(() =>
+      notificationsService.notifyDonationCreated({
+        foundationUserId: need.campaign.foundation.userId,
+        donationId: created.id,
+        campaignTitle: need.campaign.title,
+        donorName: created.donor.fullName,
+      }),
+    );
+
+    if (input.initialMessage?.trim()) {
+      await this.safeNotify(() =>
+        notificationsService.notifyDonationMessage({
+          recipientUserId: need.campaign.foundation.userId,
+          donationId: created.id,
+          senderName: created.donor.fullName,
+          linkPath: `/foundation/requests/${created.id}`,
+        }),
+      );
+    }
 
     return this.toDto(created);
   }
@@ -177,6 +198,22 @@ export class DonationsService {
       requester.id,
     );
 
+    const recipientUserId = isDonor
+      ? foundationUserId
+      : donation.donorUserId;
+    const linkPath = isDonor
+      ? `/foundation/requests/${donation.id}`
+      : `/my-donations/${donation.id}`;
+
+    await this.safeNotify(() =>
+      notificationsService.notifyDonationStatusChanged({
+        recipientUserId,
+        donationId: donation.id,
+        status: input.status,
+        linkPath,
+      }),
+    );
+
     return this.toDto(updated);
   }
 
@@ -202,6 +239,14 @@ export class DonationsService {
     }
 
     const updated = await donationsRepository.updateDelivery(id, input);
+
+    await this.safeNotify(() =>
+      notificationsService.notifyDonationDeliveryUpdated({
+        donorUserId: donation.donorUserId,
+        donationId: donation.id,
+      }),
+    );
+
     return this.toDto(updated);
   }
 
@@ -272,7 +317,39 @@ export class DonationsService {
       input.body,
     );
 
+    const foundationUserId = donation.need.campaign.foundation.userId;
+    const recipientUserId =
+      requester.id === donation.donorUserId
+        ? foundationUserId
+        : donation.donorUserId;
+    const linkPath =
+      recipientUserId === foundationUserId
+        ? `/foundation/requests/${donation.id}`
+        : `/my-donations/${donation.id}`;
+
+    await this.safeNotify(() =>
+      notificationsService.notifyDonationMessage({
+        recipientUserId,
+        donationId: donation.id,
+        senderName: message.sender.fullName,
+        linkPath,
+      }),
+    );
+
     return this.toMessageDto(message);
+  }
+
+  /**
+   * Entrada: task: promesa de notificacion interna.
+   * Proceso: Ejecuta la notificacion sin interrumpir el flujo principal si falla.
+   * Salida: Retorna void.
+   */
+  private async safeNotify(task: () => Promise<void>): Promise<void> {
+    try {
+      await task();
+    } catch {
+      return;
+    }
   }
 
   /**
