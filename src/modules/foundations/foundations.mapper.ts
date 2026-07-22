@@ -48,6 +48,8 @@ export function toFoundationListItem(
     department: hideContact ? null : foundation.department,
     description: foundation.description,
     logoUrl: foundation.logoUrl,
+    latitude: foundation.latitude,
+    longitude: foundation.longitude,
     status: foundation.status,
     createdAt: foundation.createdAt.toISOString(),
     representative: {

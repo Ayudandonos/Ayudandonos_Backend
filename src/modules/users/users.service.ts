@@ -2,6 +2,7 @@ import type { UserRole } from '@prisma/client';
 import { AppError } from '../../shared/errors/app.error.js';
 import { API_MESSAGES } from '../../shared/constants/messages.constants.js';
 import { toPublicFoundationDto } from '../foundations/public-foundation.mapper.js';
+import { donationsRepository } from '../donations/donations.repository.js';
 import type {
   ListUsersQueryDto,
   UpdateUserData,
@@ -49,8 +50,17 @@ export class UsersService {
   }
 
   /**
+   * Entrada: requester: usuario autenticado.
+   * Proceso: Obtiene el perfil propio con fundacion y stats de donaciones si aplica.
+   * Salida: Retorna el perfil completo del solicitante.
+   */
+  async getMyProfile(requester: RequesterContext): Promise<UserDetailResponseDto> {
+    return this.getUserById(requester.id, requester);
+  }
+
+  /**
    * Entrada: id: identificador del usuario; requester: usuario autenticado.
-   * Proceso: Permite acceso a admin o al propio usuario; obtiene detalle con fundacion si aplica.
+   * Proceso: Permite acceso a admin o al propio usuario; obtiene detalle con fundacion y stats.
    * Salida: Retorna detalle publico del usuario.
    */
   async getUserById(
@@ -69,9 +79,21 @@ export class UsersService {
   }
 
   /**
+   * Entrada: requester: usuario autenticado; input: datos de perfil a actualizar.
+   * Proceso: Actualiza el perfil del solicitante.
+   * Salida: Retorna el perfil actualizado.
+   */
+  async updateMyProfile(
+    requester: RequesterContext,
+    input: UpdateUserDto,
+  ): Promise<UserDetailResponseDto> {
+    return this.updateUser(requester.id, input, requester);
+  }
+
+  /**
    * Entrada: id: identificador del usuario; input: datos a actualizar; requester: usuario autenticado.
-   * Proceso: Admin puede actualizar perfil y campos administrativos; el usuario solo su fullName.
-   * Salida: Retorna el usuario actualizado con fundacion si aplica.
+   * Proceso: Admin puede actualizar perfil y campos administrativos; el usuario sus campos de perfil.
+   * Salida: Retorna el usuario actualizado con fundacion y stats si aplica.
    */
   async updateUser(
     id: string,
@@ -169,6 +191,11 @@ export class UsersService {
 
     return {
       fullName: input.fullName,
+      phone: input.phone,
+      city: input.city,
+      department: input.department,
+      bio: input.bio,
+      avatarUrl: input.avatarUrl,
     };
   }
 
@@ -183,6 +210,11 @@ export class UsersService {
     fullName: string;
     role: UserRole;
     isActive: boolean;
+    phone: string | null;
+    city: string | null;
+    department: string | null;
+    bio: string | null;
+    avatarUrl: string | null;
     createdAt: Date;
   }): UserListItemDto {
     return {
@@ -190,6 +222,11 @@ export class UsersService {
       email: user.email,
       fullName: user.fullName,
       role: user.role,
+      phone: user.phone,
+      city: user.city,
+      department: user.department,
+      bio: user.bio,
+      avatarUrl: user.avatarUrl,
       isActive: user.isActive,
       createdAt: user.createdAt.toISOString(),
     };
@@ -197,10 +234,17 @@ export class UsersService {
 
   /**
    * Entrada: user: usuario con fundacion opcional.
-   * Proceso: Mapea a respuesta de detalle publica.
+   * Proceso: Mapea a respuesta de detalle e incluye stats de donaciones para rol USER.
    * Salida: Retorna UserDetailResponseDto.
    */
-  private toDetailResponse(user: UserWithFoundation): UserDetailResponseDto {
+  private async toDetailResponse(
+    user: UserWithFoundation,
+  ): Promise<UserDetailResponseDto> {
+    const donationStats =
+      user.role === 'USER'
+        ? await donationsRepository.getDonorStats(user.id)
+        : null;
+
     return {
       user: {
         id: user.id,
@@ -208,6 +252,11 @@ export class UsersService {
         fullName: user.fullName,
         role: user.role,
         isActive: user.isActive,
+        phone: user.phone,
+        city: user.city,
+        department: user.department,
+        bio: user.bio,
+        avatarUrl: user.avatarUrl,
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       },
@@ -215,6 +264,7 @@ export class UsersService {
         user.role === 'FOUNDATION' && user.foundation
           ? toPublicFoundationDto(user.foundation)
           : null,
+      donationStats,
     };
   }
 }

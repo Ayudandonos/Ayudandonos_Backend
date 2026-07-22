@@ -22,6 +22,11 @@ const userPublicSelect = {
   fullName: true,
   role: true,
   isActive: true,
+  phone: true,
+  city: true,
+  department: true,
+  bio: true,
+  avatarUrl: true,
   createdAt: true,
   updatedAt: true,
 } as const satisfies Prisma.UserSelect;

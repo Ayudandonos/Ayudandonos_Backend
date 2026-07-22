@@ -54,10 +54,17 @@ Variables minimas: `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN` (URL del frontend
 | Users | `/api/v1/users` |
 | Foundations | `/api/v1/foundations` |
 | Campaigns | `/api/v1/campaigns` |
+| Needs | `/api/v1/needs` |
+| Donations | `/api/v1/donations` |
+| Notifications | `/api/v1/notifications` |
 | Admin (dashboard) | `/api/v1/admin` |
 
-Detalle fundaciones: [docs/FOUNDATIONS_MODULE.md](./docs/FOUNDATIONS_MODULE.md).  
-Detalle panel admin: [docs/ADMIN_MODULE.md](./docs/ADMIN_MODULE.md).
+Catalogo consolidado: [docs/API_REFERENCE.md](./docs/API_REFERENCE.md).  
+Usuarios / perfil: [docs/USERS_MODULE.md](./docs/USERS_MODULE.md).  
+Fundaciones (verificacion admin + nearby): [docs/FOUNDATIONS_MODULE.md](./docs/FOUNDATIONS_MODULE.md).  
+Panel admin: [docs/ADMIN_MODULE.md](./docs/ADMIN_MODULE.md).  
+Notificaciones: [docs/NOTIFICATIONS_MODULE.md](./docs/NOTIFICATIONS_MODULE.md).  
+Campanas: [docs/CAMPAIGNS_MODULE.md](./docs/CAMPAIGNS_MODULE.md).
 
 ## Scripts
 

@@ -1,6 +1,6 @@
 # Modulo Fundaciones — Backend
 
-Estado: **IMPLEMENTADO** (perfil extendido alineado al prototipo).
+Estado: **IMPLEMENTADO** (perfil extendido, verificacion admin, coordenadas y descubrimiento cercano).
 
 ## Endpoints
 
@@ -9,15 +9,52 @@ Base: `/api/v1/foundations`
 | Metodo | Ruta | Auth | Descripcion |
 | ------ | ---- | ---- | ----------- |
 | GET | `/` | Opcional | Listado paginado. Publico: solo `VERIFIED`. Admin: todas + `data.stats`. |
+| GET | `/nearby` | Publico | Fundaciones `VERIFIED` en radio 1–10 km + tipos (categorias). |
 | GET | `/me` | JWT (FOUNDATION) | Perfil completo de la fundacion del usuario autenticado. |
 | GET | `/:id` | Opcional | Detalle. Publico si `VERIFIED`; admin u owner si otro estado. |
 | GET | `/:id/documents/:type/download` | JWT (owner o ADMIN) | Descarga documento por tipo (almacenamiento privado). |
-| PATCH | `/:id` | JWT (owner o ADMIN) | Actualizar perfil (campos de texto y redes sociales). |
-| PATCH | `/:id/status` | JWT (ADMIN) | Cambiar estado: `PENDING`, `VERIFIED`, `REJECTED`, `SUSPENDED`. |
+| PATCH | `/:id` | JWT (owner o ADMIN) | Actualizar perfil (texto, redes, `latitude`/`longitude`). |
+| PATCH | `/:id/status` | JWT (**ADMIN**) | Verificacion / rechazo / suspension. |
 | POST | `/:id/logo` | JWT (owner o ADMIN) | Subir logo (multipart, campo `logo`). |
 | POST | `/:id/documents` | JWT (owner o ADMIN) | Subir documento legal (multipart: `file`, `type`). |
 
 Registro inicial: `POST /api/v1/auth/register/foundation` (modulo auth). Crea fundacion en estado `PENDING` con datos minimos; el perfil se completa via PATCH.
+
+## Verificacion por administradores
+
+Solo un usuario con rol **ADMIN** puede cambiar el estado de una fundacion.
+
+```
+Registro (PENDING)
+  -> Fundacion completa perfil + documentos obligatorios
+  -> Admin revisa en panel
+  -> PATCH /foundations/:id/status { "status": "VERIFIED" }
+  -> Visible en listado publico, nearby y operaciones
+```
+
+| Estado | Significado | Visible al publico |
+| ------ | ----------- | ------------------ |
+| `PENDING` | En revision | No |
+| `VERIFIED` | Aprobada por admin | Si |
+| `REJECTED` | Rechazada (exige `rejectionReason`) | No |
+| `SUSPENDED` | Suspendida por admin | No |
+
+Para pasar a `VERIFIED` el backend exige perfil completo + documentos `RUT`, `LEGAL_EXISTENCE_CERTIFICATE` y `LEGAL_REPRESENTATIVE_ID`.
+
+Endpoint: `PATCH /api/v1/foundations/:id/status` (solo `authorize('ADMIN')`).
+
+## Descubrimiento cercano
+
+`GET /foundations/nearby?latitude=&longitude=&radiusKm=`
+
+| Param | Default | Notas |
+| ----- | ------- | ----- |
+| `latitude` | requerido | Origen (GPS del cliente) |
+| `longitude` | requerido | Origen |
+| `radiusKm` | 5 | Entre 1 y 10 |
+
+Solo incluye fundaciones **`VERIFIED`** con `latitude`/`longitude` cargadas.  
+Respuesta: `categories` (tipos en la zona) + `items` con `distanceKm`.
 
 ## Query params (GET `/`)
 
@@ -36,7 +73,7 @@ Registro inicial: `POST /api/v1/auth/register/foundation` (modulo auth). Crea fu
 ### Enum `FoundationStatus`
 
 - `PENDING` — registro o revision pendiente
-- `VERIFIED` — visible en listado publico
+- `VERIFIED` — visible en listado publico (aprobada por admin)
 - `REJECTED` — solicitud rechazada (requiere `rejectionReason`)
 - `SUSPENDED` — verificada pero suspendida temporalmente
 
@@ -49,13 +86,14 @@ Registro inicial: `POST /api/v1/auth/register/foundation` (modulo auth). Crea fu
 | name | string | Obligatorio |
 | acronym | string? | Sigla opcional |
 | nit | string? | Unico |
-| category | string? | |
+| category | string? | Tipo / rubro (usado en nearby) |
 | mission, vision, description | text? | |
-| city, department, address | string? | Ubicacion |
+| city, department, address | string? | Ubicacion textual |
+| latitude, longitude | float? | Coordenadas para mapa y nearby |
 | institutionalEmail, phone, website | string? | Contacto |
 | legalRepresentativeName, legalRepresentativeDocument | string? | |
 | logoUrl | string? | Ruta publica bajo `/uploads` |
-| status | FoundationStatus | Default PENDING |
+| status | FoundationStatus | Default PENDING; solo ADMIN lo cambia |
 | verifiedAt, rejectedAt, suspendedAt | datetime? | Timestamps historicos preservados |
 | verifiedById | UUID? FK users | Admin que verifico |
 | slug | string? unique | URLs publicas futuras |
@@ -86,15 +124,16 @@ Historial de observaciones administrativas (1:N). Se crea registro al cambiar es
 
 ## Reglas de negocio
 
-1. El listado publico solo expone fundaciones `VERIFIED`.
-2. La verificacion (`VERIFIED`) exige perfil completo: campos obligatorios + documentos RUT, certificado legal e ID del representante.
+1. El listado publico y `/nearby` solo exponen fundaciones `VERIFIED`.
+2. La verificacion (`VERIFIED`) la realiza **unicamente un ADMIN** y exige perfil completo + documentos obligatorios.
 3. El NIT debe ser unico en la plataforma.
 4. Rechazo requiere `rejectionReason`.
 5. Documentos legales en almacenamiento **privado** (`uploads/private/`). Solo logos se sirven via `/uploads/foundations`.
 6. DTO de detalle filtrado por rol: publico no recibe documentos, email del representante ni datos legales sensibles.
 7. Descarga de documentos restringida a owner y ADMIN.
 8. **Acceso operativo (frontend):** una fundacion solo puede usar campanas, necesidades, solicitudes y entregas cuando `isProfileComplete`, `hasRequiredDocuments` y `status === VERIFIED`. Mientras tanto, el dashboard la mantiene en `/foundation/profile`.
-9. **Sesion auth:** `PublicFoundationDto` incluye `isProfileComplete` y `hasRequiredDocuments` (calculados en login, registro y `/auth/me`) para que el frontend aplique el guard sin consultas extra.
+9. **Sesion auth:** `PublicFoundationDto` incluye `isProfileComplete`, `hasRequiredDocuments`, `latitude` y `longitude` (calculados en login, registro y `/auth/me`).
+10. Coordenadas opcionales; sin ellas la fundacion no aparece en `/nearby`.
 
 ## Seguridad de archivos
 
@@ -118,6 +157,8 @@ src/modules/foundations/
   foundations.dto.ts
 ```
 
+Util geo: `src/shared/utils/geo.util.ts` (Haversine + bounding box).
+
 ## Variables de entorno
 
 | Variable | Descripcion |
@@ -132,5 +173,6 @@ Rutas UI:
 
 - `/foundations` — listado publico
 - `/foundations/:id` — detalle
-- `/foundation/profile` — edicion perfil (FOUNDATION)
+- `/foundation/profile` — edicion perfil (FOUNDATION), incluir coords
 - `/admin/foundations` — verificacion (ADMIN)
+- Mapa / zona cercana — consumir `GET /foundations/nearby`

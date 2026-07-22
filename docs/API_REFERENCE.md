@@ -5,7 +5,7 @@
 **Formato de respuesta:** `{ success, message, data, errors }`  
 **Auth:** header `Authorization: Bearer <jwt>` cuando aplique
 
-Este documento cubre los endpoints de Fase 4 (campanas, needs, donations) y Fase 5 (notificaciones), mas el panel admin. Auth, users y foundations estan detallados en `specs/modules/`.
+Este documento cubre auth/users (perfil donante), Fase 4 (campanas, needs, donations), Fase 5 (notificaciones) y el panel admin.
 
 ---
 
@@ -19,6 +19,87 @@ Este documento cubre los endpoints de Fase 4 (campanas, needs, donations) y Fase
 | UUIDs | Identificadores de recursos |
 | Soft delete | Campanas y needs usan `deletedAt`; no aparecen en listados publicos |
 
+---
+
+## Users — `/users`
+
+| Metodo | Ruta | Auth | Descripcion |
+| ------ | ---- | ---- | ----------- |
+| GET | `/users/me` | JWT | Perfil propio + `donationStats` si rol `USER` |
+| PATCH | `/users/me` | JWT | Actualizar campos de perfil |
+| GET | `/users/:id` | admin o self | Detalle; incluye stats si es donante |
+| PATCH | `/users/:id` | admin o self | Actualizar; admin tambien `role`/`isActive` |
+| GET | `/users` | ADMIN | Listado paginado |
+| DELETE | `/users/:id` | ADMIN | Soft deactivate |
+
+### Campos de perfil (User)
+
+`phone`, `city`, `department`, `bio`, `avatarUrl` (opcionales).
+
+### Body `PATCH /users/me`
+
+```json
+{
+  "fullName": "Nombre Apellido",
+  "phone": "3001234567",
+  "city": "Bogota",
+  "department": "Cundinamarca",
+  "bio": "Me gusta apoyar causas locales",
+  "avatarUrl": "https://..."
+}
+```
+
+### `donationStats` (solo rol USER)
+
+```ts
+{
+  totalDonations: number,
+  totalQuantity: number,
+  deliveredQuantity: number,
+  cancelledDonations: number,
+  byStatus: {
+    COMMITTED: { count, quantity },
+    IN_TRANSIT: { count, quantity },
+    DELIVERED: { count, quantity },
+    CONFIRMED: { count, quantity },
+    CANCELLED: { count, quantity }
+  }
+}
+```
+
+`GET /auth/me` tambien expone los campos de perfil en `user` (sin stats).
+
+---
+
+## Foundations nearby — `/foundations/nearby`
+
+Publico. Descubre fundaciones **verificadas por un ADMIN** (`status === VERIFIED`) con coordenadas en un radio de **1 a 10 km**.
+
+Las fundaciones en `PENDING`, `REJECTED` o `SUSPENDED` **no aparecen**.
+
+| Param | Tipo | Default | Notas |
+| ----- | ---- | ------- | ----- |
+| `latitude` | number | requerido | Origen (GPS del cliente) |
+| `longitude` | number | requerido | Origen |
+| `radiusKm` | number | 5 | Min 1, max 10 |
+
+### Respuesta `data`
+
+```ts
+{
+  radiusKm: 5,
+  origin: { latitude, longitude },
+  total: number,
+  categories: [{ category: string, count: number }],
+  items: [{
+    id, name, acronym, category, city, logoUrl,
+    latitude, longitude, distanceKm
+  }]
+}
+```
+
+Coordenadas: `PATCH /foundations/:id` con `latitude` y `longitude`.  
+Verificacion: `PATCH /foundations/:id/status` solo **ADMIN**. Detalle: `docs/FOUNDATIONS_MODULE.md`.
 ---
 
 ## Campaigns — `/campaigns`
@@ -243,6 +324,8 @@ Detalle de KPIs: `docs/ADMIN_MODULE.md`.
 | ------- | ---- |
 | Vision general | `specs/API_OVERVIEW.md` |
 | Specs por modulo | `specs/modules/*.md` |
+| Usuarios / perfil | `docs/USERS_MODULE.md` |
+| Fundaciones (verificacion + nearby) | `docs/FOUNDATIONS_MODULE.md` |
 | Campanas | `docs/CAMPAIGNS_MODULE.md` |
 | Notificaciones | `docs/NOTIFICATIONS_MODULE.md` |
 | Admin | `docs/ADMIN_MODULE.md` |

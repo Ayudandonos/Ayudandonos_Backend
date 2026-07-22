@@ -71,7 +71,11 @@ index.ts
 
 **Fase 5 — Notificaciones COMPLETADA:** modulo in-app; hooks desde Donations; `initialMessage` al crear donacion.
 
-**Siguiente:** Storage (Blob/S3) y UI de notificaciones en frontend.
+**Perfil donante COMPLETADO (rama `feature/user-profile`):** campos de perfil, `GET/PATCH /users/me`, `donationStats`.
+
+**Fundaciones nearby COMPLETADO (misma rama):** coordenadas + `GET /foundations/nearby` (solo `VERIFIED` por admin).
+
+**Siguiente:** merge de `feature/user-profile`; Storage (Blob/S3); UI notificaciones y mapa nearby en frontend.
 
 ## Documentacion interna
 
@@ -81,8 +85,10 @@ index.ts
 | Arquitectura | `docs/ARCHITECTURE.md` |
 | Convenciones | `docs/CONVENTIONS.md` |
 | Reglas de desarrollo | `docs/DEVELOPMENT_RULES.md` |
-| Especificaciones API | `specs/API_OVERVIEW.md` |
 | Referencia de API | `docs/API_REFERENCE.md` |
+| Usuarios / perfil donante | `docs/USERS_MODULE.md` |
+| Fundaciones | `docs/FOUNDATIONS_MODULE.md` |
+| Especificaciones API | `specs/API_OVERVIEW.md` |
 | Plantilla de modulo | `specs/MODULE_TEMPLATE.md` |
 | Skills del proyecto | `.cursor/skills/` |
 

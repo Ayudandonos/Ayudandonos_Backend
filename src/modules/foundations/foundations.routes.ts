@@ -14,6 +14,7 @@ import {
   foundationDocumentTypeParamSchema,
   foundationIdParamSchema,
   listFoundationsQuerySchema,
+  nearbyFoundationsQuerySchema,
   updateFoundationSchema,
   updateFoundationStatusSchema,
   uploadDocumentBodySchema,
@@ -36,6 +37,42 @@ foundationsRoutes.get(
 );
 
 foundationsRoutes.get('/me', authenticate, foundationsController.findMine);
+
+/**
+ * @swagger
+ * /foundations/nearby:
+ *   get:
+ *     summary: Fundaciones verificadas cercanas y tipos en radio 1-10 km
+ *     tags: [Foundations]
+ *     parameters:
+ *       - in: query
+ *         name: latitude
+ *         required: true
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: longitude
+ *         required: true
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: radiusKm
+ *         schema:
+ *           type: number
+ *           minimum: 1
+ *           maximum: 10
+ *           default: 5
+ *     responses:
+ *       200:
+ *         description: Resumen por categoria e items cercanos
+ *       400:
+ *         description: Validacion
+ */
+foundationsRoutes.get(
+  '/nearby',
+  validate(nearbyFoundationsQuerySchema, 'query'),
+  foundationsController.findNearby,
+);
 
 foundationsRoutes.get(
   '/:id/documents/:type/download',
