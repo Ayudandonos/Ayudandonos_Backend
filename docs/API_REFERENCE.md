@@ -295,15 +295,17 @@ No existe endpoint publico de creacion: se generan desde el modulo Donations. Fa
 | Metodo | Ruta | Auth | Descripcion |
 | ------ | ---- | ---- | ----------- |
 | GET | `/admin/dashboard` | ADMIN | KPIs, ultimas needs, campanas destacadas |
+| GET | `/admin/reports` | ADMIN | Resumen y series para reportes administrativos |
+| GET | `/admin/campaigns` | ADMIN | Listado administrativo de campanas |
 
-### Query
+### Query `GET /admin/dashboard`
 
 | Param | Default | Max |
 | ----- | ------- | --- |
 | `latestNeedsLimit` | 10 | 50 |
 | `featuredCampaignsLimit` | 3 | 10 |
 
-Detalle de KPIs: `docs/ADMIN_MODULE.md`.
+Detalle de KPIs y reportes: `docs/ADMIN_MODULE.md`.
 
 ---
 
@@ -329,5 +331,7 @@ Detalle de KPIs: `docs/ADMIN_MODULE.md`.
 | Campanas | `docs/CAMPAIGNS_MODULE.md` |
 | Notificaciones | `docs/NOTIFICATIONS_MODULE.md` |
 | Admin | `docs/ADMIN_MODULE.md` |
+| Seed / dataset demo | `docs/SEED.md` |
+| Deploy Vercel | `docs/DEPLOYMENT_VERCEL.md` |
 | Base de datos | `docs/DATABASE.md` |
 | Swagger interactivo | `GET /api/v1/docs` |

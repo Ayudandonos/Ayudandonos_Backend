@@ -67,15 +67,17 @@ index.ts
 
 **Fase 4 — Campanas COMPLETADA:** CRUD, estados, listado publico, punto de entrega, Needs, Donations (historial + chat + delivery).
 
-**Panel admin:** `GET /admin/dashboard` implementado.
+**Panel admin COMPLETADO:** `GET /admin/dashboard`, `GET /admin/reports`, `GET /admin/campaigns`.
 
 **Fase 5 — Notificaciones COMPLETADA:** modulo in-app; hooks desde Donations; `initialMessage` al crear donacion.
 
-**Perfil donante COMPLETADO (rama `feature/user-profile`):** campos de perfil, `GET/PATCH /users/me`, `donationStats`.
+**Perfil donante COMPLETADO:** campos de perfil, `GET/PATCH /users/me`, `donationStats`.
 
-**Fundaciones nearby COMPLETADO (misma rama):** coordenadas + `GET /foundations/nearby` (solo `VERIFIED` por admin).
+**Fundaciones nearby COMPLETADO:** coordenadas + `GET /foundations/nearby` (solo `VERIFIED` por admin).
 
-**Siguiente:** merge de `feature/user-profile`; Storage (Blob/S3); UI notificaciones y mapa nearby en frontend.
+**Seed demo COMPLETADO:** en cada `prisma db seed` (y en cada deploy Vercel) se hace `TRUNCATE` de tablas de negocio y se carga solo el dataset de `prisma/seed-data.ts`. Ver `docs/SEED.md`.
+
+**Siguiente:** Storage cloud (Blob/S3) como fase posterior; UI notificaciones y mapa nearby en frontend.
 
 ## Documentacion interna
 
@@ -86,8 +88,11 @@ index.ts
 | Convenciones | `docs/CONVENTIONS.md` |
 | Reglas de desarrollo | `docs/DEVELOPMENT_RULES.md` |
 | Referencia de API | `docs/API_REFERENCE.md` |
+| Seed / dataset demo | `docs/SEED.md` |
+| Deploy Vercel | `docs/DEPLOYMENT_VERCEL.md` |
 | Usuarios / perfil donante | `docs/USERS_MODULE.md` |
 | Fundaciones | `docs/FOUNDATIONS_MODULE.md` |
+| Admin | `docs/ADMIN_MODULE.md` |
 | Especificaciones API | `specs/API_OVERVIEW.md` |
 | Plantilla de modulo | `specs/MODULE_TEMPLATE.md` |
 | Skills del proyecto | `.cursor/skills/` |
@@ -100,9 +105,12 @@ npm run build        # Compilar TypeScript
 npm run lint         # ESLint
 npm run prisma:generate
 npm run prisma:migrate
-npm run prisma:seed       # Administradores iniciales (requiere SEED_ADMIN_PASSWORD)
+npm run prisma:seed       # TRUNCATE + dataset demo (requiere SEED_ADMIN_PASSWORD)
+npm run db:setup          # Migraciones + seed
 ```
 
 ## Variables de entorno
 
 Copiar `.env.example` a `.env`. Nunca commitear `.env`.
+
+Seed: `SEED_ADMIN_PASSWORD` (obligatoria) y `SEED_DEMO_PASSWORD` (opcional). Detalle en `docs/SEED.md`.

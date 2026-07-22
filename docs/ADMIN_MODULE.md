@@ -1,19 +1,21 @@
 # Modulo Admin — Backend
 
-Estado: **IMPLEMENTADO** (dashboard v1).
+Estado: **IMPLEMENTADO**.
 
 Incluye tambien la **verificacion de fundaciones** via el modulo Foundations
 (`PATCH /foundations/:id/status`, solo rol `ADMIN`). Ver `docs/FOUNDATIONS_MODULE.md`.
 
-## Endpoint dashboard
+## Endpoints
 
 Base: `/api/v1/admin`
 
 | Metodo | Ruta | Auth | Descripcion |
 | ------ | ---- | ---- | ----------- |
 | GET | `/dashboard` | JWT `ADMIN` | KPIs, ultimas necesidades y campanas destacadas |
+| GET | `/reports` | JWT `ADMIN` | Resumen y series para reportes (roles, estados, actividad mensual) |
+| GET | `/campaigns` | JWT `ADMIN` | Listado administrativo de campanas (fundacion, creador, conteo donaciones) |
 
-## Reglas de negocio (v1)
+## Reglas de negocio (dashboard)
 
 ### KPIs
 
@@ -41,14 +43,28 @@ Base: `/api/v1/admin`
 - Primer item con `isPrimary: true`.
 - Query: `featuredCampaignsLimit` (default 3, max 10).
 
+## Reportes (`GET /reports`)
+
+Agrega conteos globales y series para el panel de reportes del frontend:
+
+- Totales de usuarios, fundaciones, campanas y donaciones
+- Distribucion por rol / estado de fundacion / estado de donacion / estado de campana
+- Actividad mensual (usuarios y donaciones) en una ventana reciente
+
+## Campanas admin (`GET /campaigns`)
+
+Listado paginado con filtros (query Zod en `admin.validations.ts`): fundacion, creador, fechas y conteo de donaciones asociadas.
+
 ## Verificacion con frontend
 
-1. `npm run db:setup` (migraciones + seed ADMIN).
+1. `npm run db:setup` (migraciones + seed completo; vacia BD y carga dataset demo).
 2. `npm run dev` en backend (`:3000`).
 3. Frontend: `VITE_API_URL=http://localhost:3000/api/v1`.
 4. Login con email del seed y `SEED_ADMIN_PASSWORD`.
-5. Ruta UI `/admin/dashboard` debe cargar sin error de red.
+5. Rutas UI tipicas: `/admin/reports`, `/admin/users`, `/admin/campaigns`, `/admin/profile`.
 
 ## Administradores de desarrollo
 
-Ver tabla en [README.md](../README.md) (`SEED_ADMIN_PASSWORD` en `.env`).
+Ver [SEED.md](./SEED.md) y [README.md](../README.md) (`SEED_ADMIN_PASSWORD` en `.env`).
+
+**Nota:** en cada deploy el seed vuelve a cargar estos admins y el resto del dataset demo.

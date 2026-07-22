@@ -13,7 +13,6 @@ import {
   DOCUMENT_TYPES,
   DONOR_USERS,
   FOUNDATION_SEEDS,
-  LEGACY_SEED_EMAILS,
   type SeedAdminUser,
   type SeedFoundationInput,
 } from './seed-data.js';
@@ -46,40 +45,38 @@ function daysFromNow(days: number): Date {
 
 /**
  * Entrada: Ninguna.
- * Proceso: Elimina cuentas residuales del seed antiguo (cascade de fundaciones asociadas).
+ * Proceso: Vacia todas las tablas de negocio para dejar solo el dataset del seed.
  * Salida: No retorna valor.
  */
-async function removeLegacySeedUsers(): Promise<void> {
-  const result = await prisma.user.deleteMany({
-    where: {
-      email: { in: LEGACY_SEED_EMAILS },
-    },
-  });
+async function resetDatabase(): Promise<void> {
+  await prisma.$executeRawUnsafe(`
+    TRUNCATE TABLE
+      "notifications",
+      "messages",
+      "conversations",
+      "donation_status_history",
+      "donations",
+      "needs",
+      "campaigns",
+      "foundation_admin_observations",
+      "foundation_documents",
+      "foundation_social_links",
+      "foundations",
+      "users"
+    RESTART IDENTITY CASCADE
+  `);
 
-  if (result.count > 0) {
-    console.log(`[SEED] Cuentas legacy eliminadas: ${result.count}`);
-  }
+  console.log('[SEED] Base de datos vaciada. Se cargara solo el dataset del seed.');
 }
 
 /**
  * Entrada: admin: datos del administrador; passwordHash: hash de contrasena.
- * Proceso: Crea o actualiza un usuario ADMIN por email (idempotente).
+ * Proceso: Crea un usuario ADMIN.
  * Salida: Retorna el usuario persistido.
  */
-async function upsertAdmin(admin: SeedAdminUser, passwordHash: string): Promise<User> {
-  return prisma.user.upsert({
-    where: { email: admin.email },
-    update: {
-      fullName: admin.fullName,
-      passwordHash,
-      role: UserRole.ADMIN,
-      isActive: true,
-      phone: admin.phone ?? null,
-      city: admin.city ?? null,
-      department: admin.department ?? null,
-      bio: admin.bio ?? null,
-    },
-    create: {
+async function createAdmin(admin: SeedAdminUser, passwordHash: string): Promise<User> {
+  return prisma.user.create({
+    data: {
       email: admin.email,
       fullName: admin.fullName,
       passwordHash,
@@ -95,26 +92,15 @@ async function upsertAdmin(admin: SeedAdminUser, passwordHash: string): Promise<
 
 /**
  * Entrada: passwordHash: hash compartido de contrasena demo.
- * Proceso: Crea o actualiza donantes demo con perfil completo.
+ * Proceso: Crea donantes demo con perfil completo.
  * Salida: Retorna la lista de usuarios donantes.
  */
 async function seedDonors(passwordHash: string): Promise<User[]> {
   const donors: User[] = [];
 
   for (const donor of DONOR_USERS) {
-    const user = await prisma.user.upsert({
-      where: { email: donor.email },
-      update: {
-        fullName: donor.fullName,
-        passwordHash,
-        role: UserRole.USER,
-        isActive: true,
-        phone: donor.phone,
-        city: donor.city,
-        department: donor.department,
-        bio: donor.bio,
-      },
-      create: {
+    const user = await prisma.user.create({
+      data: {
         email: donor.email,
         fullName: donor.fullName,
         passwordHash,
@@ -135,25 +121,13 @@ async function seedDonors(passwordHash: string): Promise<User[]> {
 
 /**
  * Entrada: foundationId: id de fundacion.
- * Proceso: Upsert de documentos legales placeholder requeridos para operar.
+ * Proceso: Crea documentos legales placeholder requeridos para operar.
  * Salida: No retorna valor.
  */
 async function seedFoundationDocuments(foundationId: string): Promise<void> {
   for (const type of DOCUMENT_TYPES) {
-    await prisma.foundationDocument.upsert({
-      where: {
-        foundationId_type: {
-          foundationId,
-          type,
-        },
-      },
-      update: {
-        fileName: `${type.toLowerCase()}.pdf`,
-        mimeType: 'application/pdf',
-        fileSize: 120_000,
-        fileUrl: `https://example.com/seed-docs/${foundationId}/${type.toLowerCase()}.pdf`,
-      },
-      create: {
+    await prisma.foundationDocument.create({
+      data: {
         foundationId,
         type,
         fileName: `${type.toLowerCase()}.pdf`,
@@ -167,7 +141,7 @@ async function seedFoundationDocuments(foundationId: string): Promise<void> {
 
 /**
  * Entrada: foundationId: id; links: redes sociales.
- * Proceso: Upsert de enlaces sociales por red.
+ * Proceso: Crea enlaces sociales por red.
  * Salida: No retorna valor.
  */
 async function seedSocialLinks(
@@ -175,15 +149,8 @@ async function seedSocialLinks(
   links: SeedFoundationInput['socialLinks'],
 ): Promise<void> {
   for (const link of links) {
-    await prisma.foundationSocialLink.upsert({
-      where: {
-        foundationId_network: {
-          foundationId,
-          network: link.network,
-        },
-      },
-      update: { url: link.url },
-      create: {
+    await prisma.foundationSocialLink.create({
+      data: {
         foundationId,
         network: link.network,
         url: link.url,
@@ -193,9 +160,9 @@ async function seedSocialLinks(
 }
 
 /**
- * Entrada: foundationId: id; campaigns: campanas demo; nowVerifierId: admin verificador.
- * Proceso: Upsert de campanas y needs por titulo dentro de la fundacion.
- * Salida: Retorna ids de needs creadas/actualizadas para donaciones demo.
+ * Entrada: foundationId: id; campaigns: campanas demo.
+ * Proceso: Crea campanas y needs de la fundacion.
+ * Salida: Retorna ids de needs para donaciones demo.
  */
 async function seedCampaigns(
   foundationId: string,
@@ -204,69 +171,33 @@ async function seedCampaigns(
   const needIds: string[] = [];
 
   for (const campaignSeed of campaigns) {
-    const existing = await prisma.campaign.findFirst({
-      where: {
+    const campaign = await prisma.campaign.create({
+      data: {
         foundationId,
         title: campaignSeed.title,
-        deletedAt: null,
+        description: campaignSeed.description,
+        imageUrl: campaignSeed.imageUrl,
+        status: campaignSeed.status,
+        startDate: daysFromNow(campaignSeed.startOffsetDays),
+        endDate: daysFromNow(campaignSeed.endOffsetDays),
+        deliveryAddress: campaignSeed.deliveryAddress,
+        deliveryLatitude: campaignSeed.deliveryLatitude,
+        deliveryLongitude: campaignSeed.deliveryLongitude,
       },
     });
 
-    const campaignData = {
-      title: campaignSeed.title,
-      description: campaignSeed.description,
-      imageUrl: campaignSeed.imageUrl,
-      status: campaignSeed.status,
-      startDate: daysFromNow(campaignSeed.startOffsetDays),
-      endDate: daysFromNow(campaignSeed.endOffsetDays),
-      deliveryAddress: campaignSeed.deliveryAddress,
-      deliveryLatitude: campaignSeed.deliveryLatitude,
-      deliveryLongitude: campaignSeed.deliveryLongitude,
-    };
-
-    const campaign = existing
-      ? await prisma.campaign.update({
-          where: { id: existing.id },
-          data: campaignData,
-        })
-      : await prisma.campaign.create({
-          data: {
-            foundationId,
-            ...campaignData,
-          },
-        });
-
     for (const needSeed of campaignSeed.needs) {
-      const existingNeed = await prisma.need.findFirst({
-        where: {
+      const need = await prisma.need.create({
+        data: {
           campaignId: campaign.id,
           name: needSeed.name,
-          deletedAt: null,
+          description: needSeed.description,
+          quantity: needSeed.quantity,
+          unit: needSeed.unit,
+          priority: needSeed.priority,
+          fulfilledQuantity: needSeed.fulfilledQuantity,
         },
       });
-
-      const need = existingNeed
-        ? await prisma.need.update({
-            where: { id: existingNeed.id },
-            data: {
-              description: needSeed.description,
-              quantity: needSeed.quantity,
-              unit: needSeed.unit,
-              priority: needSeed.priority,
-              fulfilledQuantity: needSeed.fulfilledQuantity,
-            },
-          })
-        : await prisma.need.create({
-            data: {
-              campaignId: campaign.id,
-              name: needSeed.name,
-              description: needSeed.description,
-              quantity: needSeed.quantity,
-              unit: needSeed.unit,
-              priority: needSeed.priority,
-              fulfilledQuantity: needSeed.fulfilledQuantity,
-            },
-          });
 
       needIds.push(need.id);
     }
@@ -279,7 +210,7 @@ async function seedCampaigns(
 
 /**
  * Entrada: seed: datos de fundacion; passwordHash: hash de cuenta; verifierId: admin.
- * Proceso: Upsert de usuario FOUNDATION, perfil, documentos, redes y campanas.
+ * Proceso: Crea usuario FOUNDATION, perfil, documentos, redes y campanas.
  * Salida: Retorna ids de needs de la fundacion.
  */
 async function seedFoundation(
@@ -287,19 +218,8 @@ async function seedFoundation(
   passwordHash: string,
   verifierId: string,
 ): Promise<string[]> {
-  const account = await prisma.user.upsert({
-    where: { email: seed.accountEmail },
-    update: {
-      fullName: seed.accountFullName,
-      passwordHash,
-      role: UserRole.FOUNDATION,
-      isActive: true,
-      phone: seed.accountPhone,
-      city: seed.city,
-      department: seed.department,
-      bio: `Cuenta institucional de ${seed.name}.`,
-    },
-    create: {
+  const account = await prisma.user.create({
+    data: {
       email: seed.accountEmail,
       fullName: seed.accountFullName,
       passwordHash,
@@ -312,55 +232,38 @@ async function seedFoundation(
     },
   });
 
-  const foundationData = {
-    name: seed.name,
-    acronym: seed.acronym,
-    nit: seed.nit,
-    slug: seed.slug,
-    category: seed.category,
-    mission: seed.mission,
-    vision: seed.vision,
-    description: seed.description,
-    city: seed.city,
-    department: seed.department,
-    country: seed.country,
-    address: seed.address,
-    latitude: seed.latitude,
-    longitude: seed.longitude,
-    institutionalEmail: seed.institutionalEmail,
-    phone: seed.phone,
-    website: seed.website,
-    legalRepresentativeName: seed.legalRepresentativeName,
-    legalRepresentativeDocument: seed.legalRepresentativeDocument,
-    logoUrl: seed.logoUrl,
-    status: seed.status,
-    verifiedAt: seed.status === FoundationStatus.VERIFIED ? new Date() : null,
-    verifiedById: seed.status === FoundationStatus.VERIFIED ? verifierId : null,
-    rejectedAt: null,
-    suspendedAt: null,
-    rejectionReason: null,
-    adminNotes:
-      seed.status === FoundationStatus.PENDING
-        ? 'Fundacion demo pendiente de revision administrativa.'
-        : 'Fundacion demo verificada por seed.',
-    deletedAt: null,
-  };
-
-  const existingByUser = await prisma.foundation.findUnique({
-    where: { userId: account.id },
+  const foundation = await prisma.foundation.create({
+    data: {
+      userId: account.id,
+      name: seed.name,
+      acronym: seed.acronym,
+      nit: seed.nit,
+      slug: seed.slug,
+      category: seed.category,
+      mission: seed.mission,
+      vision: seed.vision,
+      description: seed.description,
+      city: seed.city,
+      department: seed.department,
+      country: seed.country,
+      address: seed.address,
+      latitude: seed.latitude,
+      longitude: seed.longitude,
+      institutionalEmail: seed.institutionalEmail,
+      phone: seed.phone,
+      website: seed.website,
+      legalRepresentativeName: seed.legalRepresentativeName,
+      legalRepresentativeDocument: seed.legalRepresentativeDocument,
+      logoUrl: seed.logoUrl,
+      status: seed.status,
+      verifiedAt: seed.status === FoundationStatus.VERIFIED ? new Date() : null,
+      verifiedById: seed.status === FoundationStatus.VERIFIED ? verifierId : null,
+      adminNotes:
+        seed.status === FoundationStatus.PENDING
+          ? 'Fundacion demo pendiente de revision administrativa.'
+          : 'Fundacion demo verificada por seed.',
+    },
   });
-
-  const foundation = existingByUser
-    ? await prisma.foundation.update({
-        where: { id: existingByUser.id },
-        data: foundationData,
-      })
-    : await prisma.foundation.create({
-        data: {
-          userId: account.id,
-          ...foundationData,
-        },
-      });
 
   await seedFoundationDocuments(foundation.id);
   await seedSocialLinks(foundation.id, seed.socialLinks);
@@ -372,7 +275,7 @@ async function seedFoundation(
 
 /**
  * Entrada: donors: usuarios donantes; needIds: necesidades publicadas; changerId: admin.
- * Proceso: Crea donaciones demo si aun no existen para el par donante-need.
+ * Proceso: Crea donaciones demo asociadas a donantes y needs.
  * Salida: No retorna valor.
  */
 async function seedSampleDonations(
@@ -397,17 +300,6 @@ async function seedSampleDonations(
       DonationStatus.CONFIRMED,
     ];
     const status = statuses[index % statuses.length];
-
-    const existing = await prisma.donation.findFirst({
-      where: {
-        needId,
-        donorUserId: donor.id,
-      },
-    });
-
-    if (existing) {
-      continue;
-    }
 
     const donation = await prisma.donation.create({
       data: {
@@ -438,7 +330,7 @@ async function seedSampleDonations(
 
 /**
  * Entrada: Ninguna.
- * Proceso: Siembra administradores, limpia cuentas legacy y carga el dataset demo completo.
+ * Proceso: Vacia la BD y carga unicamente el dataset del seed.
  * Salida: No retorna valor al completar el seed.
  */
 async function main(): Promise<void> {
@@ -450,13 +342,13 @@ async function main(): Promise<void> {
     );
   }
 
-  await removeLegacySeedUsers();
+  await resetDatabase();
 
   const adminPasswordHash = await hashPassword(adminPassword);
   const admins: User[] = [];
 
   for (const admin of ADMIN_USERS) {
-    const user = await upsertAdmin(admin, adminPasswordHash);
+    const user = await createAdmin(admin, adminPasswordHash);
     admins.push(user);
     console.log(`[SEED] Admin listo: ${user.fullName} <${user.email}>`);
   }
@@ -485,7 +377,7 @@ async function main(): Promise<void> {
 
   await seedSampleDonations(donors, allNeedIds, verifierId);
 
-  console.log('[SEED] Dataset completo listo.');
+  console.log('[SEED] Dataset completo listo (solo seeders).');
   console.log('[SEED] Password admins: SEED_ADMIN_PASSWORD');
   console.log(`[SEED] Password donantes/fundaciones demo: ${demoPassword}`);
 }

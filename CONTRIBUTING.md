@@ -54,3 +54,9 @@ Incluir:
 ## Secretos
 
 Nunca commitear `.env`. Usar `.env.example` como plantilla.
+
+## Seed y produccion
+
+Cada deploy de Vercel ejecuta `prisma db seed`, que **vacia** la BD y deja solo el dataset demo.
+No depender de datos manuales en produccion mientras este comportamiento este activo.
+Detalle: [docs/SEED.md](./docs/SEED.md).

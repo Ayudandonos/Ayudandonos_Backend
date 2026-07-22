@@ -101,7 +101,7 @@ El proyecto incluye:
 | `vercel.json` | Rewrite todas las rutas a `/api` + `buildCommand` |
 | `api/index.js` | Entry serverless (Express) |
 | `src/vercel.ts` | App Express + conexion lazy a BD |
-| `scripts/vercel-build.mjs` | Build de deploy: generate + **migrate deploy** + tsc |
+| `scripts/vercel-build.mjs` | Build de deploy: generate + migrate deploy + **seed (TRUNCATE)** + tsc |
 | `npm run vercel-build` | Ejecuta `scripts/vercel-build.mjs` |
 
 ### Build en Vercel (cada despliegue)
@@ -110,9 +110,10 @@ En **cada** deploy, el build hace:
 
 1. `prisma generate`
 2. `prisma migrate deploy` (aplica migraciones pendientes sobre `DATABASE_URL`)
-3. `tsc` (compila la API)
+3. `prisma db seed` (**TRUNCATE** de tablas de negocio + dataset demo)
+4. `tsc` (compila la API)
 
-Si `DATABASE_URL` falta o una migracion falla, **el deploy se aborta** (no publica una version con schema desfasado).
+Si `DATABASE_URL` falta, una migracion falla o el seed falla, **el deploy se aborta**.
 
 - **Root Directory:** `.` (raiz del repo backend)
 - **Build Command:** `npm run vercel-build` (definido en `vercel.json`; no lo sobrescribas en el dashboard)
@@ -121,9 +122,13 @@ Si `DATABASE_URL` falta o una migracion falla, **el deploy se aborta** (no publi
 
 ### Seed en deploy
 
+Documentacion del dataset: [SEED.md](./SEED.md).
+
 En **cada** deploy el build ejecuta `prisma db seed` despues de `migrate deploy`.
 
-El seed es idempotente: actualiza admins, donantes, fundaciones y campanas demo, y elimina la cuenta legacy `admin@gmail.com`.
+El seed **vacia** todas las tablas de negocio (`TRUNCATE ... CASCADE`) y vuelve a cargar solo admins, donantes, fundaciones, campanas y donaciones demo.
+Cualquier dato creado manualmente en produccion se pierde en el siguiente deploy.
+Esto es intencional mientras la plataforma este en modo demo / academico.
 
 Variables relacionadas:
 
@@ -141,20 +146,24 @@ DATABASE_URL="postgresql://..." npm run prisma:seed
 ## Primer despliegue
 
 1. Conectar repo `Ayudandonos_Backend` en Vercel
-2. Agregar variables de entorno (**obligatorio `DATABASE_URL` en Production y Preview**)
-3. Desplegar (el build correra migraciones automaticamente)
+2. Agregar variables de entorno (**obligatorio `DATABASE_URL` y `SEED_ADMIN_PASSWORD` en Production y Preview**)
+3. Desplegar (el build correra migraciones + seed automaticamente)
 4. Verificar: `GET https://tu-url.vercel.app/api/v1/health`
-5. Confirmar en logs de Build que corrio `prisma db seed`
+5. Confirmar en logs de Build que corrio `prisma db seed` y el mensaje de BD vaciada
 
-### Comprobar migraciones en logs de Vercel
+### Comprobar migraciones y seed en logs de Vercel
 
 En el log de Build debes ver lineas como:
 
 ```
 [vercel-build] > npx prisma migrate deploy
+[vercel-build] Ejecutando seed (reset BD + dataset demo)...
+[vercel-build] > npx prisma db seed
+[SEED] Base de datos vaciada. Se cargara solo el dataset del seed.
 ```
 
 Si no aparecen, el Build Command del dashboard esta sobrescribiendo `vercel.json`.
+
 ---
 
 ## Desarrollo local vs Vercel

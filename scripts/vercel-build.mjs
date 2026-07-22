@@ -38,7 +38,7 @@ function main() {
   run('npx', ['prisma', 'generate']);
   run('npx', ['prisma', 'migrate', 'deploy']);
 
-  console.log('[vercel-build] Ejecutando seed (admins + dataset demo)...');
+  console.log('[vercel-build] Ejecutando seed (reset BD + dataset demo)...');
   run('npx', ['prisma', 'db', 'seed']);
 
   run('npx', ['tsc']);

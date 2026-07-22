@@ -19,7 +19,13 @@ npm run db:setup       # Migraciones + administradores iniciales
 npm run dev
 ```
 
-Administradores creados por el seed (contraseña: `SEED_ADMIN_PASSWORD` en `.env`):
+### Seed (dataset demo)
+
+Documentacion completa: [docs/SEED.md](./docs/SEED.md).
+
+Cada `prisma db seed` (local o en cada deploy de Vercel) **vacia la BD** y deja solo el dataset del seed.
+
+Administradores (contraseña: `SEED_ADMIN_PASSWORD` en `.env`):
 
 | Email | Nombre |
 | ----- | ------ |
@@ -27,18 +33,15 @@ Administradores creados por el seed (contraseña: `SEED_ADMIN_PASSWORD` en `.env
 | ericksperezc@gmail.com | Erick Sebastian Perez Carvajal |
 | tecnico_ud@fesc.edu.co | Erick Sebastian Perez Carvajal |
 
-El seed tambien crea (idempotente en cada deploy):
+Tambien crea:
 
 | Tipo | Detalle |
 | ---- | ------- |
 | Donantes | 8 usuarios `USER` con perfiles realistas |
 | Fundaciones | UNICEF, Cruz Roja, Banco de Alimentos, TECHO, Fundacion Exito (+ 1 pendiente) |
-| Campañas | Publicadas/finalizadas/borrador con needs y donaciones demo |
+| Campañas | Publicadas/finalizadas/borrador con needs, logos Unsplash y donaciones demo |
 
 Contraseña compartida de donantes y cuentas de fundación demo: `SEED_DEMO_PASSWORD` o, por defecto, `AyudaDemo2026!`.
-
-En cada deploy de Vercel se ejecuta `prisma db seed` automaticamente tras las migraciones.
-El seed elimina la cuenta legacy `admin@gmail.com` si aun existiera.
 
 Sin Docker: configura `DATABASE_URL` en `.env` y ejecuta `npm run db:setup`.
 
@@ -46,7 +49,9 @@ Sin Docker: configura `DATABASE_URL` en `.env` y ejecuta `npm run db:setup`.
 
 Ver [docs/DEPLOYMENT_VERCEL.md](./docs/DEPLOYMENT_VERCEL.md).
 
-Variables minimas: `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN` (URL del frontend).
+Variables minimas: `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN` (URL del frontend), `SEED_ADMIN_PASSWORD`.
+
+El build ejecuta migraciones y seed (reset total de datos). Ver [docs/SEED.md](./docs/SEED.md).
 
 - API: `http://localhost:3000/api/v1`
 - Swagger: `http://localhost:3000/api/v1/docs`
@@ -71,6 +76,7 @@ Fundaciones (verificacion admin + nearby): [docs/FOUNDATIONS_MODULE.md](./docs/F
 Panel admin: [docs/ADMIN_MODULE.md](./docs/ADMIN_MODULE.md).  
 Notificaciones: [docs/NOTIFICATIONS_MODULE.md](./docs/NOTIFICATIONS_MODULE.md).  
 Campanas: [docs/CAMPAIGNS_MODULE.md](./docs/CAMPAIGNS_MODULE.md).
+Seed / dataset demo: [docs/SEED.md](./docs/SEED.md).
 
 ## Scripts
 
@@ -82,6 +88,9 @@ Campanas: [docs/CAMPAIGNS_MODULE.md](./docs/CAMPAIGNS_MODULE.md).
 | `npm run lint` | ESLint |
 | `npm run test` | Pruebas unitarias e integracion |
 | `npm run prisma:migrate` | Ejecutar migraciones |
+| `npm run prisma:seed` | Vaciar BD y cargar dataset demo (`SEED_ADMIN_PASSWORD`) |
+| `npm run db:setup` | Migraciones + seed |
+| `npm run vercel-build` | Build de Vercel: generate + migrate + seed + tsc |
 
 ## Desarrollo con IA
 

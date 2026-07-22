@@ -33,7 +33,7 @@ HTTP Request
 | `src/routes/` | Agregador de rutas |
 | `src/utils/` | JWT, hash, asyncHandler |
 | `src/docs/` | Configuracion Swagger |
-| `prisma/` | Esquema y migraciones |
+| `prisma/` | Esquema, migraciones y seed (`seed.ts`, `seed-data.ts`) |
 
 ## Modulos
 
@@ -45,8 +45,14 @@ HTTP Request
 | `campaigns` | Campanas de recoleccion |
 | `needs` | Necesidades por campana |
 | `donations` | Ciclo de vida de donaciones |
-| `notifications` | Alertas |
-| `statistics` | Reportes y metricas |
+| `notifications` | Alertas in-app |
+| `admin` | Dashboard, reportes y listados administrativos |
+| `locations` | Proxy de paises/departamentos/ciudades |
+| `statistics` | Reportes y metricas (legado / extension) |
+
+## Seed
+
+El dataset demo vive en `prisma/`. Cada seed hace `TRUNCATE` y recarga solo esos datos. Ver `docs/SEED.md`.
 
 ## Respuesta estandar
 

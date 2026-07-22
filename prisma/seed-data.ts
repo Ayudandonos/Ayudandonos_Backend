@@ -98,9 +98,6 @@ export const ADMIN_USERS: SeedAdminUser[] = [
   },
 ];
 
-/** Cuentas del seed antiguo que deben eliminarse al sembrar el dataset actual. */
-export const LEGACY_SEED_EMAILS: string[] = ['admin@gmail.com'];
-
 export const DEMO_USERS_DEFAULT_PASSWORD = 'AyudaDemo2026!';
 
 export const DONOR_USERS: SeedDonorUser[] = [
@@ -197,7 +194,8 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
     website: 'https://www.unicef.org/colombia',
     legalRepresentativeName: 'Ana Maria Duarte Lopez',
     legalRepresentativeDocument: '52456789',
-    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Logo_of_UNICEF.svg/512px-Logo_of_UNICEF.svg.png',
+    logoUrl:
+      'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=400&q=80',
     status: FoundationStatus.VERIFIED,
     socialLinks: [
       { network: SocialNetworkType.INSTAGRAM, url: 'https://www.instagram.com/unicefcolombia' },
@@ -296,7 +294,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
     legalRepresentativeName: 'Pedro Antonio Vargas Rios',
     legalRepresentativeDocument: '79321456',
     logoUrl:
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Flag_of_the_Red_Cross.svg/512px-Flag_of_the_Red_Cross.svg.png',
+      'https://images.unsplash.com/photo-1584515933487-779824d29309?auto=format&fit=crop&w=400&q=80',
     status: FoundationStatus.VERIFIED,
     socialLinks: [
       { network: SocialNetworkType.INSTAGRAM, url: 'https://www.instagram.com/cruzrojacol' },
