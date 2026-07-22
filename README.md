@@ -24,15 +24,21 @@ Administradores creados por el seed (contraseña: `SEED_ADMIN_PASSWORD` en `.env
 | Email | Nombre |
 | ----- | ------ |
 | apoyo_ud@fesc.edu.co | Diego Alexander Rincon Casarubia |
+| ericksperezc@gmail.com | Erick Sebastian Perez Carvajal |
 | tecnico_ud@fesc.edu.co | Erick Sebastian Perez Carvajal |
 
-En **desarrollo** (`NODE_ENV` distinto de `production`), el seed también crea o actualiza:
+El seed tambien crea (idempotente en cada deploy):
 
-| Email | Contraseña (por defecto) |
-| ----- | ------------------------ |
-| admin@gmail.com | `dmin12345` (o `SEED_DEV_ADMIN_PASSWORD` en `.env`) |
+| Tipo | Detalle |
+| ---- | ------- |
+| Donantes | 8 usuarios `USER` con perfiles realistas |
+| Fundaciones | UNICEF, Cruz Roja, Banco de Alimentos, TECHO, Fundacion Exito (+ 1 pendiente) |
+| Campañas | Publicadas/finalizadas/borrador con needs y donaciones demo |
 
-Útil para probar login y `/admin/dashboard` en el frontend.
+Contraseña compartida de donantes y cuentas de fundación demo: `SEED_DEMO_PASSWORD` o, por defecto, `AyudaDemo2026!`.
+
+En cada deploy de Vercel se ejecuta `prisma db seed` automaticamente tras las migraciones.
+El seed elimina la cuenta legacy `admin@gmail.com` si aun existiera.
 
 Sin Docker: configura `DATABASE_URL` en `.env` y ejecuta `npm run db:setup`.
 

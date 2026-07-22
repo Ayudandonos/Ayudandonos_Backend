@@ -73,14 +73,14 @@ Configurar en **Settings → Environment Variables**:
 | `CSC_API_KEY` | clave de countrystatecity.in | Obligatoria para `/locations/*` |
 | `CSC_API_BASE_URL` | `https://api.countrystatecity.in/v1` | Opcional |
 | `CSC_CACHE_TTL_MS` | `86400000` | Cache en memoria (24h por defecto) |
+| `SEED_ADMIN_PASSWORD` | password segura (min. 8) | Obligatoria: el build ejecuta seed en cada deploy |
+| `SEED_DEMO_PASSWORD` | `AyudaDemo2026!` | Opcional; password de donantes/fundaciones demo |
 
 Opcional (Vercel la inyecta automaticamente):
 
 | Variable | Uso |
 | -------- | --- |
 | `VERCEL_URL` | Swagger y URL del servidor |
-
-**No configurar** `SEED_ADMIN_PASSWORD` en produccion salvo despliegue inicial controlado.
 
 ### Base de datos recomendada
 
@@ -119,15 +119,16 @@ Si `DATABASE_URL` falta o una migracion falla, **el deploy se aborta** (no publi
 - **Install Command:** `npm install --include=dev`
 - **Output Directory:** vacio (serverless)
 
-### Seed en deploy (opcional)
+### Seed en deploy
 
-Por defecto **no** se ejecuta seed en cada deploy (evita pisar datos).
+En **cada** deploy el build ejecuta `prisma db seed` despues de `migrate deploy`.
 
-Para un seed puntual en un deploy:
+El seed es idempotente: actualiza admins, donantes, fundaciones y campanas demo, y elimina la cuenta legacy `admin@gmail.com`.
 
-1. En Vercel → Environment Variables: `SEED_ON_DEPLOY=true`
-2. Redeploy
-3. Quitar o poner `false` despues
+Variables relacionadas:
+
+- `SEED_ADMIN_PASSWORD` (obligatoria, min. 8 caracteres)
+- `SEED_DEMO_PASSWORD` (opcional; por defecto `AyudaDemo2026!`)
 
 Tambien puedes sembrar desde local apuntando a la BD de prod:
 
@@ -143,7 +144,7 @@ DATABASE_URL="postgresql://..." npm run prisma:seed
 2. Agregar variables de entorno (**obligatorio `DATABASE_URL` en Production y Preview**)
 3. Desplegar (el build correra migraciones automaticamente)
 4. Verificar: `GET https://tu-url.vercel.app/api/v1/health`
-5. (Opcional) Seed una vez con `SEED_ON_DEPLOY=true` o desde local
+5. Confirmar en logs de Build que corrio `prisma db seed`
 
 ### Comprobar migraciones en logs de Vercel
 

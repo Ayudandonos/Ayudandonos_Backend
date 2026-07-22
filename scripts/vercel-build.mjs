@@ -38,14 +38,8 @@ function main() {
   run('npx', ['prisma', 'generate']);
   run('npx', ['prisma', 'migrate', 'deploy']);
 
-  if (process.env.SEED_ON_DEPLOY === 'true') {
-    console.log('[vercel-build] SEED_ON_DEPLOY=true → ejecutando seed...');
-    run('npx', ['prisma', 'db', 'seed']);
-  } else {
-    console.log(
-      '[vercel-build] Seed omitido. Para ejecutarlo en un deploy, define SEED_ON_DEPLOY=true (solo cuando sea necesario).',
-    );
-  }
+  console.log('[vercel-build] Ejecutando seed (admins + dataset demo)...');
+  run('npx', ['prisma', 'db', 'seed']);
 
   run('npx', ['tsc']);
   console.log('[vercel-build] Completado.');
