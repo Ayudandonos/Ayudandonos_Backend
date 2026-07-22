@@ -1,6 +1,6 @@
 # Base de datos — Ayudandonos Backend
 
-Estado del esquema: **Fase 4 — Campanas**.
+Estado del esquema: **Fase 5 — Notificaciones**.
 
 Motor: PostgreSQL. ORM: Prisma.
 
@@ -120,13 +120,17 @@ erDiagram
 | `20250710180000_foundation_extended_profile` | Schema extendido, enum status, redes y documentos |
 | `20250710190000_foundation_acronym_observations` | Sigla (`acronym`) e historial de observaciones admin |
 | `20260720190000_campaigns` | Tabla `campaigns` y enum `CampaignStatus` |
+| `20260720210000_campaigns_needs_donations` | Needs, Donations, Conversation, Message, historial |
+| `20260722010000_notifications` | Tabla `notifications` y enum `NotificationType` |
 
 ## Extension futura
 
 El modelo de `foundations` y `campaigns` esta disenado para soportar modulos posteriores sin refactor mayor:
 
-- **Necesidades / Donaciones**: relacion via `campaign_id`
+- **Storage**: URLs de imagenes/documentos hacia Blob/S3
 - **Voluntariado**: perfil de fundacion como ancla organizacional
 - **Reportes**: agregaciones por `status`, `category`, `city`, `department`
 
 No eliminar campos de perfil al agregar necesidades; mantener separacion entre identidad organizacional (fundacion) y operacion (campanas).
+
+Catalogo de endpoints: `docs/API_REFERENCE.md`.

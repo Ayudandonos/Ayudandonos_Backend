@@ -29,4 +29,6 @@ Punto de entrega opcional: `deliveryAddress`, `deliveryLatitude`, `deliveryLongi
 
 - Needs: necesidades por campana
 - Donations: compromisos, chat, entrega con mapa
+- Notifications: eventos in-app desde donaciones
 - Spec: `specs/modules/campaigns.md`
+- Catalogo API: `docs/API_REFERENCE.md`

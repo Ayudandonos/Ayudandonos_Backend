@@ -90,6 +90,11 @@ export const API_MESSAGES = {
   API_ROOT_INFO: 'API Ayudandonos operativa. Usa el prefijo /api/v1 en todas las rutas.',
   RATE_LIMIT_EXCEEDED: 'Demasiadas solicitudes. Intenta de nuevo más tarde.',
   ADMIN_DASHBOARD_SUCCESS: 'Panel administrativo obtenido correctamente',
+  NOTIFICATIONS_LIST_SUCCESS: 'Listado de notificaciones obtenido correctamente',
+  NOTIFICATIONS_UNREAD_COUNT_SUCCESS: 'Conteo de notificaciones no leídas obtenido correctamente',
+  NOTIFICATIONS_MARK_READ_SUCCESS: 'Notificación marcada como leída',
+  NOTIFICATIONS_MARK_ALL_READ_SUCCESS: 'Todas las notificaciones fueron marcadas como leídas',
+  NOTIFICATIONS_NOT_FOUND: 'Notificación no encontrada',
 } as const;
 
 /**
@@ -153,6 +158,7 @@ export const VALIDATION_MESSAGES = {
   INVALID_LONGITUDE: 'La longitud debe estar entre -180 y 180',
   DELIVERY_COORDS_INCOMPLETE: 'Debes indicar latitud y longitud juntas',
   DELIVERY_ADDRESS_MIN_LENGTH: 'La dirección de entrega debe tener al menos 5 caracteres',
+  INVALID_NOTIFICATION_UUID: 'Identificador de notificación inválido',
 } as const;
 
 

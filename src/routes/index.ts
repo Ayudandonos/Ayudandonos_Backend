@@ -8,6 +8,7 @@ import { campaignsRoutes } from '../modules/campaigns/campaigns.routes.js';
 import { needsRoutes } from '../modules/needs/needs.routes.js';
 import { donationsRoutes } from '../modules/donations/donations.routes.js';
 import { adminRoutes } from '../modules/admin/admin.routes.js';
+import { notificationsRoutes } from '../modules/notifications/notifications.routes.js';
 
 const apiRouter = Router();
 
@@ -20,5 +21,6 @@ apiRouter.use('/campaigns', campaignsRoutes);
 apiRouter.use('/needs', needsRoutes);
 apiRouter.use('/donations', donationsRoutes);
 apiRouter.use('/admin', adminRoutes);
+apiRouter.use('/notifications', notificationsRoutes);
 
 export { apiRouter };
