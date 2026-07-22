@@ -106,6 +106,7 @@ export const API_MESSAGES = {
   API_ROOT_INFO: 'API Ayudandonos operativa. Usa el prefijo /api/v1 en todas las rutas.',
   RATE_LIMIT_EXCEEDED: 'Demasiadas solicitudes. Intenta de nuevo más tarde.',
   ADMIN_DASHBOARD_SUCCESS: 'Panel administrativo obtenido correctamente',
+  IMPACT_STATS_SUCCESS: 'Estadísticas de impacto obtenidas correctamente',
   ADMIN_REPORTS_SUCCESS: 'Reportes administrativos obtenidos correctamente',
   ADMIN_CAMPAIGNS_LIST_SUCCESS: 'Listado administrativo de campañas obtenido correctamente',
   NOTIFICATIONS_LIST_SUCCESS: 'Listado de notificaciones obtenido correctamente',
