@@ -4,14 +4,6 @@ Estado del esquema: **Perfil donante + coordenadas de fundaciones** (sobre Fase 
 
 Motor: PostgreSQL. ORM: Prisma.
 
-## Seed
-
-En cada `prisma db seed` (local o deploy Vercel) se ejecuta `TRUNCATE ... CASCADE` de las tablas de negocio y se carga solo el dataset de `prisma/seed-data.ts`.
-
-Documentacion completa: [SEED.md](./SEED.md).
-
-**No usar la BD de produccion para datos reales persistentes mientras el seed corra en cada deploy.**
-
 ## Diagrama ER (modulo Fundaciones)
 
 ```mermaid
@@ -152,5 +144,3 @@ El modelo de `foundations` y `campaigns` esta disenado para soportar modulos pos
 No eliminar campos de perfil al agregar necesidades; mantener separacion entre identidad organizacional (fundacion) y operacion (campanas).
 
 Catalogo de endpoints: `docs/API_REFERENCE.md`.
-
-Seed y credenciales demo: `docs/SEED.md`.

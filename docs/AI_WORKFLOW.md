@@ -65,9 +65,5 @@ Una rama por tarea. PR hacia `develop` al cerrar la iteracion.
 | 3 | COMPLETADO | Fundaciones, documentos, verificacion admin |
 | 4 | COMPLETADO | Campanas, needs, donations, chat, delivery |
 | 5 | COMPLETADO | Notificaciones in-app |
-| — | COMPLETADO | Perfil donante + stats; foundations nearby |
-| — | COMPLETADO | Panel admin (dashboard, reports, campaigns) |
-| — | COMPLETADO | Seed demo con reset total en cada deploy |
-| — | PENDIENTE | Storage cloud (Blob/S3) |
-
-Detalle del seed: `docs/SEED.md`. Deploy: `docs/DEPLOYMENT_VERCEL.md`.
+| — | COMPLETADO (rama) | Perfil donante + stats; foundations nearby |
+| — | PENDIENTE | Storage cloud; merge/PR de ramas pendientes |
