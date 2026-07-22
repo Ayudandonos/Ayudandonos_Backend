@@ -2,7 +2,7 @@ import { FoundationDocumentType, FoundationStatus } from '@prisma/client';
 import { AppError } from '../../shared/errors/app.error.js';
 import { mapUnknownError } from '../../shared/errors/map-unknown-error.js';
 import { API_MESSAGES } from '../../shared/constants/messages.constants.js';
-import { deleteStoredFile, resolveStoragePath, saveFoundationFile } from '../../shared/utils/upload.util.js';
+import { deleteStoredFile, resolveDocumentFile, saveFoundationFile } from '../../shared/utils/upload.util.js';
 import {
   hasRequiredFoundationDocuments,
   isFoundationProfileComplete,
@@ -263,7 +263,7 @@ export class FoundationsService {
 
   /**
    * Entrada: id: identificador; file: archivo de logo; requester: owner o admin.
-   * Proceso: Reemplaza el logo de la fundacion en almacenamiento local.
+   * Proceso: Reemplaza el logo de la fundacion en Blob o almacenamiento local.
    * Salida: Retorna detalle actualizado.
    */
   async uploadLogo(
@@ -307,7 +307,7 @@ export class FoundationsService {
 
   /**
    * Entrada: id: identificador; type: tipo documental; file: archivo; requester: owner o admin.
-   * Proceso: Crea o reemplaza un documento legal de la fundacion en almacenamiento privado.
+   * Proceso: Crea o reemplaza un documento legal de la fundacion en Blob o disco.
    * Salida: Retorna detalle actualizado.
    */
   async uploadDocument(
@@ -357,14 +357,14 @@ export class FoundationsService {
 
   /**
    * Entrada: id: identificador; type: tipo documental; requester: owner o admin.
-   * Proceso: Valida permisos de gestion y resuelve la ruta del documento para descarga.
-   * Salida: Retorna metadatos del documento y ruta absoluta en disco.
+   * Proceso: Valida permisos y resuelve el archivo (Blob stream o ruta local) para descarga.
+   * Salida: Retorna payload de descarga del documento.
    */
   async getDocumentDownload(
     id: string,
     type: FoundationDocumentType,
     requester: RequesterContext,
-  ): Promise<{ absolutePath: string; fileName: string; mimeType: string }> {
+  ) {
     try {
       const foundation = await foundationsRepository.findByIdWithRelations(id);
 
@@ -380,17 +380,11 @@ export class FoundationsService {
         throw new AppError(API_MESSAGES.FOUNDATIONS_DOCUMENT_NOT_FOUND, 404);
       }
 
-      const absolutePath = resolveStoragePath(document.fileUrl);
-
-      if (!absolutePath) {
-        throw new AppError(API_MESSAGES.FOUNDATIONS_DOCUMENT_NOT_FOUND, 404);
-      }
-
-      return {
-        absolutePath,
+      return resolveDocumentFile({
+        storageKey: document.fileUrl,
         fileName: document.fileName,
         mimeType: document.mimeType,
-      };
+      });
     } catch (error) {
       throw mapUnknownError(error);
     }

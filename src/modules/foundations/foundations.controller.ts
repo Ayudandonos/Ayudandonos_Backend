@@ -145,7 +145,7 @@ export class FoundationsController {
 
   /**
    * Entrada: req: peticion con id y tipo documental; res: respuesta HTTP.
-   * Proceso: Resuelve archivo en disco y lo envia como descarga autenticada.
+   * Proceso: Resuelve archivo (Blob o disco) y lo envia como descarga autenticada.
    * Salida: No retorna valor; responde con el archivo adjunto.
    */
   downloadDocument = asyncHandler(async (req: Request, res: Response) => {
@@ -153,9 +153,19 @@ export class FoundationsController {
     const { id, type } = req.params as FoundationDocumentTypeParamInput;
     const file = await foundationsService.getDocumentDownload(id, type, user);
 
-    res.download(file.absolutePath, file.fileName, {
-      headers: { 'Content-Type': file.mimeType },
-    });
+    if (file.kind === 'path') {
+      res.download(file.absolutePath, file.fileName, {
+        headers: { 'Content-Type': file.mimeType },
+      });
+      return;
+    }
+
+    res.setHeader('Content-Type', file.mimeType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${encodeURIComponent(file.fileName)}"`,
+    );
+    file.stream.pipe(res);
   });
 }
 
