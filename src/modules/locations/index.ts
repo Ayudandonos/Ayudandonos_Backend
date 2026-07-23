@@ -4,4 +4,6 @@ export type {
   LocationCountryDto,
   LocationStateDto,
   LocationCityDto,
+  GeocodeQueryDto,
+  GeocodeResultDto,
 } from './locations.dto.js';

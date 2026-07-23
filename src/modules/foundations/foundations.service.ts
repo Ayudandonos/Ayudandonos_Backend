@@ -30,6 +30,7 @@ import {
   boundingBoxForRadius,
   haversineDistanceKm,
 } from '../../shared/utils/geo.util.js';
+import { resolveCoordinatesForPersist } from '../locations/resolve-coordinates.util.js';
 
 interface RequesterContext {
   id: string;
@@ -218,6 +219,30 @@ export class FoundationsService {
       }
 
       const { socialLinks, ...profileData } = input;
+
+      const locationChanged =
+        (input.country !== undefined && input.country !== foundation.country) ||
+        (input.department !== undefined && input.department !== foundation.department) ||
+        (input.city !== undefined && input.city !== foundation.city) ||
+        (input.address !== undefined && input.address !== foundation.address);
+
+      const resolvedCoords = await resolveCoordinatesForPersist({
+        currentLatitude: foundation.latitude,
+        currentLongitude: foundation.longitude,
+        incomingLatitude: input.latitude,
+        incomingLongitude: input.longitude,
+        locationChanged,
+        location: {
+          street: input.address !== undefined ? input.address : foundation.address,
+          city: input.city !== undefined ? input.city : foundation.city,
+          state:
+            input.department !== undefined ? input.department : foundation.department,
+          country: input.country !== undefined ? input.country : foundation.country,
+        },
+      });
+
+      profileData.latitude = resolvedCoords.latitude;
+      profileData.longitude = resolvedCoords.longitude;
 
       const updated = await foundationsRepository.updateProfileWithSocialLinks(
         id,

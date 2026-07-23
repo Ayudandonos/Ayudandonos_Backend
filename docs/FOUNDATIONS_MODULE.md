@@ -134,6 +134,8 @@ Historial de observaciones administrativas (1:N). Se crea registro al cambiar es
 8. **Acceso operativo (frontend):** una fundacion solo puede usar campanas, necesidades, solicitudes y entregas cuando `isProfileComplete`, `hasRequiredDocuments` y `status === VERIFIED`. Mientras tanto, el dashboard la mantiene en `/foundation/profile`.
 9. **Sesion auth:** `PublicFoundationDto` incluye `isProfileComplete`, `hasRequiredDocuments`, `latitude` y `longitude` (calculados en login, registro y `/auth/me`).
 10. Coordenadas opcionales; sin ellas la fundacion no aparece en `/nearby`.
+11. Al actualizar perfil con direccion + ciudad/departamento, el backend puede geocodificar
+    y persistir `latitude`/`longitude` automaticamente (ver `docs/LOCATIONS_MODULE.md`).
 
 ## Seguridad de archivos
 

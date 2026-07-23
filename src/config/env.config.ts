@@ -21,6 +21,14 @@ const envSchema = z.object({
   CSC_API_KEY: z.string().min(1).optional(),
   CSC_API_BASE_URL: z.string().url().default('https://api.countrystatecity.in/v1'),
   CSC_CACHE_TTL_MS: z.coerce.number().default(86_400_000),
+  GEOCODING_BASE_URL: z.string().url().default('https://nominatim.openstreetmap.org'),
+  GEOCODING_USER_AGENT: z
+    .string()
+    .min(8)
+    .default('AyudandonosBackend/1.0 (contacto: apoyo_ud@fesc.edu.co)'),
+  GEOCODING_CACHE_TTL_MS: z.coerce.number().default(86_400_000),
+  GEOCODING_MIN_INTERVAL_MS: z.coerce.number().default(1100),
+  GEOCODING_TIMEOUT_MS: z.coerce.number().default(5000),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -55,4 +63,13 @@ export const cscConfig = {
   apiKey: env.CSC_API_KEY ?? '',
   baseUrl: env.CSC_API_BASE_URL.replace(/\/$/, ''),
   cacheTtlMs: env.CSC_CACHE_TTL_MS,
+};
+
+export const geocodingConfig = {
+  baseUrl: env.GEOCODING_BASE_URL.replace(/\/$/, ''),
+  userAgent: env.GEOCODING_USER_AGENT,
+  cacheTtlMs: env.GEOCODING_CACHE_TTL_MS,
+  minIntervalMs: env.GEOCODING_MIN_INTERVAL_MS,
+  timeoutMs: env.GEOCODING_TIMEOUT_MS,
+  provider: 'nominatim' as const,
 };
