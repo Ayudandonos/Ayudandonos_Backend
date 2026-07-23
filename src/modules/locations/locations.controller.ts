@@ -5,6 +5,7 @@ import { asyncHandler } from '../../utils/async-handler.util.js';
 import { locationsService } from './locations.service.js';
 import type {
   CountryIsoParamInput,
+  GeocodeQueryInput,
   StateIsoParamInput,
 } from './locations.validations.js';
 
@@ -48,6 +49,20 @@ export class LocationsController {
     res
       .status(200)
       .json(ApiResponseBuilder.success(data, API_MESSAGES.LOCATIONS_CITIES_SUCCESS));
+  });
+
+  /**
+   * Entrada: req con query de geocode; res HTTP.
+   * Proceso: Delega la geocodificacion estructurada al servicio.
+   * Salida: Responde 200 con lat/lng o error operacional.
+   */
+  geocode = asyncHandler(async (req: Request, res: Response) => {
+    const query = req.query as unknown as GeocodeQueryInput;
+    const data = await locationsService.geocode(query);
+
+    res
+      .status(200)
+      .json(ApiResponseBuilder.success(data, API_MESSAGES.LOCATIONS_GEOCODE_SUCCESS));
   });
 }
 

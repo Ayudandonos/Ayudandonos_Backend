@@ -3,6 +3,7 @@ import { AppError } from '../../shared/errors/app.error.js';
 import { API_MESSAGES } from '../../shared/constants/messages.constants.js';
 import type { ApiResponseMeta } from '../../shared/responses/api.response.js';
 import type { FoundationWithRelations } from '../foundations/foundations.repository.js';
+import { resolveCoordinatesForPersist } from '../locations/resolve-coordinates.util.js';
 import type {
   CampaignDto,
   CreateCampaignDto,
@@ -102,10 +103,27 @@ export class CampaignsService {
       this.assertPublishRequirements(input.startDate, input.endDate);
     }
 
-    const created = await campaignsRepository.create(foundation.id, {
-      ...input,
-      status,
-    });
+    const payload: CreateCampaignDto = { ...input, status };
+
+    if (input.deliveryAddress?.trim()) {
+      const resolved = await resolveCoordinatesForPersist({
+        currentLatitude: null,
+        currentLongitude: null,
+        incomingLatitude: input.deliveryLatitude,
+        incomingLongitude: input.deliveryLongitude,
+        locationChanged: true,
+        location: {
+          street: input.deliveryAddress,
+          city: foundation.city,
+          state: foundation.department,
+          country: foundation.country,
+        },
+      });
+      payload.deliveryLatitude = resolved.latitude;
+      payload.deliveryLongitude = resolved.longitude;
+    }
+
+    const created = await campaignsRepository.create(foundation.id, payload);
 
     return this.toDto(created);
   }
@@ -151,7 +169,34 @@ export class CampaignsService {
       throw new AppError(API_MESSAGES.CAMPAIGNS_END_BEFORE_START, 400);
     }
 
-    const updated = await campaignsRepository.update(id, input);
+    const payload: UpdateCampaignDto = { ...input };
+    const nextAddress =
+      input.deliveryAddress !== undefined
+        ? input.deliveryAddress
+        : campaign.deliveryAddress;
+    const addressChanged =
+      input.deliveryAddress !== undefined &&
+      input.deliveryAddress !== campaign.deliveryAddress;
+
+    if (nextAddress?.trim()) {
+      const resolved = await resolveCoordinatesForPersist({
+        currentLatitude: campaign.deliveryLatitude,
+        currentLongitude: campaign.deliveryLongitude,
+        incomingLatitude: input.deliveryLatitude,
+        incomingLongitude: input.deliveryLongitude,
+        locationChanged: addressChanged,
+        location: {
+          street: nextAddress,
+          city: foundation.city,
+          state: foundation.department,
+          country: foundation.country,
+        },
+      });
+      payload.deliveryLatitude = resolved.latitude;
+      payload.deliveryLongitude = resolved.longitude;
+    }
+
+    const updated = await campaignsRepository.update(id, payload);
     return this.toDto(updated);
   }
 

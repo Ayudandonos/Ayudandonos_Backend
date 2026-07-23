@@ -6,6 +6,7 @@ import {
   isFoundationOperationalReady,
 } from '../foundations/foundation-profile.util.js';
 import { foundationsRepository } from '../foundations/foundations.repository.js';
+import { resolveCoordinatesForPersist } from '../locations/resolve-coordinates.util.js';
 import type {
   CreateDonationDto,
   CreateMessageDto,
@@ -238,7 +239,35 @@ export class DonationsService {
       throw new AppError(API_MESSAGES.DONATIONS_CANNOT_MANAGE, 403);
     }
 
-    const updated = await donationsRepository.updateDelivery(id, input);
+    const payload: UpdateDonationDeliveryDto = { ...input };
+    const foundationProfile = await foundationsRepository.findByIdWithRelations(foundationId);
+    const nextAddress =
+      input.deliveryAddress !== undefined
+        ? input.deliveryAddress
+        : donation.deliveryAddress;
+    const addressChanged =
+      input.deliveryAddress !== undefined &&
+      input.deliveryAddress !== donation.deliveryAddress;
+
+    if (nextAddress?.trim() && foundationProfile) {
+      const resolved = await resolveCoordinatesForPersist({
+        currentLatitude: donation.deliveryLatitude,
+        currentLongitude: donation.deliveryLongitude,
+        incomingLatitude: input.deliveryLatitude,
+        incomingLongitude: input.deliveryLongitude,
+        locationChanged: addressChanged,
+        location: {
+          street: nextAddress,
+          city: foundationProfile.city,
+          state: foundationProfile.department,
+          country: foundationProfile.country,
+        },
+      });
+      payload.deliveryLatitude = resolved.latitude;
+      payload.deliveryLongitude = resolved.longitude;
+    }
+
+    const updated = await donationsRepository.updateDelivery(id, payload);
 
     await this.safeNotify(() =>
       notificationsService.notifyDonationDeliveryUpdated({

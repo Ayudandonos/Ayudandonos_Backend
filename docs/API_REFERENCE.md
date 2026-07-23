@@ -71,6 +71,24 @@ Este documento cubre auth/users (perfil donante), Fase 4 (campanas, needs, donat
 
 ---
 
+## Locations geocode — `/locations/geocode`
+
+JWT requerido. Geocodificacion estructurada (Nominatim) para preview de mapa y persistencia.
+
+| Param | Notas |
+| ----- | ----- |
+| `street` | Direccion |
+| `city` | Ciudad |
+| `state` | Departamento |
+| `country` | Pais |
+| `q` | Texto libre (fallback) |
+
+`street` sin `city`/`state` => 400. Sin match confiable => 404 (`NO_MATCH`).
+
+Detalle: `docs/LOCATIONS_MODULE.md`.
+
+---
+
 ## Foundations nearby — `/foundations/nearby`
 
 Publico. Descubre fundaciones **verificadas por un ADMIN** (`status === VERIFIED`) con coordenadas en un radio de **1 a 10 km**.
@@ -98,7 +116,8 @@ Las fundaciones en `PENDING`, `REJECTED` o `SUSPENDED` **no aparecen**.
 }
 ```
 
-Coordenadas: `PATCH /foundations/:id` con `latitude` y `longitude`.  
+Coordenadas: el backend puede geocodificar al guardar perfil (`PATCH /foundations/:id`)
+desde `address` + `city`/`department`/`country`, o via `GET /locations/geocode`.  
 Verificacion: `PATCH /foundations/:id/status` solo **ADMIN**. Detalle: `docs/FOUNDATIONS_MODULE.md`.
 ---
 

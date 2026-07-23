@@ -123,6 +123,11 @@ export const API_MESSAGES = {
     'El servicio de ubicaciones no está configurado (falta CSC_API_KEY).',
   LOCATIONS_COUNTRY_NOT_FOUND: 'País no encontrado',
   LOCATIONS_STATE_NOT_FOUND: 'Estado o departamento no encontrado',
+  LOCATIONS_GEOCODE_SUCCESS: 'Ubicación geocodificada correctamente',
+  LOCATIONS_GEOCODE_NO_MATCH:
+    'No se encontró una ubicación confiable para los datos indicados.',
+  LOCATIONS_GEOCODE_UNAVAILABLE:
+    'El servicio de geocodificación no está disponible. Intenta de nuevo más tarde.',
 } as const;
 
 /**
@@ -200,6 +205,10 @@ export const VALIDATION_MESSAGES = {
   INVALID_NOTIFICATION_UUID: 'Identificador de notificación inválido',
   INVALID_COUNTRY_ISO: 'Código de país ISO inválido',
   INVALID_STATE_ISO: 'Código de estado ISO inválido',
+  GEOCODE_QUERY_REQUIRED:
+    'Debes indicar al menos ciudad, departamento o dirección con país',
+  GEOCODE_STREET_NEEDS_LOCALITY:
+    'Si envías dirección (street) debes indicar también ciudad o departamento',
 } as const;
 
 
