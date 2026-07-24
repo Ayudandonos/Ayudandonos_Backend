@@ -17,5 +17,42 @@ services:
       timeout: 5s
       retries: 10
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ayudandonos-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '3000:3000'
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://ayudandonos:ayudandonos_dev@postgres:5432/ayudandonos
+      PUBLIC_BASE_URL: http://localhost:3000
+      # En local con compose: cargar dataset demo al arrancar (mismo comportamiento que Vercel).
+      RUN_SEED_ON_START: ${RUN_SEED_ON_START:-true}
+    volumes:
+      - ayudandonos_uploads:/app/uploads
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/v1/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+
 volumes:
   ayudandonos_pg_data:
+  ayudandonos_uploads:
