@@ -19,9 +19,12 @@
     "prisma:push": "prisma db push",
     "prisma:seed": "prisma db seed",
     "db:deploy": "prisma migrate deploy",
-    "db:up": "docker compose up -d",
+    "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
-    "db:setup": "prisma migrate deploy && prisma db seed"
+    "db:setup": "prisma migrate deploy && prisma db seed",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f api"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
