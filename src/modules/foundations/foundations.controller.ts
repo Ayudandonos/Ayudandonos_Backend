@@ -62,6 +62,20 @@ export class FoundationsController {
   });
 
   /**
+   * Entrada: req: peticion con id de fundacion; res: respuesta HTTP.
+   * Proceso: Delega el listado publico de sedes activas al servicio.
+   * Salida: No retorna valor; responde 200 con sedes.
+   */
+  listPublicBranches = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params as FoundationIdParamInput;
+    const data = await foundationsService.listPublicBranches(id, req.user);
+
+    res.status(200).json(
+      ApiResponseBuilder.success(data, API_MESSAGES.BRANCHES_LIST_SUCCESS),
+    );
+  });
+
+  /**
    * Entrada: req: peticion autenticada de fundacion; res: respuesta HTTP.
    * Proceso: Delega la obtencion del perfil propio al servicio de fundaciones.
    * Salida: No retorna valor; responde 200 con detalle de la fundacion propia.

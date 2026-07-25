@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate, authorize } from '../../middlewares/auth.middleware.js';
+import { userAvatarUpload } from '../../middlewares/upload.middleware.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { usersController } from './users.controller.js';
 import {
@@ -99,10 +100,6 @@ usersRoutes.get(
  *               bio:
  *                 type: string
  *                 nullable: true
- *               avatarUrl:
- *                 type: string
- *                 format: uri
- *                 nullable: true
  *     responses:
  *       200:
  *         description: Perfil actualizado
@@ -117,6 +114,35 @@ usersRoutes.patch(
   validate(updateUserSchema),
   usersController.updateMe,
 );
+
+/**
+ * @swagger
+ * /users/me/avatar:
+ *   post:
+ *     summary: Subir o reemplazar avatar del usuario autenticado
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [avatar]
+ *             properties:
+ *               avatar:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Avatar actualizado
+ *       400:
+ *         description: Archivo invalido o faltante
+ *       401:
+ *         description: No autenticado
+ */
+usersRoutes.post('/me/avatar', userAvatarUpload, usersController.uploadAvatar);
 
 /**
  * @swagger
@@ -181,10 +207,6 @@ usersRoutes.get(
  *                 nullable: true
  *               bio:
  *                 type: string
- *                 nullable: true
- *               avatarUrl:
- *                 type: string
- *                 format: uri
  *                 nullable: true
  *               isActive:
  *                 type: boolean

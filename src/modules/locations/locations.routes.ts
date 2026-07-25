@@ -1,8 +1,10 @@
 import { Router } from 'express';
+import { authenticate } from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { locationsController } from './locations.controller.js';
 import {
   countryIsoParamSchema,
+  geocodeQuerySchema,
   stateIsoParamSchema,
 } from './locations.validations.js';
 
@@ -12,7 +14,7 @@ const locationsRoutes = Router();
  * @swagger
  * tags:
  *   name: Locations
- *   description: Catalogo jerarquico de ubicaciones (paises, estados, ciudades)
+ *   description: Catalogo jerarquico de ubicaciones y geocodificacion estructurada
  */
 
 /**
@@ -24,35 +26,6 @@ const locationsRoutes = Router();
  *     responses:
  *       200:
  *         description: Listado de paises obtenido
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       iso2:
- *                         type: string
- *                         example: CO
- *                       name:
- *                         type: string
- *                         example: Colombia
- *                       phonecode:
- *                         type: string
- *                         nullable: true
- *                       emoji:
- *                         type: string
- *                         nullable: true
- *                       flag:
- *                         type: string
- *                         nullable: true
  *       503:
  *         description: Proveedor de ubicaciones no disponible o no configurado
  */
@@ -116,6 +89,59 @@ locationsRoutes.get(
   '/countries/:countryIso/states/:stateIso/cities',
   validate(stateIsoParamSchema, 'params'),
   locationsController.listCities,
+);
+
+/**
+ * @swagger
+ * /locations/geocode:
+ *   get:
+ *     summary: Geocodificar direccion estructurada (Nominatim)
+ *     tags: [Locations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: street
+ *         schema:
+ *           type: string
+ *           example: Calle 13 #14-20 Belisario
+ *       - in: query
+ *         name: city
+ *         schema:
+ *           type: string
+ *           example: Cucuta
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *           example: Norte de Santander
+ *       - in: query
+ *         name: country
+ *         schema:
+ *           type: string
+ *           example: Colombia
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Texto libre opcional (solo fallback)
+ *     responses:
+ *       200:
+ *         description: Coordenadas obtenidas
+ *       400:
+ *         description: Validacion (street sin city/state, etc.)
+ *       401:
+ *         description: No autenticado
+ *       404:
+ *         description: Sin match confiable
+ *       503:
+ *         description: Proveedor de geocoding no disponible
+ */
+locationsRoutes.get(
+  '/geocode',
+  authenticate,
+  validate(geocodeQuerySchema, 'query'),
+  locationsController.geocode,
 );
 
 export { locationsRoutes };

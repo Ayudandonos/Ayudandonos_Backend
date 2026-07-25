@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { ApiResponseBuilder } from '../../shared/responses/api.response.js';
 import { API_MESSAGES } from '../../shared/constants/messages.constants.js';
+import { AppError } from '../../shared/errors/app.error.js';
 import { asyncHandler } from '../../utils/async-handler.util.js';
 import type { AuthenticatedRequest } from '../../types/express.d.js';
 import { usersService } from './users.service.js';
@@ -56,6 +57,26 @@ export class UsersController {
 
     res.status(200).json(
       ApiResponseBuilder.success(data, API_MESSAGES.USERS_UPDATE_SUCCESS),
+    );
+  });
+
+  /**
+   * Entrada: req: peticion autenticada con archivo avatar; res: respuesta HTTP.
+   * Proceso: Delega la subida de avatar al servicio de usuarios.
+   * Salida: No retorna valor; responde 200 con perfil actualizado.
+   */
+  uploadAvatar = asyncHandler(async (req: Request, res: Response) => {
+    const { user } = req as AuthenticatedRequest;
+    const file = req.file;
+
+    if (!file) {
+      throw new AppError(API_MESSAGES.UPLOAD_FILE_REQUIRED, 400);
+    }
+
+    const data = await usersService.uploadAvatar(user, file);
+
+    res.status(200).json(
+      ApiResponseBuilder.success(data, API_MESSAGES.USERS_AVATAR_UPLOAD_SUCCESS),
     );
   });
 

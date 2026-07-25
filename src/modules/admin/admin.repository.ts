@@ -91,9 +91,7 @@ export class AdminRepository {
   async countDeliveredAids(): Promise<number> {
     return prisma.donation.count({
       where: {
-        status: {
-          in: [DonationStatus.DELIVERED, DonationStatus.CONFIRMED],
-        },
+        status: DonationStatus.RECEIVED,
       },
     });
   }
@@ -196,7 +194,7 @@ export class AdminRepository {
       }),
       prisma.donation.count(),
       prisma.donation.count({
-        where: { status: { in: [DonationStatus.DELIVERED, DonationStatus.CONFIRMED] } },
+        where: { status: DonationStatus.RECEIVED },
       }),
       prisma.campaign.count({ where: { deletedAt: null } }),
       prisma.need.count({ where: { deletedAt: null } }),
@@ -393,6 +391,13 @@ export class AdminRepository {
         department: string | null;
         user: { fullName: string; email: string };
       };
+      foundationBranch: {
+        id: string;
+        name: string;
+        city: string;
+        department: string;
+        address: string;
+      } | null;
       needs: Array<{ _count: { donations: number } }>;
     }>;
     total: number;
@@ -437,6 +442,15 @@ export class AdminRepository {
                   email: true,
                 },
               },
+            },
+          },
+          foundationBranch: {
+            select: {
+              id: true,
+              name: true,
+              city: true,
+              department: true,
+              address: true,
             },
           },
           needs: {

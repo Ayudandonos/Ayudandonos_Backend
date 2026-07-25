@@ -45,7 +45,7 @@ const foundationOperationalRouter = Router();
  *         name: status
  *         schema:
  *           type: string
- *           enum: [COMMITTED, IN_TRANSIT, DELIVERED, CONFIRMED, CANCELLED]
+ *           enum: [COMMITTED, RECEIVED, CANCELLED]
  *     responses:
  *       200:
  *         description: Listado obtenido
@@ -68,7 +68,11 @@ const listFoundationRequestsHandler = asyncHandler(async (req, res) => {
     throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
   }
 
-  const result = await donationsService.listFoundationRequests(foundation.id, query);
+  const result = await donationsService.listFoundationRequests(
+    foundation.id,
+    query,
+    foundation.userId,
+  );
 
   res.status(200).json(
     ApiResponseBuilder.success(

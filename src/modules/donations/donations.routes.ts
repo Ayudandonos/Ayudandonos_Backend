@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { authenticate, authorize } from '../../middlewares/auth.middleware.js';
-import { requireFoundationOperational } from '../../middlewares/foundation-access.middleware.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { donationsController } from './donations.controller.js';
 import {
@@ -9,7 +8,6 @@ import {
   donationIdParamSchema,
   listDonationsQuerySchema,
   listMessagesQuerySchema,
-  updateDonationDeliverySchema,
   updateDonationStatusSchema,
 } from './donations.validations.js';
 
@@ -19,7 +17,7 @@ const donationsRoutes = Router();
  * @swagger
  * tags:
  *   name: Donations
- *   description: Compromisos de donacion, entrega y mensajeria
+ *   description: Compromisos de donacion, recepcion e inventario trazable
  */
 
 /**
@@ -93,7 +91,7 @@ donationsRoutes.post(
  *         name: status
  *         schema:
  *           type: string
- *           enum: [COMMITTED, IN_TRANSIT, DELIVERED, CONFIRMED, CANCELLED]
+ *           enum: [COMMITTED, RECEIVED, CANCELLED]
  *     responses:
  *       200:
  *         description: Listado obtenido correctamente
@@ -133,7 +131,14 @@ donationsRoutes.get(
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [COMMITTED, IN_TRANSIT, DELIVERED, CONFIRMED, CANCELLED]
+ *                 enum: [COMMITTED, RECEIVED, CANCELLED]
+ *               receivedQuantity:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Cantidad recibida (solo al confirmar RECEIVED)
+ *               receptionNotes:
+ *                 type: string
+ *                 nullable: true
  *     responses:
  *       200:
  *         description: Estado actualizado
@@ -148,57 +153,6 @@ donationsRoutes.patch(
   validate(donationIdParamSchema, 'params'),
   validate(updateDonationStatusSchema),
   donationsController.updateStatus,
-);
-
-/**
- * @swagger
- * /donations/{id}/delivery:
- *   patch:
- *     summary: Actualizar datos de entrega (fundacion)
- *     tags: [Donations]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               deliveryAddress:
- *                 type: string
- *                 nullable: true
- *               deliveryLatitude:
- *                 type: number
- *                 nullable: true
- *               deliveryLongitude:
- *                 type: number
- *                 nullable: true
- *               estimatedDeliveryAt:
- *                 type: string
- *                 format: date-time
- *                 nullable: true
- *     responses:
- *       200:
- *         description: Entrega actualizada
- *       403:
- *         description: Fundacion no operativa o sin permiso
- */
-donationsRoutes.patch(
-  '/:id/delivery',
-  authenticate,
-  authorize('FOUNDATION'),
-  requireFoundationOperational,
-  validate(donationIdParamSchema, 'params'),
-  validate(updateDonationDeliverySchema),
-  donationsController.updateDelivery,
 );
 
 /**
@@ -269,7 +223,9 @@ donationsRoutes.get(
  *       201:
  *         description: Mensaje enviado
  *       403:
- *         description: No participante
+ *         description: No participante, fundacion sin mensaje previo del donante o fundacion no operativa
+ *       400:
+ *         description: Donacion cancelada
  */
 donationsRoutes.post(
   '/:id/messages',
@@ -277,6 +233,34 @@ donationsRoutes.post(
   validate(donationIdParamSchema, 'params'),
   validate(createMessageSchema),
   donationsController.createMessage,
+);
+
+/**
+ * @swagger
+ * /donations/{id}/messages/read:
+ *   patch:
+ *     summary: Marcar mensajes de la conversacion como leidos
+ *     tags: [Donations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Mensajes marcados como leidos
+ *       403:
+ *         description: No participante
+ */
+donationsRoutes.patch(
+  '/:id/messages/read',
+  authenticate,
+  validate(donationIdParamSchema, 'params'),
+  donationsController.markMessagesRead,
 );
 
 /**

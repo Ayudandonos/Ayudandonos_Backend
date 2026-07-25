@@ -6,6 +6,35 @@ import {
   SocialNetworkType,
 } from '@prisma/client';
 
+/** URLs publicas de retrato para avatares demo en seed (Unsplash). */
+export const SEED_USER_AVATARS = {
+  portraitMan1:
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&h=200&q=80',
+  portraitMan2:
+    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&h=200&q=80',
+  portraitMan3:
+    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&h=200&q=80',
+  portraitWoman1:
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&h=200&q=80',
+  portraitWoman2:
+    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=200&h=200&q=80',
+  portraitWoman3:
+    'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&h=200&q=80',
+} as const;
+
+/** Imagenes publicas de entregas e impacto para publicaciones demo (Unsplash, verificadas HTTP 200). */
+export const SEED_POST_IMAGE_URLS = [
+  'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1584515933487-779824d29309?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&w=1200&q=80',
+] as const;
+
 export interface SeedAdminUser {
   email: string;
   fullName: string;
@@ -13,6 +42,9 @@ export interface SeedAdminUser {
   city?: string;
   department?: string;
   bio?: string;
+  avatarUrl?: string;
+  /** Dias respecto a hoy (negativo = pasado). */
+  registeredOffsetDays?: number;
 }
 
 export interface SeedDonorUser {
@@ -22,12 +54,52 @@ export interface SeedDonorUser {
   city: string;
   department: string;
   bio: string;
+  avatarUrl?: string;
+  /** Dias respecto a hoy (negativo = pasado). */
+  registeredOffsetDays?: number;
+}
+
+export interface SeedCampaignInput {
+  title: string;
+  description: string;
+  imageUrl: string;
+  status: CampaignStatus;
+  startOffsetDays: number;
+  endOffsetDays: number;
+  deliveryAddress: string;
+  deliveryLatitude: number;
+  deliveryLongitude: number;
+  /** Dias respecto a hoy para created_at de la campana (negativo = pasado). */
+  createdOffsetDays?: number;
+  needs: Array<{
+    name: string;
+    description: string;
+    quantity: number;
+    unit: string;
+    priority: NeedPriority;
+    fulfilledQuantity: number;
+  }>;
+}
+
+export interface SeedFoundationBranchInput {
+  name: string;
+  department: string;
+  city: string;
+  address: string;
+  reference: string;
+  phone: string;
+  openingHours: string;
+  latitude: number;
+  longitude: number;
+  /** Marca la sede principal de la fundacion (exactamente una por fundacion). */
+  isPrimary?: boolean;
 }
 
 export interface SeedFoundationInput {
   accountEmail: string;
   accountFullName: string;
   accountPhone: string;
+  accountAvatarUrl?: string;
   name: string;
   acronym: string;
   nit: string;
@@ -49,26 +121,11 @@ export interface SeedFoundationInput {
   legalRepresentativeDocument: string;
   logoUrl: string;
   status: FoundationStatus;
+  /** Dias respecto a hoy para alta de la fundacion (negativo = pasado). */
+  registeredOffsetDays?: number;
   socialLinks: Array<{ network: SocialNetworkType; url: string }>;
-  campaigns: Array<{
-    title: string;
-    description: string;
-    imageUrl: string;
-    status: CampaignStatus;
-    startOffsetDays: number;
-    endOffsetDays: number;
-    deliveryAddress: string;
-    deliveryLatitude: number;
-    deliveryLongitude: number;
-    needs: Array<{
-      name: string;
-      description: string;
-      quantity: number;
-      unit: string;
-      priority: NeedPriority;
-      fulfilledQuantity: number;
-    }>;
-  }>;
+  branches: SeedFoundationBranchInput[];
+  campaigns: SeedCampaignInput[];
 }
 
 export const ADMIN_USERS: SeedAdminUser[] = [
@@ -79,6 +136,8 @@ export const ADMIN_USERS: SeedAdminUser[] = [
     city: 'Cucuta',
     department: 'Norte de Santander',
     bio: 'Administrador de la plataforma Ayudandonos — unidad de apoyo FESC.',
+    avatarUrl: SEED_USER_AVATARS.portraitMan2,
+    registeredOffsetDays: -175,
   },
   {
     email: 'ericksperezc@gmail.com',
@@ -87,6 +146,8 @@ export const ADMIN_USERS: SeedAdminUser[] = [
     city: 'Cucuta',
     department: 'Norte de Santander',
     bio: 'Administrador tecnico de Ayudandonos.',
+    avatarUrl: SEED_USER_AVATARS.portraitMan1,
+    registeredOffsetDays: -170,
   },
   {
     email: 'tecnico_ud@fesc.edu.co',
@@ -95,10 +156,48 @@ export const ADMIN_USERS: SeedAdminUser[] = [
     city: 'Cucuta',
     department: 'Norte de Santander',
     bio: 'Cuenta tecnica institucional FESC para administracion de Ayudandonos.',
+    registeredOffsetDays: -168,
   },
 ];
 
 export const DEMO_USERS_DEFAULT_PASSWORD = 'AyudaDemo2026!';
+
+/** Notas del donante al comprometerse (visibles en detalle de donacion). */
+export const SEED_DONATION_DONOR_NOTES = [
+  'Puedo entregar los articulos entre lunes y miercoles por la tarde.',
+  'Los productos estan nuevos y en su empaque original.',
+  'Prefiero coordinar la entrega por mensaje antes de acercarme.',
+  'Llevo todo lo comprometido en una sola visita.',
+  'Tengo disponibilidad este fin de semana si la fundacion lo requiere.',
+  'Puedo acercarme despues de las 5:00 pm entre semana.',
+  'Los articulos fueron comprados esta semana y estan listos para entregar.',
+  'Si es posible, confirmen horario de recepcion en la sede.',
+  'Puedo ayudar con el transporte hasta la sede si es necesario.',
+  'Entrego personalmente en el punto indicado en la campana.',
+] as const;
+
+/** Notas de recepcion por la fundacion (donaciones RECEIVED). */
+export const SEED_DONATION_RECEPTION_NOTES = [
+  'Recibido en buen estado. Coincide con lo comprometido.',
+  'Entrega completa sin novedades en sede.',
+  'Productos verificados y almacenados en bodega.',
+  'Recepcion confirmada. Cantidad recibida igual al compromiso.',
+  'Todo en orden. Se ingreso al inventario de la campana.',
+] as const;
+
+/** Notas internas de movimiento de inventario por recepcion. */
+export const SEED_INVENTORY_IN_NOTES = [
+  'Ingreso por recepcion de donacion en sede.',
+  'Entrada automatica tras confirmacion de recepcion.',
+  'Stock actualizado por donacion recibida del donante.',
+] as const;
+
+/** Observaciones de salidas de inventario / entregas comunitarias. */
+export const SEED_OUTBOUND_OBSERVATIONS = [
+  'Entrega realizada en jornada comunitaria con familias beneficiarias.',
+  'Salida autorizada para distribucion en territorio priorizado.',
+  'Productos despachados segun plan de la campana activa.',
+] as const;
 
 export const DONOR_USERS: SeedDonorUser[] = [
   {
@@ -108,6 +207,8 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Bogota',
     department: 'Cundinamarca',
     bio: 'Donante recurrente de viveres y kits escolares en Bogota.',
+    avatarUrl: SEED_USER_AVATARS.portraitWoman1,
+    registeredOffsetDays: -158,
   },
   {
     email: 'andres.lopez.ayuda@gmail.com',
@@ -116,6 +217,8 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Medellin',
     department: 'Antioquia',
     bio: 'Voluntario y donante de ropa y elementos de aseo.',
+    avatarUrl: SEED_USER_AVATARS.portraitMan3,
+    registeredOffsetDays: -142,
   },
   {
     email: 'laura.martinez.solidaria@outlook.com',
@@ -124,6 +227,8 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Cali',
     department: 'Valle del Cauca',
     bio: 'Apoyo campañas de nutricion infantil en el Valle.',
+    avatarUrl: SEED_USER_AVATARS.portraitWoman2,
+    registeredOffsetDays: -128,
   },
   {
     email: 'juan.castro.donaciones@gmail.com',
@@ -132,6 +237,7 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Bucaramanga',
     department: 'Santander',
     bio: 'Donante de mercados y productos no perecederos.',
+    registeredOffsetDays: -112,
   },
   {
     email: 'sofia.ramirez.ayuda@hotmail.com',
@@ -140,6 +246,8 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Cucuta',
     department: 'Norte de Santander',
     bio: 'Donante local enfocada en primera infancia y educacion.',
+    avatarUrl: SEED_USER_AVATARS.portraitWoman3,
+    registeredOffsetDays: -96,
   },
   {
     email: 'carlos.hernandez.donor@gmail.com',
@@ -148,6 +256,8 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Barrancabermeja',
     department: 'Santander',
     bio: 'Empresario solidario que aporta insumos de higiene.',
+    avatarUrl: SEED_USER_AVATARS.portraitMan2,
+    registeredOffsetDays: -78,
   },
   {
     email: 'valentina.rojas.donante@gmail.com',
@@ -156,6 +266,7 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Bogota',
     department: 'Cundinamarca',
     bio: 'Apoya jornadas de recoleccion de utiles escolares.',
+    registeredOffsetDays: -52,
   },
   {
     email: 'diego.moreno.solidario@gmail.com',
@@ -164,6 +275,103 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Pereira',
     department: 'Risaralda',
     bio: 'Donante de enseres y materiales de construccion liviana.',
+    registeredOffsetDays: -24,
+  },
+];
+
+/** Donantes adicionales para simular crecimiento historico de la plataforma. */
+export const HISTORICAL_DONOR_USERS: SeedDonorUser[] = [
+  {
+    email: 'camila.rios.solidaria@gmail.com',
+    fullName: 'Camila Rios Ortiz',
+    phone: '3185551001',
+    city: 'Manizales',
+    department: 'Caldas',
+    bio: 'Donante activa desde el lanzamiento de la plataforma.',
+    avatarUrl: SEED_USER_AVATARS.portraitWoman2,
+    registeredOffsetDays: -165,
+  },
+  {
+    email: 'felipe.garcia.ayuda@gmail.com',
+    fullName: 'Felipe Garcia Montoya',
+    phone: '3185551002',
+    city: 'Ibague',
+    department: 'Tolima',
+    bio: 'Aporta mercados no perecederos cada trimestre.',
+    registeredOffsetDays: -149,
+  },
+  {
+    email: 'isabella.torres.donante@outlook.com',
+    fullName: 'Isabella Torres Vargas',
+    phone: '3185551003',
+    city: 'Cartagena',
+    department: 'Bolivar',
+    bio: 'Voluntaria en campanas de primera infancia.',
+    registeredOffsetDays: -135,
+  },
+  {
+    email: 'santiago.munoz.solidario@gmail.com',
+    fullName: 'Santiago Munoz Delgado',
+    phone: '3185551004',
+    city: 'Neiva',
+    department: 'Huila',
+    bio: 'Donante de kits de aseo y ropa.',
+    avatarUrl: SEED_USER_AVATARS.portraitMan1,
+    registeredOffsetDays: -118,
+  },
+  {
+    email: 'daniela.castro.ayuda@hotmail.com',
+    fullName: 'Daniela Castro Mejia',
+    phone: '3185551005',
+    city: 'Pasto',
+    department: 'Narino',
+    bio: 'Apoya fundaciones verificadas en el sur del pais.',
+    registeredOffsetDays: -101,
+  },
+  {
+    email: 'mateo.salazar.donante@gmail.com',
+    fullName: 'Mateo Salazar Henao',
+    phone: '3185551006',
+    city: 'Armenia',
+    department: 'Quindio',
+    bio: 'Donante de utiles escolares y mochilas.',
+    registeredOffsetDays: -84,
+  },
+  {
+    email: 'juliana.ospina.solidaria@gmail.com',
+    fullName: 'Juliana Ospina Ruiz',
+    phone: '3185551007',
+    city: 'Villavicencio',
+    department: 'Meta',
+    bio: 'Participa en donaciones de alimentos fortificados.',
+    registeredOffsetDays: -67,
+  },
+  {
+    email: 'nicolas.velez.ayuda@gmail.com',
+    fullName: 'Nicolas Velez Cardona',
+    phone: '3185551008',
+    city: 'Monteria',
+    department: 'Cordoba',
+    bio: 'Donante recurrente en campanas de nutricion.',
+    registeredOffsetDays: -45,
+  },
+  {
+    email: 'paula.herrera.donante@outlook.com',
+    fullName: 'Paula Herrera Jimenez',
+    phone: '3185551009',
+    city: 'Santa Marta',
+    department: 'Magdalena',
+    bio: 'Solidaria con campanas de ayuda humanitaria.',
+    registeredOffsetDays: -31,
+  },
+  {
+    email: 'sebastian.angulo.solidario@gmail.com',
+    fullName: 'Sebastian Angulo Pardo',
+    phone: '3185551010',
+    city: 'Popayan',
+    department: 'Cauca',
+    bio: 'Nuevo donante con aportes en especie locales.',
+    registeredOffsetDays: -12,
   },
 ];
 
@@ -172,6 +380,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
     accountEmail: 'contacto.colombia@unicef-demo.org',
     accountFullName: 'Representante UNICEF Colombia',
     accountPhone: '6013121122',
+    accountAvatarUrl: SEED_USER_AVATARS.portraitWoman1,
     name: 'UNICEF Colombia',
     acronym: 'UNICEF',
     nit: '860013814-1',
@@ -197,10 +406,47 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
     logoUrl:
       'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=400&q=80',
     status: FoundationStatus.VERIFIED,
+    registeredOffsetDays: -155,
     socialLinks: [
       { network: SocialNetworkType.INSTAGRAM, url: 'https://www.instagram.com/unicefcolombia' },
       { network: SocialNetworkType.FACEBOOK, url: 'https://www.facebook.com/UNICEFColombia' },
       { network: SocialNetworkType.X, url: 'https://x.com/unicefcolombia' },
+    ],
+    branches: [
+      {
+        name: 'Sede principal',
+        department: 'Cundinamarca',
+        city: 'Bogota',
+        address: 'Carrera 11 No. 93-07',
+        reference: 'Oficina nacional y punto de acopio principal.',
+        phone: '6013121122',
+        openingHours: 'Lunes a viernes 8:00 - 17:00',
+        latitude: 4.6761,
+        longitude: -74.0485,
+        isPrimary: true,
+      },
+      {
+        name: 'Centro logistico El Dorado',
+        department: 'Cundinamarca',
+        city: 'Bogota',
+        address: 'Av. El Dorado No. 69-76',
+        reference: 'Bodega de nutricion infantil y kits escolares.',
+        phone: '6013121100',
+        openingHours: 'Lunes a sabado 7:00 - 16:00',
+        latitude: 4.6682,
+        longitude: -74.1009,
+      },
+      {
+        name: 'Punto de acopio Chapinero',
+        department: 'Cundinamarca',
+        city: 'Bogota',
+        address: 'Calle 59 No. 7-50',
+        reference: 'Recepcion de donaciones en especie zona norte.',
+        phone: '6013121144',
+        openingHours: 'Martes a viernes 9:00 - 15:00',
+        latitude: 4.6486,
+        longitude: -74.0628,
+      },
     ],
     campaigns: [
       {
@@ -212,6 +458,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
         status: CampaignStatus.PUBLISHED,
         startOffsetDays: -20,
         endOffsetDays: 40,
+        createdOffsetDays: -45,
         deliveryAddress: 'Bodega UNICEF — Calle 100 No. 19-61, Bogota',
         deliveryLatitude: 4.6855,
         deliveryLongitude: -74.0478,
@@ -243,6 +490,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
         status: CampaignStatus.PUBLISHED,
         startOffsetDays: -10,
         endOffsetDays: 50,
+        createdOffsetDays: -28,
         deliveryAddress: 'Centro de acopio UNICEF — Av. El Dorado No. 69-76, Bogota',
         deliveryLatitude: 4.6682,
         deliveryLongitude: -74.1009,
@@ -262,6 +510,38 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
             unit: 'paquetes',
             priority: NeedPriority.MEDIUM,
             fulfilledQuantity: 40,
+          },
+        ],
+      },
+      {
+        title: 'Agua segura para comunidades rurales',
+        description:
+          'Campana finalizada de filtros de agua y bidones para familias en zonas rurales de Boyaca y Cundinamarca.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&w=1200&q=80',
+        status: CampaignStatus.FINISHED,
+        startOffsetDays: -140,
+        endOffsetDays: -75,
+        createdOffsetDays: -148,
+        deliveryAddress: 'Bodega UNICEF — Calle 100 No. 19-61, Bogota',
+        deliveryLatitude: 4.6855,
+        deliveryLongitude: -74.0478,
+        needs: [
+          {
+            name: 'Filtros purificadores',
+            description: 'Filtros de agua portatiles',
+            quantity: 120,
+            unit: 'unidades',
+            priority: NeedPriority.HIGH,
+            fulfilledQuantity: 120,
+          },
+          {
+            name: 'Bidones de almacenamiento',
+            description: 'Bidones de 20 litros',
+            quantity: 150,
+            unit: 'unidades',
+            priority: NeedPriority.MEDIUM,
+            fulfilledQuantity: 142,
           },
         ],
       },
@@ -296,9 +576,46 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
     logoUrl:
       'https://images.unsplash.com/photo-1584515933487-779824d29309?auto=format&fit=crop&w=400&q=80',
     status: FoundationStatus.VERIFIED,
+    registeredOffsetDays: -132,
     socialLinks: [
       { network: SocialNetworkType.INSTAGRAM, url: 'https://www.instagram.com/cruzrojacol' },
       { network: SocialNetworkType.FACEBOOK, url: 'https://www.facebook.com/CruzRojaColombiana' },
+    ],
+    branches: [
+      {
+        name: 'Sede principal',
+        department: 'Cundinamarca',
+        city: 'Bogota',
+        address: 'Avenida Carrera 68 No. 66-31',
+        reference: 'Seccional Bogota y bodega central de emergencias.',
+        phone: '6014375300',
+        openingHours: 'Lunes a domingo 7:00 - 19:00',
+        latitude: 4.6667,
+        longitude: -74.0965,
+        isPrimary: true,
+      },
+      {
+        name: 'Centro de acopio Autopista Norte',
+        department: 'Cundinamarca',
+        city: 'Bogota',
+        address: 'Autopista Norte No. 145-95',
+        reference: 'Punto de recepcion de kits de aseo y enseres.',
+        phone: '6014375310',
+        openingHours: 'Lunes a sabado 8:00 - 17:00',
+        latitude: 4.7321,
+        longitude: -74.0423,
+      },
+      {
+        name: 'Punto de respuesta Usaquen',
+        department: 'Cundinamarca',
+        city: 'Bogota',
+        address: 'Carrera 7 No. 127-35',
+        reference: 'Atencion humanitaria y acopio zona norte.',
+        phone: '6014375320',
+        openingHours: 'Lunes a viernes 8:00 - 16:00',
+        latitude: 4.7112,
+        longitude: -74.0325,
+      },
     ],
     campaigns: [
       {
@@ -310,6 +627,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
         status: CampaignStatus.PUBLISHED,
         startOffsetDays: -5,
         endOffsetDays: 25,
+        createdOffsetDays: -38,
         deliveryAddress: 'Bodega Cruz Roja — Av. 68 No. 66-31, Bogota',
         deliveryLatitude: 4.6667,
         deliveryLongitude: -74.0965,
@@ -329,6 +647,30 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
             unit: 'rollos',
             priority: NeedPriority.MEDIUM,
             fulfilledQuantity: 200,
+          },
+        ],
+      },
+      {
+        title: 'Respuesta a inundaciones — enseres de cocina',
+        description:
+          'Campana cerrada de ollas, utensilios y vajilla para familias afectadas por emergencias hidricas.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=1200&q=80',
+        status: CampaignStatus.FINISHED,
+        startOffsetDays: -120,
+        endOffsetDays: -55,
+        createdOffsetDays: -126,
+        deliveryAddress: 'Bodega Cruz Roja — Av. 68 No. 66-31, Bogota',
+        deliveryLatitude: 4.6667,
+        deliveryLongitude: -74.0965,
+        needs: [
+          {
+            name: 'Ollas y sartenes',
+            description: 'Sets basicos de cocina',
+            quantity: 90,
+            unit: 'kits',
+            priority: NeedPriority.HIGH,
+            fulfilledQuantity: 90,
           },
         ],
       },
@@ -363,12 +705,49 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
     logoUrl:
       'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=400&q=80',
     status: FoundationStatus.VERIFIED,
+    registeredOffsetDays: -118,
     socialLinks: [
       {
         network: SocialNetworkType.INSTAGRAM,
         url: 'https://www.instagram.com/bancodealimentosbogota',
       },
       { network: SocialNetworkType.LINKEDIN, url: 'https://www.linkedin.com/company/banco-de-alimentos' },
+    ],
+    branches: [
+      {
+        name: 'Sede principal',
+        department: 'Cundinamarca',
+        city: 'Bogota',
+        address: 'Calle 22C No. 68A-45',
+        reference: 'Centro logistico principal y clasificacion de alimentos.',
+        phone: '6017420100',
+        openingHours: 'Lunes a viernes 6:00 - 18:00',
+        latitude: 4.6412,
+        longitude: -74.1201,
+        isPrimary: true,
+      },
+      {
+        name: 'Punto de recoleccion Puente Aranda',
+        department: 'Cundinamarca',
+        city: 'Bogota',
+        address: 'Calle 13 No. 68-45',
+        reference: 'Recepcion de donaciones empresariales zona industrial.',
+        phone: '6017420110',
+        openingHours: 'Lunes a viernes 7:00 - 15:00',
+        latitude: 4.6289,
+        longitude: -74.1156,
+      },
+      {
+        name: 'Punto de distribucion sur',
+        department: 'Cundinamarca',
+        city: 'Bogota',
+        address: 'Carrera 50 No. 26-51',
+        reference: 'Despacho a comedores comunitarios del sur de Bogota.',
+        phone: '6017420120',
+        openingHours: 'Martes a sabado 8:00 - 14:00',
+        latitude: 4.6123,
+        longitude: -74.0891,
+      },
     ],
     campaigns: [
       {
@@ -380,6 +759,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
         status: CampaignStatus.PUBLISHED,
         startOffsetDays: -15,
         endOffsetDays: 30,
+        createdOffsetDays: -72,
         deliveryAddress: 'Centro logistico BAB — Calle 22C No. 68A-45, Bogota',
         deliveryLatitude: 4.6412,
         deliveryLongitude: -74.1201,
@@ -407,6 +787,30 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
             unit: 'botellas',
             priority: NeedPriority.HIGH,
             fulfilledQuantity: 90,
+          },
+        ],
+      },
+      {
+        title: 'Canastas navidenas para comedores comunitarios',
+        description:
+          'Campana finalizada de canastas con arroz, lentejas, aceite y panela para comedores de Bogota.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80',
+        status: CampaignStatus.FINISHED,
+        startOffsetDays: -105,
+        endOffsetDays: -40,
+        createdOffsetDays: -112,
+        deliveryAddress: 'Centro logistico BAB — Calle 22C No. 68A-45, Bogota',
+        deliveryLatitude: 4.6412,
+        deliveryLongitude: -74.1201,
+        needs: [
+          {
+            name: 'Canastas navidenas',
+            description: 'Canastas con alimentos no perecederos',
+            quantity: 200,
+            unit: 'canastas',
+            priority: NeedPriority.HIGH,
+            fulfilledQuantity: 198,
           },
         ],
       },
@@ -441,9 +845,46 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
     logoUrl:
       'https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=400&q=80',
     status: FoundationStatus.VERIFIED,
+    registeredOffsetDays: -95,
     socialLinks: [
       { network: SocialNetworkType.INSTAGRAM, url: 'https://www.instagram.com/techocolombia' },
       { network: SocialNetworkType.YOUTUBE, url: 'https://www.youtube.com/@TECHOColombia' },
+    ],
+    branches: [
+      {
+        name: 'Sede principal',
+        department: 'Cundinamarca',
+        city: 'Bogota',
+        address: 'Carrera 7 No. 32-33',
+        reference: 'Coordinacion nacional y oficinas administrativas.',
+        phone: '6013815000',
+        openingHours: 'Lunes a viernes 8:00 - 17:00',
+        latitude: 4.6186,
+        longitude: -74.0678,
+        isPrimary: true,
+      },
+      {
+        name: 'Bodega Soacha',
+        department: 'Cundinamarca',
+        city: 'Soacha',
+        address: 'Parque Industrial Cazuca, Lote 12',
+        reference: 'Acopio de materiales para vivienda de emergencia.',
+        phone: '6013815010',
+        openingHours: 'Lunes a sabado 7:00 - 16:00',
+        latitude: 4.5781,
+        longitude: -74.2165,
+      },
+      {
+        name: 'Punto de voluntariado Bosa',
+        department: 'Cundinamarca',
+        city: 'Bogota',
+        address: 'Carrera 90 No. 69B-36',
+        reference: 'Jornadas de construccion y recepcion de enseres.',
+        phone: '6013815020',
+        openingHours: 'Sabados 8:00 - 15:00',
+        latitude: 4.6102,
+        longitude: -74.1845,
+      },
     ],
     campaigns: [
       {
@@ -455,6 +896,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
         status: CampaignStatus.PUBLISHED,
         startOffsetDays: -8,
         endOffsetDays: 45,
+        createdOffsetDays: -58,
         deliveryAddress: 'Bodega TECHO — Parque Industrial Cazuca, Soacha',
         deliveryLatitude: 4.5781,
         deliveryLongitude: -74.2165,
@@ -486,6 +928,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
         status: CampaignStatus.FINISHED,
         startOffsetDays: -90,
         endOffsetDays: -10,
+        createdOffsetDays: -98,
         deliveryAddress: 'Bodega TECHO — Parque Industrial Cazuca, Soacha',
         deliveryLatitude: 4.5781,
         deliveryLongitude: -74.2165,
@@ -531,9 +974,46 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
     logoUrl:
       'https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&w=400&q=80',
     status: FoundationStatus.VERIFIED,
+    registeredOffsetDays: -68,
     socialLinks: [
       { network: SocialNetworkType.INSTAGRAM, url: 'https://www.instagram.com/fundacionexito' },
       { network: SocialNetworkType.FACEBOOK, url: 'https://www.facebook.com/FundacionExito' },
+    ],
+    branches: [
+      {
+        name: 'Sede principal',
+        department: 'Antioquia',
+        city: 'Envigado',
+        address: 'Carrera 48 No. 32B Sur-139',
+        reference: 'Cedi principal y coordinacion de programas de nutricion.',
+        phone: '6046049696',
+        openingHours: 'Lunes a viernes 8:00 - 17:00',
+        latitude: 6.1694,
+        longitude: -75.5842,
+        isPrimary: true,
+      },
+      {
+        name: 'Centro de distribucion Medellin',
+        department: 'Antioquia',
+        city: 'Medellin',
+        address: 'Calle 50 No. 42-38',
+        reference: 'Acopio de alimentos fortificados y paquetes nutricionales.',
+        phone: '6046049680',
+        openingHours: 'Lunes a viernes 7:30 - 16:30',
+        latitude: 6.2476,
+        longitude: -75.5658,
+      },
+      {
+        name: 'Punto de acopio Bello',
+        department: 'Antioquia',
+        city: 'Bello',
+        address: 'Carrera 50 No. 55-70',
+        reference: 'Recepcion de donaciones del area metropolitana norte.',
+        phone: '6046049670',
+        openingHours: 'Martes a viernes 9:00 - 15:00',
+        latitude: 6.3386,
+        longitude: -75.5581,
+      },
     ],
     campaigns: [
       {
@@ -541,10 +1021,11 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
         description:
           'Recoleccion de alimentos fortificados, puree y snacks saludables para ninas y ninos de 0 a 5 anos en Antioquia.',
         imageUrl:
-          'https://images.unsplash.com/photo-1476703993599-0035df94c839?auto=format&fit=crop&w=1200&q=80',
+          'https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&w=1200&q=80',
         status: CampaignStatus.PUBLISHED,
         startOffsetDays: -12,
         endOffsetDays: 35,
+        createdOffsetDays: -42,
         deliveryAddress: 'Cedi Fundacion Exito — Envigado, Antioquia',
         deliveryLatitude: 6.1694,
         deliveryLongitude: -75.5842,
@@ -598,8 +1079,45 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
     logoUrl:
       'https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&w=400&q=80',
     status: FoundationStatus.PENDING,
+    registeredOffsetDays: -16,
     socialLinks: [
       { network: SocialNetworkType.INSTAGRAM, url: 'https://www.instagram.com/manosquesuman' },
+    ],
+    branches: [
+      {
+        name: 'Sede principal',
+        department: 'Norte de Santander',
+        city: 'Cucuta',
+        address: 'Avenida 4 No. 15-20',
+        reference: 'Sede administrativa y acopio principal en Cucuta.',
+        phone: '3185559090',
+        openingHours: 'Lunes a viernes 8:00 - 16:00',
+        latitude: 7.8891,
+        longitude: -72.4967,
+        isPrimary: true,
+      },
+      {
+        name: 'Punto comunitario Villa del Rosario',
+        department: 'Norte de Santander',
+        city: 'Villa del Rosario',
+        address: 'Calle 10 No. 8-44',
+        reference: 'Atencion a madres cabeza de hogar y adultos mayores.',
+        phone: '3185559091',
+        openingHours: 'Martes a viernes 9:00 - 14:00',
+        latitude: 7.8345,
+        longitude: -72.4721,
+      },
+      {
+        name: 'Centro de acopio frontera',
+        department: 'Norte de Santander',
+        city: 'Cucuta',
+        address: 'Anillo Vial Oriental Km 3',
+        reference: 'Recepcion de donaciones en zona de frontera.',
+        phone: '3185559092',
+        openingHours: 'Lunes a sabado 7:00 - 15:00',
+        latitude: 7.9012,
+        longitude: -72.4589,
+      },
     ],
     campaigns: [
       {
@@ -611,6 +1129,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
         status: CampaignStatus.DRAFT,
         startOffsetDays: 5,
         endOffsetDays: 60,
+        createdOffsetDays: -8,
         deliveryAddress: 'Sede AMS — Avenida 4 No. 15-20, Cucuta',
         deliveryLatitude: 7.8891,
         deliveryLongitude: -72.4967,

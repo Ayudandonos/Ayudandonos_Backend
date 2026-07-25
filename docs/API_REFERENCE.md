@@ -5,7 +5,7 @@
 **Formato de respuesta:** `{ success, message, data, errors }`  
 **Auth:** header `Authorization: Bearer <jwt>` cuando aplique
 
-Este documento cubre auth/users (perfil donante), Fase 4 (campanas, needs, donations), Fase 5 (notificaciones) y el panel admin.
+Este documento cubre auth/users, fundaciones (sedes), campanas, needs, donations, inventario, publicaciones de impacto, mensajeria, notificaciones y panel admin.
 
 ---
 
@@ -55,13 +55,11 @@ Este documento cubre auth/users (perfil donante), Fase 4 (campanas, needs, donat
 {
   totalDonations: number,
   totalQuantity: number,
-  deliveredQuantity: number,
+  receivedQuantity: number,
   cancelledDonations: number,
   byStatus: {
     COMMITTED: { count, quantity },
-    IN_TRANSIT: { count, quantity },
-    DELIVERED: { count, quantity },
-    CONFIRMED: { count, quantity },
+    RECEIVED: { count, quantity },
     CANCELLED: { count, quantity }
   }
 }
@@ -71,9 +69,27 @@ Este documento cubre auth/users (perfil donante), Fase 4 (campanas, needs, donat
 
 ---
 
+## Locations geocode — `/locations/geocode`
+
+JWT requerido. Geocodificacion estructurada (Nominatim) para preview de mapa y persistencia.
+
+| Param | Notas |
+| ----- | ----- |
+| `street` | Direccion |
+| `city` | Ciudad |
+| `state` | Departamento |
+| `country` | Pais |
+| `q` | Texto libre (fallback) |
+
+`street` sin `city`/`state` => 400. Sin match confiable => 404 (`NO_MATCH`).
+
+Detalle: `docs/LOCATIONS_MODULE.md`.
+
+---
+
 ## Foundations nearby — `/foundations/nearby`
 
-Publico. Descubre fundaciones **verificadas por un ADMIN** (`status === VERIFIED`) con coordenadas en un radio de **1 a 10 km**.
+Publico. Descubre fundaciones **verificadas** (`status === VERIFIED`) con al menos una **sede activa** con coordenadas en un radio de **1 a 10 km**.
 
 Las fundaciones en `PENDING`, `REJECTED` o `SUSPENDED` **no aparecen**.
 
@@ -98,8 +114,9 @@ Las fundaciones en `PENDING`, `REJECTED` o `SUSPENDED` **no aparecen**.
 }
 ```
 
-Coordenadas: `PATCH /foundations/:id` con `latitude` y `longitude`.  
-Verificacion: `PATCH /foundations/:id/status` solo **ADMIN**. Detalle: `docs/FOUNDATIONS_MODULE.md`.
+Coordenadas: el backend puede geocodificar al guardar perfil (`PATCH /foundations/:id`)
+desde `address` + `city`/`department`/`country`, o via `GET /locations/geocode`.  
+Verificacion: `PATCH /foundations/:id/status` solo **ADMIN**. Sedes: `docs/FOUNDATIONS_MODULE.md`.
 ---
 
 ## Campaigns — `/campaigns`
@@ -129,16 +146,16 @@ Verificacion: `PATCH /foundations/:id/status` solo **ADMIN**. Detalle: `docs/FOU
   "title": "Campana de abrigo",
   "description": "Recoleccion de cobijas",
   "status": "DRAFT",
+  "foundationBranchId": "uuid-sede-activa",
   "startDate": "2026-08-01T00:00:00.000Z",
   "endDate": "2026-09-01T00:00:00.000Z",
-  "imageUrl": null,
-  "deliveryAddress": "Calle 10 #20-30, Bogota",
-  "deliveryLatitude": 4.711,
-  "deliveryLongitude": -74.0721
+  "imageUrl": null
 }
 ```
 
-Publicar (`status: PUBLISHED`) exige `startDate` y `endDate` con `endDate >= startDate`.
+La sede de entrega se define con `foundationBranchId` (sede activa de la fundacion). Al editar la sede, el snapshot de entrega en campanas publicadas se sincroniza.
+
+Publicar (`status: PUBLISHED`) exige `startDate`, `endDate` (`endDate >= startDate`) y sede valida.
 
 ### Estados
 
@@ -172,7 +189,24 @@ Publicar (`status: PUBLISHED`) exige `startDate` y `endDate` con `endDate >= sta
 ```
 
 `priority`: `LOW` | `MEDIUM` | `HIGH`  
-`fulfilledQuantity` se actualiza con donaciones confirmadas/entregadas segun reglas de negocio.
+`fulfilledQuantity` se actualiza al confirmar recepcion (`RECEIVED`) segun `receivedQuantity`.
+
+---
+
+## Foundations branches — `/foundations/me/branches` y publico
+
+| Metodo | Ruta | Auth | Descripcion |
+| ------ | ---- | ---- | ----------- |
+| GET | `/foundations/me/branches` | FOUNDATION | Listar sedes propias |
+| POST | `/foundations/me/branches` | FOUNDATION | Crear sede |
+| PATCH | `/foundations/me/branches/:branchId` | FOUNDATION | Actualizar sede |
+| POST | `/foundations/me/branches/:branchId/deactivate` | FOUNDATION | Desactivar sede |
+| POST | `/foundations/me/branches/:branchId/activate` | FOUNDATION | Reactivar sede |
+| GET | `/foundations/:id/branches` | Publico | Sedes activas de fundacion verificada |
+
+Al registrar fundacion se crea sede principal `INACTIVE` con placeholders; al completar perfil (`PATCH /foundations/:id`) se sincronizan ciudad, departamento, direccion y telefono. La sede requiere horario de atencion para activarse.
+
+Detalle: `docs/FOUNDATIONS_MODULE.md`.
 
 ---
 
@@ -183,10 +217,10 @@ Publicar (`status: PUBLISHED`) exige `startDate` y `endDate` con `endDate >= sta
 | POST | `/donations` | USER | Crear compromiso (+ chat; `initialMessage` opcional) |
 | GET | `/donations/me` | USER | Listar propias |
 | GET | `/donations/:id` | donor o foundation | Detalle con historial |
-| PATCH | `/donations/:id/status` | donor / foundation | Cambiar estado |
-| PATCH | `/donations/:id/delivery` | FOUNDATION operativa | Agendar punto/fecha de entrega |
+| PATCH | `/donations/:id/status` | donor / foundation | Cambiar estado (recepcion con inventario) |
 | GET | `/donations/:id/messages` | participantes | Listar mensajes del chat |
 | POST | `/donations/:id/messages` | participantes | Enviar mensaje |
+| PATCH | `/donations/:id/messages/read` | participantes | Marcar conversacion como leida |
 | GET | `/foundation/requests` | FOUNDATION operativa | Solicitudes recibidas por la fundacion |
 
 ### POST `/donations` — body
@@ -203,41 +237,78 @@ Publicar (`status: PUBLISHED`) exige `startDate` y `endDate` con `endDate >= sta
 
 Al crear:
 
-1. Se valida disponibilidad de la necesidad.
-2. Se crea la donacion en `COMMITTED`.
-3. Se abre `Conversation` 1:1.
+1. Se valida disponibilidad de la necesidad y campana publicada.
+2. Se crea la donacion en `COMMITTED` con sede tomada de `campaign.foundationBranchId`.
+3. Se abre `Conversation` 1:1 con preview (`lastMessageAt`, `unreadCount` en listados).
 4. Si hay `initialMessage`, se inserta el primer mensaje.
 5. Se notifica a la fundacion (`DONATION_CREATED` y, si aplica, `DONATION_MESSAGE`).
 
 ### Estados
 
-`COMMITTED` → `IN_TRANSIT` | `CANCELLED`  
-`IN_TRANSIT` → `DELIVERED` | `CANCELLED`  
-`DELIVERED` → `CONFIRMED` | `CANCELLED`  
-`CONFIRMED` / `CANCELLED` terminales (segun reglas del service)
+`COMMITTED` → `RECEIVED` | `CANCELLED` (fundacion confirma recepcion o cancela)  
+`COMMITTED` → `CANCELLED` (donante cancela)  
+`RECEIVED` / `CANCELLED` terminales
+
+Al pasar a `RECEIVED`, la fundacion puede enviar `receivedQuantity` (default: `quantity` del compromiso). Se registra entrada automatica de inventario en la misma transaccion.
 
 Cada cambio queda en `donation_status_history`.
 
-### PATCH `/donations/:id/delivery` — body
+### PATCH `/donations/:id/status` — body (recepcion)
 
 ```json
 {
-  "deliveryAddress": "Calle 10 #20-30",
-  "deliveryLatitude": 4.711,
-  "deliveryLongitude": -74.0721,
-  "estimatedDeliveryAt": "2026-08-15T15:00:00.000Z"
+  "status": "RECEIVED",
+  "receivedQuantity": 5,
+  "receptionNotes": "Productos en buen estado"
 }
 ```
 
-Notifica al donante (`DONATION_DELIVERY_UPDATED`).
-
 ### Mensajes
+
+Solo participantes de la donacion (donante o fundacion duena de la campana).
+
+**Reglas de envio:**
+
+- La conversacion se crea al comprometerse (`POST /donations`).
+- La fundacion **no puede enviar el primer mensaje**; debe existir al menos un mensaje del donante (`initialMessage` al crear cuenta).
+- No se permiten mensajes en donaciones `CANCELLED`.
+- Body: 1–2000 caracteres, texto plano (trim).
 
 ```json
 { "body": "Confirmado, nos vemos a las 3pm" }
 ```
 
-Notifica a la otra parte (`DONATION_MESSAGE`).
+Notifica a la otra parte (`DONATION_MESSAGE`). Enlaces: donante → `/my-donations/chats/:id`; fundacion → `/foundation/messages/:id`.
+
+Documentacion completa: `docs/MESSAGING_MODULE.md`. Flujo donaciones: `docs/DONATIONS_MODULE.md`.
+
+---
+
+## Inventory — `/inventory`
+
+FOUNDATION operativa. Entradas solo automaticas al confirmar `RECEIVED`; salidas manuales con publicacion de impacto obligatoria.
+
+| Metodo | Ruta | Descripcion |
+| ------ | ---- | ----------- |
+| GET | `/inventory/items` | Stock actual (solo lectura) |
+| GET | `/inventory/movements` | Historial de movimientos paginado |
+| GET | `/inventory/outbounds` | Historial de salidas paginado |
+| POST | `/inventory/outbound` | Salida + post de impacto (min. 3 imagenes) |
+
+Detalle: `docs/INVENTORY_MODULE.md`.
+
+---
+
+## Posts (impacto) — `/posts`
+
+Publicaciones generadas por salidas de inventario. Listado publico y detalle por fundacion/campana.
+
+| Metodo | Ruta | Auth | Descripcion |
+| ------ | ---- | ---- | ----------- |
+| GET | `/posts` | Publico | Listado paginado |
+| GET | `/posts/:id` | Publico | Detalle con imagenes |
+
+Detalle: `docs/POSTS_MODULE.md`.
 
 ---
 
@@ -284,7 +355,8 @@ JWT requerido (cualquier rol autenticado). Solo el dueño ve y marca sus notific
 | `DONATION_CREATED` | Usuario de la fundacion |
 | `DONATION_STATUS_CHANGED` | La otra parte |
 | `DONATION_MESSAGE` | La otra parte |
-| `DONATION_DELIVERY_UPDATED` | Donante |
+
+Tipos legacy `DONATION_DELIVERY_UPDATED` pueden existir en datos antiguos; el endpoint de entrega fue eliminado.
 
 No existe endpoint publico de creacion: se generan desde el modulo Donations. Fallos de notificacion no rompen el flujo principal.
 
@@ -324,11 +396,14 @@ Detalle de KPIs y reportes: `docs/ADMIN_MODULE.md`.
 
 | Recurso | Ruta |
 | ------- | ---- |
-| Vision general | `specs/API_OVERVIEW.md` |
-| Specs por modulo | `specs/modules/*.md` |
+| Vision general | `docs/ARCHITECTURE.md` |
 | Usuarios / perfil | `docs/USERS_MODULE.md` |
-| Fundaciones (verificacion + nearby) | `docs/FOUNDATIONS_MODULE.md` |
+| Fundaciones (sedes + verificacion + nearby) | `docs/FOUNDATIONS_MODULE.md` |
 | Campanas | `docs/CAMPAIGNS_MODULE.md` |
+| Donaciones | `docs/DONATIONS_MODULE.md` |
+| Inventario | `docs/INVENTORY_MODULE.md` |
+| Publicaciones de impacto | `docs/POSTS_MODULE.md` |
+| Mensajeria | `docs/MESSAGING_MODULE.md` |
 | Notificaciones | `docs/NOTIFICATIONS_MODULE.md` |
 | Admin | `docs/ADMIN_MODULE.md` |
 | Seed / dataset demo | `docs/SEED.md` |

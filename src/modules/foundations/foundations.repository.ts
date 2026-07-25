@@ -68,6 +68,18 @@ export class FoundationsRepository {
         { city: { contains: query.search, mode: 'insensitive' } },
         { user: { fullName: { contains: query.search, mode: 'insensitive' } } },
         { user: { email: { contains: query.search, mode: 'insensitive' } } },
+        {
+          branches: {
+            some: {
+              OR: [
+                { name: { contains: query.search, mode: 'insensitive' } },
+                { city: { contains: query.search, mode: 'insensitive' } },
+                { department: { contains: query.search, mode: 'insensitive' } },
+                { address: { contains: query.search, mode: 'insensitive' } },
+              ],
+            },
+          },
+        },
       ];
     }
 

@@ -18,6 +18,21 @@ export type LocationCityDto = {
   countryIso2: string;
 };
 
+export type GeocodeQueryDto = {
+  street?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  q?: string;
+};
+
+export type GeocodeResultDto = {
+  latitude: number;
+  longitude: number;
+  displayName: string;
+  provider: 'nominatim';
+};
+
 export type CscCountryRaw = {
   id?: number;
   name: string;

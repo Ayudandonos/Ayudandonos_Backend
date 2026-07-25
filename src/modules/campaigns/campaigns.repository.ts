@@ -22,6 +22,7 @@ const campaignInclude = {
       deletedAt: true,
     },
   },
+  foundationBranch: true,
 } satisfies Prisma.CampaignInclude;
 
 export type CampaignWithFoundation = Prisma.CampaignGetPayload<{
@@ -148,9 +149,10 @@ export class CampaignsRepository {
     return prisma.campaign.create({
       data: {
         foundationId,
+        foundationBranchId: data.foundationBranchId,
         title: data.title,
         description: data.description,
-        imageUrl: data.imageUrl ?? null,
+        imageUrl: null,
         status: data.status ?? CampaignStatus.DRAFT,
         startDate: toOptionalDate(data.startDate) ?? null,
         endDate: toOptionalDate(data.endDate) ?? null,
@@ -194,6 +196,10 @@ export class CampaignsRepository {
       updateData.endDate = toOptionalDate(data.endDate) ?? null;
     }
 
+    if (data.foundationBranchId !== undefined) {
+      updateData.foundationBranch = { connect: { id: data.foundationBranchId } };
+    }
+
     if (data.deliveryAddress !== undefined) {
       updateData.deliveryAddress = data.deliveryAddress;
     }
@@ -222,6 +228,34 @@ export class CampaignsRepository {
     return prisma.campaign.update({
       where: { id },
       data: { deletedAt: new Date() },
+    });
+  }
+
+  /**
+   * Entrada: branch: sede con datos de acopio.
+   * Proceso: Sincroniza snapshot de entrega en campanas vinculadas a la sede.
+   * Salida: Retorna void.
+   */
+  async syncDeliverySnapshotFromBranch(branch: {
+    id: string;
+    address: string;
+    city: string;
+    department: string;
+    latitude: number | null;
+    longitude: number | null;
+  }): Promise<void> {
+    const deliveryAddress = `${branch.address}, ${branch.city}, ${branch.department}`;
+
+    await prisma.campaign.updateMany({
+      where: {
+        foundationBranchId: branch.id,
+        deletedAt: null,
+      },
+      data: {
+        deliveryAddress,
+        deliveryLatitude: branch.latitude,
+        deliveryLongitude: branch.longitude,
+      },
     });
   }
 }

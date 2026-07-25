@@ -1,9 +1,17 @@
-import { CampaignStatus, FoundationStatus } from '@prisma/client';
+import { CampaignStatus, FoundationBranchStatus, FoundationStatus } from '@prisma/client';
+import type { FoundationBranch } from '@prisma/client';
 import { AppError } from '../../shared/errors/app.error.js';
 import { API_MESSAGES } from '../../shared/constants/messages.constants.js';
+import { mapUnknownError } from '../../shared/errors/map-unknown-error.js';
+import {
+  deleteStoredFile,
+  saveCampaignImage,
+} from '../../shared/utils/upload.util.js';
 import type { ApiResponseMeta } from '../../shared/responses/api.response.js';
 import type { FoundationWithRelations } from '../foundations/foundations.repository.js';
+import { foundationBranchesRepository } from '../foundations/foundation-branches.repository.js';
 import type {
+  CampaignBranchSummaryDto,
   CampaignDto,
   CreateCampaignDto,
   ListCampaignsQueryDto,
@@ -26,6 +34,15 @@ const ALLOWED_TRANSITIONS: Record<CampaignStatus, CampaignStatus[]> = {
   [CampaignStatus.FINISHED]: [],
   [CampaignStatus.CANCELLED]: [],
 };
+
+/**
+ * Entrada: branch: sede de acopio.
+ * Proceso: Construye direccion legible para compatibilidad con campos delivery_*.
+ * Salida: Retorna texto de direccion formateado.
+ */
+function formatBranchDeliveryAddress(branch: FoundationBranch): string {
+  return `${branch.address}, ${branch.city}, ${branch.department}`;
+}
 
 export class CampaignsService {
   /**
@@ -89,7 +106,7 @@ export class CampaignsService {
 
   /**
    * Entrada: input: datos de creacion; foundation: fundacion operativa autenticada.
-   * Proceso: Crea campana en DRAFT o PUBLISHED validando fechas al publicar.
+   * Proceso: Crea campana en DRAFT o PUBLISHED validando fechas al publicar y sede activa.
    * Salida: Retorna la campana creada.
    */
   async create(
@@ -102,10 +119,16 @@ export class CampaignsService {
       this.assertPublishRequirements(input.startDate, input.endDate);
     }
 
-    const created = await campaignsRepository.create(foundation.id, {
+    const branch = await this.resolveActiveBranch(foundation.id, input.foundationBranchId);
+    const payload: CreateCampaignDto = {
       ...input,
       status,
-    });
+      deliveryAddress: formatBranchDeliveryAddress(branch),
+      deliveryLatitude: branch.latitude,
+      deliveryLongitude: branch.longitude,
+    };
+
+    const created = await campaignsRepository.create(foundation.id, payload);
 
     return this.toDto(created);
   }
@@ -151,8 +174,53 @@ export class CampaignsService {
       throw new AppError(API_MESSAGES.CAMPAIGNS_END_BEFORE_START, 400);
     }
 
-    const updated = await campaignsRepository.update(id, input);
+    const payload: UpdateCampaignDto = { ...input };
+
+    if (input.foundationBranchId !== undefined) {
+      const branch = await this.resolveActiveBranch(foundation.id, input.foundationBranchId);
+      payload.deliveryAddress = formatBranchDeliveryAddress(branch);
+      payload.deliveryLatitude = branch.latitude;
+      payload.deliveryLongitude = branch.longitude;
+    }
+
+    const updated = await campaignsRepository.update(id, payload);
     return this.toDto(updated);
+  }
+
+  /**
+   * Entrada: id: identificador; file: archivo de imagen; foundation: fundacion autenticada.
+   * Proceso: Reemplaza la imagen de la campana en Blob o almacenamiento local.
+   * Salida: Retorna la campana actualizada.
+   */
+  async uploadImage(
+    id: string,
+    file: Express.Multer.File,
+    foundation: FoundationWithRelations,
+  ): Promise<CampaignDto> {
+    try {
+      const campaign = await this.requireCampaign(id);
+      this.assertIsOwner(campaign, foundation.id);
+      this.assertIsMutable(campaign.status);
+
+      const saved = await saveCampaignImage(id, file);
+      const previousImage = campaign.imageUrl;
+
+      try {
+        await campaignsRepository.update(id, { imageUrl: saved.publicUrl });
+      } catch (error) {
+        await deleteStoredFile(saved.storageKey);
+        throw mapUnknownError(error);
+      }
+
+      if (previousImage) {
+        await deleteStoredFile(previousImage);
+      }
+
+      const refreshed = await this.requireCampaign(id);
+      return this.toDto(refreshed);
+    } catch (error) {
+      throw mapUnknownError(error);
+    }
   }
 
   /**
@@ -164,6 +232,31 @@ export class CampaignsService {
     const campaign = await this.requireCampaign(id);
     this.assertIsOwner(campaign, foundation.id);
     await campaignsRepository.softDelete(id);
+  }
+
+  /**
+   * Entrada: foundationId y branchId.
+   * Proceso: Verifica que la sede exista, pertenezca a la fundacion y este activa.
+   * Salida: Retorna la sede o lanza AppError.
+   */
+  private async resolveActiveBranch(
+    foundationId: string,
+    branchId: string,
+  ): Promise<FoundationBranch> {
+    const branch = await foundationBranchesRepository.findByIdForFoundation(
+      foundationId,
+      branchId,
+    );
+
+    if (!branch) {
+      throw new AppError(API_MESSAGES.CAMPAIGNS_BRANCH_NOT_FOUND, 404);
+    }
+
+    if (branch.status !== FoundationBranchStatus.ACTIVE) {
+      throw new AppError(API_MESSAGES.CAMPAIGNS_BRANCH_NOT_ACTIVE, 400);
+    }
+
+    return branch;
   }
 
   /**
@@ -261,6 +354,27 @@ export class CampaignsService {
   }
 
   /**
+   * Entrada: branch: sede asociada a la campana.
+   * Proceso: Mapea la sede al resumen expuesto en la API.
+   * Salida: Retorna CampaignBranchSummaryDto.
+   */
+  private toBranchDto(branch: FoundationBranch): CampaignBranchSummaryDto {
+    return {
+      id: branch.id,
+      name: branch.name,
+      department: branch.department,
+      city: branch.city,
+      address: branch.address,
+      reference: branch.reference,
+      phone: branch.phone,
+      openingHours: branch.openingHours,
+      latitude: branch.latitude,
+      longitude: branch.longitude,
+      status: branch.status,
+    };
+  }
+
+  /**
    * Entrada: campaign: entidad con fundacion.
    * Proceso: Mapea la entidad Prisma al DTO de respuesta.
    * Salida: Retorna CampaignDto.
@@ -269,6 +383,7 @@ export class CampaignsService {
     return {
       id: campaign.id,
       foundationId: campaign.foundationId,
+      foundationBranchId: campaign.foundationBranchId,
       title: campaign.title,
       description: campaign.description,
       imageUrl: campaign.imageUrl,
@@ -289,6 +404,7 @@ export class CampaignsService {
         city: campaign.foundation.city,
         department: campaign.foundation.department,
       },
+      branch: this.toBranchDto(campaign.foundationBranch),
     };
   }
 }

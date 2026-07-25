@@ -2,7 +2,10 @@ import type {
   FoundationDetailDto,
   FoundationDocumentDto,
   FoundationListItemDto,
+  FoundationPublicBranchDto,
 } from './foundations.dto.js';
+import type { FoundationBranch } from '@prisma/client';
+import { FoundationBranchStatus } from '@prisma/client';
 import type { FoundationWithRelations } from './foundations.repository.js';
 
 export type ViewerContext = 'PUBLIC' | 'OWNER' | 'ADMIN';
@@ -71,9 +74,39 @@ export function toFoundationDetail(
   viewer: ViewerContext,
   isProfileComplete: boolean,
   hasRequiredDocuments: boolean,
+  branches: Pick<
+    FoundationBranch,
+    | 'id'
+    | 'name'
+    | 'department'
+    | 'city'
+    | 'address'
+    | 'reference'
+    | 'phone'
+    | 'openingHours'
+    | 'latitude'
+    | 'longitude'
+    | 'status'
+  >[],
+  hasActiveBranch: boolean,
 ): FoundationDetailDto {
   const base = toFoundationListItem(foundation, viewer);
   const isPrivileged = viewer === 'ADMIN' || viewer === 'OWNER';
+
+  const publicBranches: FoundationPublicBranchDto[] = branches
+    .filter((branch) => branch.status === FoundationBranchStatus.ACTIVE || isPrivileged)
+    .map((branch) => ({
+      id: branch.id,
+      name: branch.name,
+      department: branch.department,
+      city: branch.city,
+      address: branch.address,
+      reference: branch.reference,
+      phone: branch.phone,
+      openingHours: branch.openingHours,
+      latitude: branch.latitude,
+      longitude: branch.longitude,
+    }));
 
   return {
     ...base,
@@ -110,6 +143,8 @@ export function toFoundationDetail(
         : [],
     isProfileComplete: isPrivileged ? isProfileComplete : false,
     hasRequiredDocuments: isPrivileged ? hasRequiredDocuments : false,
+    hasActiveBranch: isPrivileged ? hasActiveBranch : publicBranches.length > 0,
+    branches: publicBranches,
   };
 }
 

@@ -39,6 +39,10 @@ Reglas obligatorias para humanos y agentes de IA.
 1. Rama `feature/*` desde `develop` (ver `docs/GIT_WORKFLOW.md`)
 2. Analizar 3. Disenar 4. Explicar 5. Implementar 6. build + lint 7. Documentar 8. PR a `develop` 9. Esperar aprobacion
 
+## Desarrollo local (Windows)
+
+Si `npm run build` falla con `EPERM` en `prisma generate`, detenga `npm run dev` antes de compilar. El script `scripts/prisma-generate.mjs` reintenta hasta 3 veces; use `npm run prisma:generate` por separado si persiste el bloqueo del cliente Prisma.
+
 ## Prohibido sin autorizacion
 
 - Cambiar arquitectura

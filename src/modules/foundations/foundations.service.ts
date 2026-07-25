@@ -5,11 +5,13 @@ import { API_MESSAGES } from '../../shared/constants/messages.constants.js';
 import { deleteStoredFile, resolveDocumentFile, saveFoundationFile } from '../../shared/utils/upload.util.js';
 import {
   hasRequiredFoundationDocuments,
+  hasActiveFoundationBranch,
   isFoundationProfileComplete,
   REQUIRED_FOUNDATION_DOCUMENT_TYPES,
 } from './foundation-profile.util.js';
 import type {
   FoundationDetailDto,
+  FoundationPublicBranchDto,
   ListFoundationsQueryDto,
   NearbyFoundationsQueryDto,
   NearbyFoundationsResultDto,
@@ -26,10 +28,15 @@ import {
   foundationsRepository,
   type FoundationWithRelations,
 } from './foundations.repository.js';
+import { foundationBranchesService } from './foundation-branches.service.js';
+import {
+  foundationBranchesRepository,
+} from './foundation-branches.repository.js';
 import {
   boundingBoxForRadius,
   haversineDistanceKm,
 } from '../../shared/utils/geo.util.js';
+import { resolveCoordinatesForPersist } from '../locations/resolve-coordinates.util.js';
 
 interface RequesterContext {
   id: string;
@@ -101,33 +108,59 @@ export class FoundationsService {
       longitude: query.longitude,
     };
     const box = boundingBoxForRadius(origin, query.radiusKm);
-    const candidates = await foundationsRepository.findVerifiedInBoundingBox(box);
+    const branchCandidates =
+      await foundationBranchesRepository.findActiveVerifiedInBoundingBox(box);
 
-    const items = candidates
-      .filter(
-        (foundation) =>
-          foundation.latitude !== null && foundation.longitude !== null,
-      )
-      .map((foundation) => {
-        const distanceKm = haversineDistanceKm(origin, {
-          latitude: foundation.latitude as number,
-          longitude: foundation.longitude as number,
+    const foundationMap = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        acronym: string | null;
+        category: string | null;
+        logoUrl: string | null;
+        city: string;
+        latitude: number;
+        longitude: number;
+        distanceKm: number;
+      }
+    >();
+
+    for (const branch of branchCandidates) {
+      if (branch.latitude === null || branch.longitude === null) {
+        continue;
+      }
+
+      const distanceKm = haversineDistanceKm(origin, {
+        latitude: branch.latitude,
+        longitude: branch.longitude,
+      });
+
+      if (distanceKm > query.radiusKm) {
+        continue;
+      }
+
+      const roundedDistance = Math.round(distanceKm * 100) / 100;
+      const existing = foundationMap.get(branch.foundation.id);
+
+      if (!existing || roundedDistance < existing.distanceKm) {
+        foundationMap.set(branch.foundation.id, {
+          id: branch.foundation.id,
+          name: branch.foundation.name,
+          acronym: branch.foundation.acronym,
+          category: branch.foundation.category,
+          logoUrl: branch.foundation.logoUrl,
+          city: branch.city,
+          latitude: branch.latitude,
+          longitude: branch.longitude,
+          distanceKm: roundedDistance,
         });
+      }
+    }
 
-        return {
-          id: foundation.id,
-          name: foundation.name,
-          acronym: foundation.acronym,
-          category: foundation.category,
-          city: foundation.city,
-          logoUrl: foundation.logoUrl,
-          latitude: foundation.latitude as number,
-          longitude: foundation.longitude as number,
-          distanceKm: Math.round(distanceKm * 100) / 100,
-        };
-      })
-      .filter((item) => item.distanceKm <= query.radiusKm)
-      .sort((a, b) => a.distanceKm - b.distanceKm);
+    const items = Array.from(foundationMap.values()).sort(
+      (a, b) => a.distanceKm - b.distanceKm,
+    );
 
     const categoryMap = new Map<string, number>();
     for (const item of items) {
@@ -166,6 +199,39 @@ export class FoundationsService {
     this.assertCanViewFoundation(foundation, requester);
 
     return this.toDetailResponse(foundation, requester);
+  }
+
+  /**
+   * Entrada: id: identificador de fundacion verificada.
+   * Proceso: Lista sedes activas visibles en perfil publico.
+   * Salida: Retorna arreglo de sedes publicas.
+   */
+  async listPublicBranches(
+    id: string,
+    requester?: RequesterContext,
+  ): Promise<FoundationPublicBranchDto[]> {
+    const foundation = await foundationsRepository.findByIdWithRelations(id);
+
+    if (!foundation || !foundation.user.isActive) {
+      throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
+    }
+
+    this.assertCanViewFoundation(foundation, requester);
+
+    const branches = await foundationBranchesRepository.findActivePublicByFoundationId(id);
+
+    return branches.map((branch) => ({
+      id: branch.id,
+      name: branch.name,
+      department: branch.department,
+      city: branch.city,
+      address: branch.address,
+      reference: branch.reference,
+      phone: branch.phone,
+      openingHours: branch.openingHours,
+      latitude: branch.latitude,
+      longitude: branch.longitude,
+    }));
   }
 
   /**
@@ -219,11 +285,42 @@ export class FoundationsService {
 
       const { socialLinks, ...profileData } = input;
 
+      const locationChanged =
+        (input.country !== undefined && input.country !== foundation.country) ||
+        (input.department !== undefined && input.department !== foundation.department) ||
+        (input.city !== undefined && input.city !== foundation.city) ||
+        (input.address !== undefined && input.address !== foundation.address);
+
+      const resolvedCoords = await resolveCoordinatesForPersist({
+        currentLatitude: foundation.latitude,
+        currentLongitude: foundation.longitude,
+        incomingLatitude: input.latitude,
+        incomingLongitude: input.longitude,
+        locationChanged,
+        location: {
+          street: input.address !== undefined ? input.address : foundation.address,
+          city: input.city !== undefined ? input.city : foundation.city,
+          state:
+            input.department !== undefined ? input.department : foundation.department,
+          country: input.country !== undefined ? input.country : foundation.country,
+        },
+      });
+
+      profileData.latitude = resolvedCoords.latitude;
+      profileData.longitude = resolvedCoords.longitude;
+
       const updated = await foundationsRepository.updateProfileWithSocialLinks(
         id,
         profileData,
         socialLinks,
       );
+
+      await foundationBranchesService.syncPrimaryBranchFromFoundationProfile(updated.id, {
+        department: updated.department,
+        city: updated.city,
+        address: updated.address,
+        phone: updated.phone,
+      });
 
       return this.toDetailResponse(updated, requester);
     } catch (error) {
@@ -254,7 +351,7 @@ export class FoundationsService {
     }
 
     if (input.status === FoundationStatus.VERIFIED) {
-      this.assertProfileReadyForVerification(foundation);
+      await this.assertProfileReadyForVerification(foundation);
     }
 
     const updatedFoundation = await foundationsRepository.updateStatus(id, input, requester.id);
@@ -446,7 +543,9 @@ export class FoundationsService {
    * Proceso: Valida que el perfil cumpla requisitos minimos para verificacion admin.
    * Salida: Retorna void o lanza AppError 400 con detalle.
    */
-  private assertProfileReadyForVerification(foundation: FoundationWithRelations): void {
+  private async assertProfileReadyForVerification(
+    foundation: FoundationWithRelations,
+  ): Promise<void> {
     if (!isFoundationProfileComplete(foundation)) {
       throw new AppError(API_MESSAGES.FOUNDATIONS_PROFILE_INCOMPLETE, 400);
     }
@@ -454,23 +553,33 @@ export class FoundationsService {
     if (!hasRequiredFoundationDocuments(foundation.documents)) {
       throw new AppError(API_MESSAGES.FOUNDATIONS_DOCUMENTS_INCOMPLETE, 400);
     }
+
+    const branches = await foundationBranchesRepository.findByFoundationId(foundation.id);
+
+    if (!hasActiveFoundationBranch(branches)) {
+      throw new AppError(API_MESSAGES.BRANCHES_REQUIRED_FOR_PROFILE, 400);
+    }
   }
 
   /**
    * Entrada: foundation: entidad con relaciones; requester: usuario autenticado opcional.
-   * Proceso: Mapea a DTO de detalle aplicando filtros por rol.
+   * Proceso: Mapea a DTO de detalle aplicando filtros por rol y sedes.
    * Salida: Retorna FoundationDetailDto.
    */
-  private toDetailResponse(
+  private async toDetailResponse(
     foundation: FoundationWithRelations,
     requester?: RequesterContext,
-  ): FoundationDetailDto {
+  ): Promise<FoundationDetailDto> {
     const viewer = resolveViewerContext(foundation, requester);
+    const branches = await foundationBranchesRepository.findByFoundationId(foundation.id);
+
     return toFoundationDetail(
       foundation,
       viewer,
       isFoundationProfileComplete(foundation),
       hasRequiredFoundationDocuments(foundation.documents),
+      branches,
+      hasActiveFoundationBranch(branches),
     );
   }
 }

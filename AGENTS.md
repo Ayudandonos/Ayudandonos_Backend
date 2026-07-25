@@ -77,7 +77,11 @@ index.ts
 
 **Seed demo COMPLETADO:** en cada `prisma db seed` (y en cada deploy Vercel) se hace `TRUNCATE` de tablas de negocio y se carga solo el dataset de `prisma/seed-data.ts`. Ver `docs/SEED.md`.
 
-**Siguiente:** Storage cloud (Blob/S3) como fase posterior; UI notificaciones y mapa nearby en frontend.
+**Flujo donacion + inventario trazable COMPLETADO:** estados `COMMITTED | RECEIVED | CANCELLED`, sede en compromiso, recepcion con entrada automatica de inventario, sin logistica ni entradas manuales. Ver `docs/DONATIONS_MODULE.md` y `docs/INVENTORY_MODULE.md`.
+
+**Cierre de fase operativa COMPLETADO:** sedes (principal al registro, checklist, guards, sync campanas, publico, nearby por sedes), mensajeria (ultimo mensaje, no leidos, lectura), inventario automatico y publicaciones obligatorias en salidas. Ver `docs/FOUNDATIONS_MODULE.md`, `docs/MESSAGING_MODULE.md`, `docs/INVENTORY_MODULE.md`.
+
+**Siguiente:** Storage cloud (Blob/S3); paginacion infinita en inbox de mensajes.
 
 ## Documentacion interna
 
@@ -92,6 +96,7 @@ index.ts
 | Deploy Vercel | `docs/DEPLOYMENT_VERCEL.md` |
 | Usuarios / perfil donante | `docs/USERS_MODULE.md` |
 | Fundaciones | `docs/FOUNDATIONS_MODULE.md` |
+| Mensajeria donante-fundacion | `docs/MESSAGING_MODULE.md` |
 | Admin | `docs/ADMIN_MODULE.md` |
 | Especificaciones API | `specs/API_OVERVIEW.md` |
 | Plantilla de modulo | `specs/MODULE_TEMPLATE.md` |

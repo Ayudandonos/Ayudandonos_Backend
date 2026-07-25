@@ -44,7 +44,9 @@ HTTP Request
 | `foundations` | Fundaciones verificadas |
 | `campaigns` | Campanas de recoleccion |
 | `needs` | Necesidades por campana |
-| `donations` | Ciclo de vida de donaciones |
+| `donations` | Ciclo de vida de donaciones (COMMITTED / RECEIVED / CANCELLED) |
+| `inventory` | Stock y movimientos trazables |
+| `posts` | Publicaciones de impacto (salidas de inventario) |
 | `notifications` | Alertas in-app |
 | `admin` | Dashboard, reportes y listados administrativos |
 | `locations` | Proxy de paises/departamentos/ciudades |

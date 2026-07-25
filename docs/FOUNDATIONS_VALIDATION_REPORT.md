@@ -36,7 +36,7 @@ Estado del modulo: **REVISION COMPLETADA — PENDIENTE APROBACION FINAL**
 | P2 | Mapper duplicado auth/users | **PENDIENTE** — deuda tecnica menor |
 | P2 | Creacion fundacion en auth.repository | **ACEPTADO** — transaccion atomica user+foundation; refactor futuro |
 | P2 | Codigo muerto `deleteDocumentByType` | **PENDIENTE** — reservado para DELETE endpoint futuro |
-| P2 | Swagger incompleto en rutas | **PENDIENTE** — deuda tecnica documentada |
+| P2 | Swagger incompleto en rutas | **CORREGIDO** — documentacion en foundations, impact y statistics |
 
 ### Capas respetadas
 

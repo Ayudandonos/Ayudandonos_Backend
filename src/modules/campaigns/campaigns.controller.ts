@@ -111,6 +111,27 @@ export class CampaignsController {
   });
 
   /**
+   * Entrada: req: peticion con id y archivo de imagen; res: respuesta HTTP.
+   * Proceso: Delega la subida de imagen de campana al servicio.
+   * Salida: No retorna valor; responde 200 con campana actualizada.
+   */
+  uploadImage = asyncHandler(async (req: Request, res: Response) => {
+    const foundation = this.requireFoundation(req);
+    const { id } = req.params as CampaignIdParamInput;
+    const file = req.file;
+
+    if (!file) {
+      throw new AppError(API_MESSAGES.UPLOAD_FILE_REQUIRED, 400);
+    }
+
+    const data = await campaignsService.uploadImage(id, file, foundation);
+
+    res.status(200).json(
+      ApiResponseBuilder.success(data, API_MESSAGES.CAMPAIGNS_IMAGE_UPLOAD_SUCCESS),
+    );
+  });
+
+  /**
    * Entrada: req: peticion autenticada de fundacion.
    * Proceso: Exige que el middleware haya adjuntado la fundacion operativa.
    * Salida: Retorna la fundacion o lanza AppError 403.

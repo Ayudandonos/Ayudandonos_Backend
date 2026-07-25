@@ -49,6 +49,8 @@ export const API_MESSAGES = {
   FOUNDATIONS_STATUS_UPDATE_SUCCESS: 'Estado de fundación actualizado correctamente',
   FOUNDATIONS_LOGO_UPLOAD_SUCCESS: 'Logo de fundación actualizado correctamente',
   FOUNDATIONS_DOCUMENT_UPLOAD_SUCCESS: 'Documento de fundación cargado correctamente',
+  USERS_AVATAR_UPLOAD_SUCCESS: 'Avatar actualizado correctamente',
+  CAMPAIGNS_IMAGE_UPLOAD_SUCCESS: 'Imagen de campaña actualizada correctamente',
   FOUNDATIONS_NOT_FOUND: 'Fundación no encontrada',
   FOUNDATIONS_NOT_PUBLIC: 'Esta fundación no está disponible públicamente',
   FOUNDATIONS_CANNOT_MANAGE_OTHERS: 'No tienes permiso para gestionar esta fundación',
@@ -61,6 +63,16 @@ export const API_MESSAGES = {
     'Tu fundación debe ser verificada por un administrador antes de acceder a este recurso',
   FOUNDATIONS_DOCUMENTS_INCOMPLETE: 'Faltan documentos obligatorios para verificar la fundación',
   FOUNDATIONS_DOCUMENT_NOT_FOUND: 'Documento de fundación no encontrado',
+  BRANCHES_LIST_SUCCESS: 'Listado de sedes obtenido correctamente',
+  BRANCHES_CREATE_SUCCESS: 'Sede creada correctamente',
+  BRANCHES_UPDATE_SUCCESS: 'Sede actualizada correctamente',
+  BRANCHES_DEACTIVATE_SUCCESS: 'Sede desactivada correctamente',
+  BRANCHES_ACTIVATE_SUCCESS: 'Sede reactivada correctamente',
+  BRANCHES_NOT_FOUND: 'Sede no encontrada',
+  BRANCHES_LAST_ACTIVE: 'Debes mantener al menos una sede activa',
+  BRANCHES_HAS_PUBLISHED_CAMPAIGNS:
+    'No puedes desactivar esta sede porque tiene campanas publicadas asociadas',
+  BRANCHES_REQUIRED_FOR_PROFILE: 'Debes tener al menos una sede activa con datos completos',
   CAMPAIGNS_LIST_SUCCESS: 'Listado de campañas obtenido correctamente',
   CAMPAIGNS_FOUND_SUCCESS: 'Campaña obtenida correctamente',
   CAMPAIGNS_CREATE_SUCCESS: 'Campaña creada correctamente',
@@ -74,6 +86,9 @@ export const API_MESSAGES = {
   CAMPAIGNS_PUBLISH_DATES_REQUIRED:
     'Para publicar una campaña debes indicar fecha de inicio y fecha de fin',
   CAMPAIGNS_END_BEFORE_START: 'La fecha de fin debe ser posterior o igual a la fecha de inicio',
+  CAMPAIGNS_BRANCH_NOT_FOUND: 'La sede seleccionada no existe o no pertenece a tu fundación',
+  CAMPAIGNS_BRANCH_NOT_ACTIVE: 'La sede seleccionada no está activa',
+  CAMPAIGNS_BRANCH_MISMATCH: 'La sede de la salida debe coincidir con la sede de la campaña',
   NEEDS_LIST_SUCCESS: 'Listado de necesidades obtenido correctamente',
   NEEDS_FOUND_SUCCESS: 'Necesidad obtenida correctamente',
   NEEDS_CREATE_SUCCESS: 'Necesidad creada correctamente',
@@ -87,7 +102,9 @@ export const API_MESSAGES = {
   DONATIONS_FOUND_SUCCESS: 'Donación obtenida correctamente',
   DONATIONS_CREATE_SUCCESS: 'Compromiso de donación creado correctamente',
   DONATIONS_STATUS_UPDATE_SUCCESS: 'Estado de donación actualizado correctamente',
-  DONATIONS_DELIVERY_UPDATE_SUCCESS: 'Datos de entrega actualizados correctamente',
+  DONATIONS_RECEIVE_SUCCESS: 'Recepción de donación confirmada e inventario actualizado',
+  DONATIONS_ALREADY_RECEIVED: 'Esta donación ya fue recibida',
+  DONATIONS_RECEIVED_QUANTITY_INVALID: 'La cantidad recibida debe ser al menos 1',
   DONATIONS_NOT_FOUND: 'Donación no encontrada',
   DONATIONS_CANNOT_ACCESS: 'No tienes permiso para acceder a esta donación',
   DONATIONS_CANNOT_MANAGE: 'No tienes permiso para gestionar esta donación',
@@ -96,8 +113,12 @@ export const API_MESSAGES = {
   DONATIONS_QUANTITY_EXCEEDS: 'La cantidad supera lo pendiente de la necesidad',
   MESSAGES_LIST_SUCCESS: 'Mensajes obtenidos correctamente',
   MESSAGES_CREATE_SUCCESS: 'Mensaje enviado correctamente',
+  MESSAGES_MARK_READ_SUCCESS: 'Mensajes marcados como leidos',
   MESSAGES_CONVERSATION_NOT_FOUND: 'Conversación no encontrada',
   MESSAGES_CANNOT_ACCESS: 'No tienes permiso para acceder a esta conversación',
+  MESSAGES_DONATION_CANCELLED: 'No puedes enviar mensajes en una donación cancelada.',
+  MESSAGES_FOUNDATION_CANNOT_INITIATE:
+    'La fundación solo puede responder después de que el donante envíe el primer mensaje.',
   UPLOAD_FILE_REQUIRED: 'Debe adjuntar un archivo',
   UPLOAD_FILE_TOO_LARGE: 'El archivo supera el tamaño máximo permitido',
   UPLOAD_INVALID_FILE: 'Archivo inválido',
@@ -123,7 +144,38 @@ export const API_MESSAGES = {
     'El servicio de ubicaciones no está configurado (falta CSC_API_KEY).',
   LOCATIONS_COUNTRY_NOT_FOUND: 'País no encontrado',
   LOCATIONS_STATE_NOT_FOUND: 'Estado o departamento no encontrado',
+  LOCATIONS_GEOCODE_SUCCESS: 'Ubicación geocodificada correctamente',
+  LOCATIONS_GEOCODE_NO_MATCH:
+    'No se encontró una ubicación confiable para los datos indicados.',
+  LOCATIONS_GEOCODE_UNAVAILABLE:
+    'El servicio de geocodificación no está disponible. Intenta de nuevo más tarde.',
+  INVENTORY_LIST_SUCCESS: 'Inventario obtenido correctamente',
+  INVENTORY_ITEM_CREATE_SUCCESS: 'Producto de inventario creado correctamente',
+  INVENTORY_ITEM_UPDATE_SUCCESS: 'Producto de inventario actualizado correctamente',
+  INVENTORY_STOCK_IN_SUCCESS: 'Entrada de inventario registrada correctamente',
+  INVENTORY_OUTBOUND_SUCCESS: 'Salida registrada y publicación creada correctamente',
+  INVENTORY_MOVEMENTS_LIST_SUCCESS: 'Historial de movimientos obtenido correctamente',
+  INVENTORY_OUTBOUNDS_LIST_SUCCESS: 'Historial de salidas obtenido correctamente',
+  INVENTORY_ITEM_NOT_FOUND: 'Producto de inventario no encontrado',
+  INVENTORY_OUTBOUND_IMAGES_MIN: 'Debes subir al menos tres imágenes de la entrega',
+  POSTS_LIST_SUCCESS: 'Publicaciones obtenidas correctamente',
+  POSTS_FOUND_SUCCESS: 'Publicación obtenida correctamente',
+  POSTS_NOT_FOUND: 'Publicación no encontrada',
+  POSTS_NOT_PUBLIC: 'Esta publicación no está disponible públicamente',
+  POSTS_REACTION_SUCCESS: 'Reacción registrada correctamente',
+  POSTS_REACTION_REMOVED_SUCCESS: 'Reacción eliminada correctamente',
+  POSTS_COMMENT_SUCCESS: 'Comentario publicado correctamente',
+  POSTS_COMMENTS_LIST_SUCCESS: 'Comentarios obtenidos correctamente',
 } as const;
+
+/**
+ * Entrada: itemName: nombre del producto sin stock.
+ * Proceso: Construye mensaje de error de stock insuficiente.
+ * Salida: Retorna mensaje legible para el usuario.
+ */
+export function inventoryInsufficientStockMessage(itemName: string): string {
+  return `Stock insuficiente para "${itemName}". Verifica las cantidades disponibles.`;
+}
 
 /**
  * Mensajes de validacion para esquemas Zod.
@@ -167,7 +219,16 @@ export const VALIDATION_MESSAGES = {
   INVALID_URL: 'URL inválida',
   INVALID_UUID: 'Identificador de usuario inválido',
   INVALID_FOUNDATION_UUID: 'Identificador de fundación inválido',
+  INVALID_BRANCH_UUID: 'Identificador de sede inválido',
+  BRANCH_NAME_MIN_LENGTH: 'El nombre de la sede debe tener al menos 2 caracteres',
+  BRANCH_DEPARTMENT_MIN_LENGTH: 'El departamento de la sede debe tener al menos 2 caracteres',
+  BRANCH_CITY_MIN_LENGTH: 'La ciudad de la sede debe tener al menos 2 caracteres',
+  BRANCH_ADDRESS_MIN_LENGTH: 'La dirección de la sede debe tener al menos 5 caracteres',
+  BRANCH_REFERENCE_MAX_LENGTH: 'La referencia no puede superar los 300 caracteres',
+  BRANCH_PHONE_MIN_LENGTH: 'El teléfono de la sede debe tener al menos 7 caracteres',
+  BRANCH_OPENING_HOURS_MIN_LENGTH: 'Los horarios deben tener al menos 3 caracteres',
   INVALID_CAMPAIGN_UUID: 'Identificador de campaña inválido',
+  CAMPAIGN_BRANCH_REQUIRED: 'Debes seleccionar una sede de acopio activa',
   UPDATE_EMPTY_BODY: 'Debe enviar al menos un campo para actualizar',
   CAMPAIGN_TITLE_MIN_LENGTH: 'El título debe tener al menos 3 caracteres',
   CAMPAIGN_TITLE_MAX_LENGTH: 'El título no puede superar los 200 caracteres',
@@ -188,6 +249,8 @@ export const VALIDATION_MESSAGES = {
   DONATION_QUANTITY_MIN: 'La cantidad a donar debe ser al menos 1',
   DONATION_NOTES_MAX_LENGTH: 'Las notas no pueden superar los 2000 caracteres',
   DONATION_INVALID_DATE: 'La fecha de entrega no es válida (use formato ISO 8601)',
+  DONATION_RECEIVED_QUANTITY_ONLY_ON_RECEIVE:
+    'La cantidad recibida solo aplica al confirmar recepción',
   MESSAGE_BODY_MIN_LENGTH: 'El mensaje debe tener al menos 1 carácter',
   MESSAGE_BODY_MAX_LENGTH: 'El mensaje no puede superar los 2000 caracteres',
   INVALID_LATITUDE: 'La latitud debe estar entre -90 y 90',
@@ -200,6 +263,26 @@ export const VALIDATION_MESSAGES = {
   INVALID_NOTIFICATION_UUID: 'Identificador de notificación inválido',
   INVALID_COUNTRY_ISO: 'Código de país ISO inválido',
   INVALID_STATE_ISO: 'Código de estado ISO inválido',
+  GEOCODE_QUERY_REQUIRED:
+    'Debes indicar al menos ciudad, departamento o dirección con país',
+  GEOCODE_STREET_NEEDS_LOCALITY:
+    'Si envías dirección (street) debes indicar también ciudad o departamento',
+  INVALID_INVENTORY_ITEM_UUID: 'Identificador de producto de inventario inválido',
+  INVALID_POST_UUID: 'Identificador de publicación inválido',
+  INVENTORY_ITEM_NAME_MIN_LENGTH: 'El nombre del producto debe tener al menos 2 caracteres',
+  INVENTORY_ITEM_NAME_MAX_LENGTH: 'El nombre del producto no puede superar los 200 caracteres',
+  INVENTORY_ITEM_UNIT_MIN_LENGTH: 'La unidad debe tener al menos 1 carácter',
+  INVENTORY_ITEM_UNIT_MAX_LENGTH: 'La unidad no puede superar los 50 caracteres',
+  INVENTORY_QUANTITY_MIN: 'La cantidad debe ser al menos 1',
+  INVENTORY_NOTE_MAX_LENGTH: 'La nota no puede superar los 500 caracteres',
+  INVENTORY_OUTBOUND_LINES_REQUIRED: 'Debes indicar al menos un producto en la salida',
+  POST_TITLE_MIN_LENGTH: 'El título debe tener al menos 3 caracteres',
+  POST_TITLE_MAX_LENGTH: 'El título no puede superar los 200 caracteres',
+  POST_DESCRIPTION_MIN_LENGTH: 'La descripción debe tener al menos 10 caracteres',
+  POST_DESCRIPTION_MAX_LENGTH: 'La descripción no puede superar los 5000 caracteres',
+  POST_COMMENT_BODY_MIN_LENGTH: 'El comentario debe tener al menos 1 carácter',
+  POST_COMMENT_BODY_MAX_LENGTH: 'El comentario no puede superar los 2000 caracteres',
+  POST_REACTION_TYPE_INVALID: 'Tipo de reacción inválido',
 } as const;
 
 

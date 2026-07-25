@@ -29,7 +29,6 @@ export interface UpdateUserDto {
   city?: string | null;
   department?: string | null;
   bio?: string | null;
-  avatarUrl?: string | null;
   isActive?: boolean;
   role?: UserRole;
 }

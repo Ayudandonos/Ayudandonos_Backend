@@ -1,12 +1,12 @@
 import type { DonationStatus, Prisma } from '@prisma/client';
 import { CampaignStatus, FoundationStatus } from '@prisma/client';
 import { prisma } from '../../database/prisma.client.js';
+import { inventoryRepository } from '../inventory/inventory.repository.js';
 import type {
   CreateDonationDto,
   DonorDonationStatsDto,
   ListDonationsQueryDto,
   ListMessagesQueryDto,
-  UpdateDonationDeliveryDto,
 } from './donations.dto.js';
 
 const donationInclude = {
@@ -28,6 +28,9 @@ const donationInclude = {
             select: {
               id: true,
               userId: true,
+              name: true,
+              acronym: true,
+              logoUrl: true,
             },
           },
         },
@@ -38,6 +41,20 @@ const donationInclude = {
     select: {
       id: true,
       fullName: true,
+    },
+  },
+  foundationBranch: {
+    select: {
+      id: true,
+      name: true,
+      department: true,
+      city: true,
+      address: true,
+      reference: true,
+      phone: true,
+      openingHours: true,
+      latitude: true,
+      longitude: true,
     },
   },
   statusHistory: {
@@ -54,6 +71,11 @@ const donationInclude = {
   conversation: {
     select: {
       id: true,
+      lastMessageAt: true,
+      lastMessageBody: true,
+      lastMessageSenderId: true,
+      donorLastReadAt: true,
+      foundationLastReadAt: true,
     },
   },
 } satisfies Prisma.DonationInclude;
@@ -68,6 +90,7 @@ const needForDonationInclude = {
       id: true,
       title: true,
       status: true,
+      foundationBranchId: true,
       deletedAt: true,
       foundation: {
         select: {
@@ -84,23 +107,6 @@ const needForDonationInclude = {
 export type NeedForDonation = Prisma.NeedGetPayload<{
   include: typeof needForDonationInclude;
 }>;
-
-/**
- * Entrada: value: fecha ISO opcional o null.
- * Proceso: Convierte string ISO a Date o null segun el valor recibido.
- * Salida: Retorna Date, null o undefined si el valor no se envio.
- */
-function toOptionalDate(value: string | null | undefined): Date | null | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  if (value === null) {
-    return null;
-  }
-
-  return new Date(value);
-}
 
 export class DonationsRepository {
   /**
@@ -146,7 +152,10 @@ export class DonationsRepository {
       prisma.donation.findMany({
         where,
         include: donationInclude,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [
+          { conversation: { lastMessageAt: 'desc' } },
+          { createdAt: 'desc' },
+        ],
         skip: (query.page - 1) * query.limit,
         take: query.limit,
       }),
@@ -182,7 +191,10 @@ export class DonationsRepository {
       prisma.donation.findMany({
         where,
         include: donationInclude,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [
+          { conversation: { lastMessageAt: 'desc' } },
+          { createdAt: 'desc' },
+        ],
         skip: (query.page - 1) * query.limit,
         take: query.limit,
       }),
@@ -193,20 +205,21 @@ export class DonationsRepository {
   }
 
   /**
-   * Entrada: donorUserId: donante; data: datos del compromiso; needId: necesidad.
-   * Proceso: Crea donacion, historial inicial, conversacion e incrementa cantidad cubierta.
+   * Entrada: donorUserId, need con campana, data del compromiso.
+   * Proceso: Crea donacion con sede de campana, historial, conversacion e incrementa fulfilled.
    * Salida: Retorna la donacion creada con relaciones.
    */
   async createWithConversationAndHistory(
     donorUserId: string,
-    needId: string,
+    need: NeedForDonation,
     data: CreateDonationDto,
   ): Promise<DonationWithRelations> {
     return prisma.$transaction(async (tx) => {
       const donation = await tx.donation.create({
         data: {
-          needId,
+          needId: need.id,
           donorUserId,
+          foundationBranchId: need.campaign.foundationBranchId,
           status: 'COMMITTED',
           quantity: data.quantity,
           notes: data.notes ?? null,
@@ -236,28 +249,36 @@ export class DonationsRepository {
           where: { donationId: donation.id },
         });
 
-        await tx.message.create({
+        const trimmedBody = data.initialMessage.trim();
+        const message = await tx.message.create({
           data: {
             conversationId: conversation.id,
             senderId: donorUserId,
-            body: data.initialMessage.trim(),
+            body: trimmedBody,
+          },
+        });
+
+        await tx.conversation.update({
+          where: { id: conversation.id },
+          data: {
+            lastMessageAt: message.createdAt,
+            lastMessageBody: trimmedBody,
+            lastMessageSenderId: donorUserId,
           },
         });
       }
 
       await tx.need.update({
-        where: { id: needId },
+        where: { id: need.id },
         data: {
           fulfilledQuantity: { increment: data.quantity },
         },
       });
 
-      const created = await tx.donation.findUniqueOrThrow({
+      return tx.donation.findUniqueOrThrow({
         where: { id: donation.id },
         include: donationInclude,
       });
-
-      return created;
     });
   }
 
@@ -306,36 +327,52 @@ export class DonationsRepository {
   }
 
   /**
-   * Entrada: id: identificador; data: campos de entrega.
-   * Proceso: Actualiza datos de entrega de la donacion.
+   * Entrada: donation, cantidad recibida, notas y usuario que confirma.
+   * Proceso: Marca RECEIVED, registra historial y entrada automatica de inventario.
    * Salida: Retorna la donacion actualizada con relaciones.
    */
-  async updateDelivery(
-    id: string,
-    data: UpdateDonationDeliveryDto,
+  async confirmReceptionWithInventory(
+    donation: DonationWithRelations,
+    receivedQuantity: number,
+    receptionNotes: string | null,
+    changedById: string,
   ): Promise<DonationWithRelations> {
-    const updateData: Prisma.DonationUpdateInput = {};
+    return prisma.$transaction(async (tx) => {
+      await tx.donation.update({
+        where: { id: donation.id },
+        data: {
+          status: 'RECEIVED',
+          receivedQuantity,
+          receivedAt: new Date(),
+          receptionNotes,
+        },
+      });
 
-    if (data.deliveryAddress !== undefined) {
-      updateData.deliveryAddress = data.deliveryAddress;
-    }
+      await tx.donationStatusHistory.create({
+        data: {
+          donationId: donation.id,
+          fromStatus: donation.status,
+          toStatus: 'RECEIVED',
+          changedById,
+          note: receptionNotes,
+        },
+      });
 
-    if (data.deliveryLatitude !== undefined) {
-      updateData.deliveryLatitude = data.deliveryLatitude;
-    }
+      await inventoryRepository.registerInboundFromDonationInTransaction(tx, {
+        foundationId: donation.need.campaign.foundationId,
+        donationId: donation.id,
+        campaignId: donation.need.campaign.id,
+        foundationBranchId: donation.foundationBranchId,
+        itemName: donation.need.name,
+        itemUnit: donation.need.unit,
+        quantity: receivedQuantity,
+        createdById: changedById,
+      });
 
-    if (data.deliveryLongitude !== undefined) {
-      updateData.deliveryLongitude = data.deliveryLongitude;
-    }
-
-    if (data.estimatedDeliveryAt !== undefined) {
-      updateData.estimatedDeliveryAt = toOptionalDate(data.estimatedDeliveryAt) ?? null;
-    }
-
-    return prisma.donation.update({
-      where: { id },
-      data: updateData,
-      include: donationInclude,
+      return tx.donation.findUniqueOrThrow({
+        where: { id: donation.id },
+        include: donationInclude,
+      });
     });
   }
 
@@ -351,6 +388,25 @@ export class DonationsRepository {
     });
 
     return conversation?.id ?? null;
+  }
+
+  /**
+   * Entrada: donationId: identificador de la donacion.
+   * Proceso: Obtiene la conversacion existente o la crea si falta (datos legacy o seed).
+   * Salida: Retorna el id de la conversacion.
+   */
+  async ensureConversationByDonationId(donationId: string): Promise<string> {
+    const existing = await this.findConversationIdByDonationId(donationId);
+    if (existing) {
+      return existing;
+    }
+
+    const conversation = await prisma.conversation.create({
+      data: { donationId },
+      select: { id: true },
+    });
+
+    return conversation.id;
   }
 
   /**
@@ -391,6 +447,17 @@ export class DonationsRepository {
   }
 
   /**
+   * Entrada: conversationId y senderId del donante.
+   * Proceso: Cuenta mensajes enviados por el donante en la conversacion.
+   * Salida: Retorna el total de mensajes del donante.
+   */
+  async countDonorMessages(conversationId: string, donorUserId: string): Promise<number> {
+    return prisma.message.count({
+      where: { conversationId, senderId: donorUserId },
+    });
+  }
+
+  /**
    * Entrada: conversationId, senderId, body: contenido del mensaje.
    * Proceso: Persiste un nuevo mensaje en la conversacion.
    * Salida: Retorna el mensaje creado con remitente.
@@ -404,20 +471,72 @@ export class DonationsRepository {
       include: { sender: { select: { id: true; fullName: true } } };
     }>
   > {
-    return prisma.message.create({
-      data: {
-        conversationId,
-        senderId,
-        body,
-      },
-      include: {
-        sender: {
-          select: {
-            id: true,
-            fullName: true,
+    return prisma.$transaction(async (tx) => {
+      const message = await tx.message.create({
+        data: {
+          conversationId,
+          senderId,
+          body,
+        },
+        include: {
+          sender: {
+            select: {
+              id: true,
+              fullName: true,
+            },
           },
         },
+      });
+
+      await tx.conversation.update({
+        where: { id: conversationId },
+        data: {
+          lastMessageAt: message.createdAt,
+          lastMessageBody: body,
+          lastMessageSenderId: senderId,
+        },
+      });
+
+      return message;
+    });
+  }
+
+  /**
+   * Entrada: conversationId, readerUserId y fecha de ultima lectura.
+   * Proceso: Cuenta mensajes del otro participante posteriores a la lectura.
+   * Salida: Retorna total de mensajes no leidos.
+   */
+  async countUnreadMessages(
+    conversationId: string,
+    readerUserId: string,
+    lastReadAt: Date | null,
+  ): Promise<number> {
+    return prisma.message.count({
+      where: {
+        conversationId,
+        senderId: { not: readerUserId },
+        ...(lastReadAt ? { createdAt: { gt: lastReadAt } } : {}),
       },
+    });
+  }
+
+  /**
+   * Entrada: conversationId y rol del lector en la conversacion.
+   * Proceso: Actualiza timestamp de lectura del participante.
+   * Salida: Retorna void.
+   */
+  async markConversationAsRead(
+    conversationId: string,
+    readerRole: 'donor' | 'foundation',
+  ): Promise<void> {
+    const now = new Date();
+
+    await prisma.conversation.update({
+      where: { id: conversationId },
+      data:
+        readerRole === 'donor'
+          ? { donorLastReadAt: now }
+          : { foundationLastReadAt: now },
     });
   }
 
@@ -431,7 +550,7 @@ export class DonationsRepository {
       by: ['status'],
       where: { donorUserId },
       _count: { _all: true },
-      _sum: { quantity: true },
+      _sum: { quantity: true, receivedQuantity: true },
     });
 
     const emptyStats = (): { count: number; quantity: number } => ({
@@ -441,40 +560,33 @@ export class DonationsRepository {
 
     const byStatus: DonorDonationStatsDto['byStatus'] = {
       COMMITTED: emptyStats(),
-      IN_TRANSIT: emptyStats(),
-      DELIVERED: emptyStats(),
-      CONFIRMED: emptyStats(),
+      RECEIVED: emptyStats(),
       CANCELLED: emptyStats(),
     };
 
     for (const row of grouped) {
+      const quantity =
+        row.status === 'RECEIVED'
+          ? (row._sum.receivedQuantity ?? row._sum.quantity ?? 0)
+          : (row._sum.quantity ?? 0);
+
       byStatus[row.status] = {
         count: row._count._all,
-        quantity: row._sum.quantity ?? 0,
+        quantity,
       };
     }
 
     const cancelledDonations = byStatus.CANCELLED.count;
     const totalDonations =
-      byStatus.COMMITTED.count +
-      byStatus.IN_TRANSIT.count +
-      byStatus.DELIVERED.count +
-      byStatus.CONFIRMED.count +
-      byStatus.CANCELLED.count;
+      byStatus.COMMITTED.count + byStatus.RECEIVED.count + byStatus.CANCELLED.count;
 
-    const totalQuantity =
-      byStatus.COMMITTED.quantity +
-      byStatus.IN_TRANSIT.quantity +
-      byStatus.DELIVERED.quantity +
-      byStatus.CONFIRMED.quantity;
-
-    const deliveredQuantity =
-      byStatus.DELIVERED.quantity + byStatus.CONFIRMED.quantity;
+    const totalQuantity = byStatus.COMMITTED.quantity + byStatus.RECEIVED.quantity;
+    const receivedQuantity = byStatus.RECEIVED.quantity;
 
     return {
       totalDonations,
       totalQuantity,
-      deliveredQuantity,
+      receivedQuantity,
       cancelledDonations,
       byStatus,
     };
