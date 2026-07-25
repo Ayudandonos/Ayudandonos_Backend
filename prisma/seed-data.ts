@@ -6,6 +6,22 @@ import {
   SocialNetworkType,
 } from '@prisma/client';
 
+/** URLs publicas de retrato para avatares demo en seed (Unsplash). */
+export const SEED_USER_AVATARS = {
+  portraitMan1:
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&h=200&q=80',
+  portraitMan2:
+    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&h=200&q=80',
+  portraitMan3:
+    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&h=200&q=80',
+  portraitWoman1:
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&h=200&q=80',
+  portraitWoman2:
+    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=200&h=200&q=80',
+  portraitWoman3:
+    'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&h=200&q=80',
+} as const;
+
 export interface SeedAdminUser {
   email: string;
   fullName: string;
@@ -13,6 +29,7 @@ export interface SeedAdminUser {
   city?: string;
   department?: string;
   bio?: string;
+  avatarUrl?: string;
   /** Dias respecto a hoy (negativo = pasado). */
   registeredOffsetDays?: number;
 }
@@ -24,6 +41,7 @@ export interface SeedDonorUser {
   city: string;
   department: string;
   bio: string;
+  avatarUrl?: string;
   /** Dias respecto a hoy (negativo = pasado). */
   registeredOffsetDays?: number;
 }
@@ -54,6 +72,7 @@ export interface SeedFoundationInput {
   accountEmail: string;
   accountFullName: string;
   accountPhone: string;
+  accountAvatarUrl?: string;
   name: string;
   acronym: string;
   nit: string;
@@ -89,6 +108,7 @@ export const ADMIN_USERS: SeedAdminUser[] = [
     city: 'Cucuta',
     department: 'Norte de Santander',
     bio: 'Administrador de la plataforma Ayudandonos — unidad de apoyo FESC.',
+    avatarUrl: SEED_USER_AVATARS.portraitMan2,
     registeredOffsetDays: -175,
   },
   {
@@ -98,6 +118,7 @@ export const ADMIN_USERS: SeedAdminUser[] = [
     city: 'Cucuta',
     department: 'Norte de Santander',
     bio: 'Administrador tecnico de Ayudandonos.',
+    avatarUrl: SEED_USER_AVATARS.portraitMan1,
     registeredOffsetDays: -170,
   },
   {
@@ -121,6 +142,7 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Bogota',
     department: 'Cundinamarca',
     bio: 'Donante recurrente de viveres y kits escolares en Bogota.',
+    avatarUrl: SEED_USER_AVATARS.portraitWoman1,
     registeredOffsetDays: -158,
   },
   {
@@ -130,6 +152,7 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Medellin',
     department: 'Antioquia',
     bio: 'Voluntario y donante de ropa y elementos de aseo.',
+    avatarUrl: SEED_USER_AVATARS.portraitMan3,
     registeredOffsetDays: -142,
   },
   {
@@ -139,6 +162,7 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Cali',
     department: 'Valle del Cauca',
     bio: 'Apoyo campañas de nutricion infantil en el Valle.',
+    avatarUrl: SEED_USER_AVATARS.portraitWoman2,
     registeredOffsetDays: -128,
   },
   {
@@ -157,6 +181,7 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Cucuta',
     department: 'Norte de Santander',
     bio: 'Donante local enfocada en primera infancia y educacion.',
+    avatarUrl: SEED_USER_AVATARS.portraitWoman3,
     registeredOffsetDays: -96,
   },
   {
@@ -166,6 +191,7 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Barrancabermeja',
     department: 'Santander',
     bio: 'Empresario solidario que aporta insumos de higiene.',
+    avatarUrl: SEED_USER_AVATARS.portraitMan2,
     registeredOffsetDays: -78,
   },
   {
@@ -197,6 +223,7 @@ export const HISTORICAL_DONOR_USERS: SeedDonorUser[] = [
     city: 'Manizales',
     department: 'Caldas',
     bio: 'Donante activa desde el lanzamiento de la plataforma.',
+    avatarUrl: SEED_USER_AVATARS.portraitWoman2,
     registeredOffsetDays: -165,
   },
   {
@@ -224,6 +251,7 @@ export const HISTORICAL_DONOR_USERS: SeedDonorUser[] = [
     city: 'Neiva',
     department: 'Huila',
     bio: 'Donante de kits de aseo y ropa.',
+    avatarUrl: SEED_USER_AVATARS.portraitMan1,
     registeredOffsetDays: -118,
   },
   {
@@ -287,6 +315,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
     accountEmail: 'contacto.colombia@unicef-demo.org',
     accountFullName: 'Representante UNICEF Colombia',
     accountPhone: '6013121122',
+    accountAvatarUrl: SEED_USER_AVATARS.portraitWoman1,
     name: 'UNICEF Colombia',
     acronym: 'UNICEF',
     nit: '860013814-1',

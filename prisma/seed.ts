@@ -113,6 +113,7 @@ async function createAdmin(admin: SeedAdminUser, passwordHash: string): Promise<
       city: admin.city ?? null,
       department: admin.department ?? null,
       bio: admin.bio ?? null,
+      avatarUrl: admin.avatarUrl ?? null,
       createdAt,
       updatedAt,
     },
@@ -141,6 +142,7 @@ async function seedDonors(donors: SeedDonorUser[], passwordHash: string): Promis
         city: donor.city,
         department: donor.department,
         bio: donor.bio,
+        avatarUrl: donor.avatarUrl ?? null,
         createdAt,
         updatedAt,
       },
@@ -280,6 +282,7 @@ async function seedFoundation(
       city: seed.city,
       department: seed.department,
       bio: `Cuenta institucional de ${seed.name}.`,
+      avatarUrl: seed.accountAvatarUrl ?? null,
       createdAt,
       updatedAt,
     },
@@ -431,6 +434,10 @@ async function seedHistoricalDonations(
         note: 'Estado inicial de donacion demo.',
         createdAt,
       },
+    });
+
+    await prisma.conversation.create({
+      data: { donationId: donation.id },
     });
 
     created += 1;

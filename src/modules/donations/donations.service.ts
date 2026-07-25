@@ -294,11 +294,7 @@ export class DonationsService {
 
     const conversationId =
       donation.conversation?.id ??
-      (await donationsRepository.findConversationIdByDonationId(donationId));
-
-    if (!conversationId) {
-      throw new AppError(API_MESSAGES.MESSAGES_CONVERSATION_NOT_FOUND, 404);
-    }
+      (await donationsRepository.ensureConversationByDonationId(donationId));
 
     const { items, total } = await donationsRepository.findMessagesPaginated(
       conversationId,
@@ -334,11 +330,7 @@ export class DonationsService {
 
     const conversationId =
       donation.conversation?.id ??
-      (await donationsRepository.findConversationIdByDonationId(donationId));
-
-    if (!conversationId) {
-      throw new AppError(API_MESSAGES.MESSAGES_CONVERSATION_NOT_FOUND, 404);
-    }
+      (await donationsRepository.ensureConversationByDonationId(donationId));
 
     const message = await donationsRepository.createMessage(
       conversationId,
@@ -494,6 +486,12 @@ export class DonationsService {
         id: donation.need.campaign.id,
         title: donation.need.campaign.title,
         status: donation.need.campaign.status,
+      },
+      foundation: {
+        id: donation.need.campaign.foundation.id,
+        name: donation.need.campaign.foundation.name,
+        acronym: donation.need.campaign.foundation.acronym,
+        logoUrl: donation.need.campaign.foundation.logoUrl,
       },
       donor: {
         id: donation.donor.id,

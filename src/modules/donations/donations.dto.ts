@@ -14,6 +14,13 @@ export type DonationCampaignSummaryDto = {
   status: string;
 };
 
+export type DonationFoundationSummaryDto = {
+  id: string;
+  name: string;
+  acronym: string | null;
+  logoUrl: string | null;
+};
+
 export type DonationDonorSummaryDto = {
   id: string;
   fullName: string;
@@ -45,6 +52,7 @@ export type DonationDto = {
   conversationId: string | null;
   need: DonationNeedSummaryDto;
   campaign: DonationCampaignSummaryDto;
+  foundation: DonationFoundationSummaryDto;
   donor: DonationDonorSummaryDto;
   statusHistory: DonationStatusHistoryDto[];
 };

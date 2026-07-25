@@ -28,6 +28,9 @@ const donationInclude = {
             select: {
               id: true,
               userId: true,
+              name: true,
+              acronym: true,
+              logoUrl: true,
             },
           },
         },
@@ -351,6 +354,25 @@ export class DonationsRepository {
     });
 
     return conversation?.id ?? null;
+  }
+
+  /**
+   * Entrada: donationId: identificador de la donacion.
+   * Proceso: Obtiene la conversacion existente o la crea si falta (datos legacy o seed).
+   * Salida: Retorna el id de la conversacion.
+   */
+  async ensureConversationByDonationId(donationId: string): Promise<string> {
+    const existing = await this.findConversationIdByDonationId(donationId);
+    if (existing) {
+      return existing;
+    }
+
+    const conversation = await prisma.conversation.create({
+      data: { donationId },
+      select: { id: true },
+    });
+
+    return conversation.id;
   }
 
   /**
