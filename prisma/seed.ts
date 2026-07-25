@@ -17,8 +17,14 @@ import {
   DONOR_USERS,
   FOUNDATION_SEEDS,
   HISTORICAL_DONOR_USERS,
+  SEED_DONATION_DONOR_NOTES,
+  SEED_DONATION_RECEPTION_NOTES,
+  SEED_INVENTORY_IN_NOTES,
+  SEED_OUTBOUND_OBSERVATIONS,
+  SEED_POST_IMAGE_URLS,
   type SeedAdminUser,
   type SeedDonorUser,
+  type SeedFoundationBranchInput,
   type SeedFoundationInput,
 } from './seed-data.js';
 
@@ -236,6 +242,77 @@ async function seedSocialLinks(
 }
 
 /**
+ * Entrada: foundationId, sedes demo y fecha base.
+ * Proceso: Persiste las sedes de la fundacion y retorna la sede principal.
+ * Salida: Retorna sede principal y listado creado.
+ */
+async function seedFoundationBranches(
+  foundationId: string,
+  branchSeeds: SeedFoundationBranchInput[],
+  createdAt: Date,
+): Promise<{
+  primaryBranch: {
+    id: string;
+    address: string;
+    city: string;
+    department: string;
+    latitude: number | null;
+    longitude: number | null;
+  };
+}> {
+  let primaryBranch:
+    | {
+        id: string;
+        address: string;
+        city: string;
+        department: string;
+        latitude: number | null;
+        longitude: number | null;
+      }
+    | null = null;
+
+  for (const branchSeed of branchSeeds) {
+    const branch = await prisma.foundationBranch.create({
+      data: {
+        foundationId,
+        name: branchSeed.name,
+        department: branchSeed.department,
+        city: branchSeed.city,
+        address: branchSeed.address,
+        reference: branchSeed.reference,
+        phone: branchSeed.phone,
+        openingHours: branchSeed.openingHours,
+        latitude: branchSeed.latitude,
+        longitude: branchSeed.longitude,
+        createdAt,
+        updatedAt: createdAt,
+      },
+    });
+
+    const snapshot = {
+      id: branch.id,
+      address: branch.address,
+      city: branch.city,
+      department: branch.department,
+      latitude: branch.latitude,
+      longitude: branch.longitude,
+    };
+
+    if (branchSeed.isPrimary) {
+      primaryBranch = snapshot;
+    } else if (!primaryBranch) {
+      primaryBranch = snapshot;
+    }
+  }
+
+  if (!primaryBranch) {
+    throw new Error('[SEED] Cada fundacion debe tener al menos una sede en branches.');
+  }
+
+  return { primaryBranch };
+}
+
+/**
  * Entrada: foundationId: id; campaigns: campanas demo.
  * Proceso: Crea campanas y needs con fechas historicas.
  * Salida: Retorna ids de needs para donaciones demo.
@@ -371,32 +448,21 @@ async function seedFoundation(
   await seedFoundationDocuments(foundation.id, createdAt);
   await seedSocialLinks(foundation.id, seed.socialLinks, createdAt);
 
-  const branch = await prisma.foundationBranch.create({
-    data: {
-      foundationId: foundation.id,
-      name: 'Sede principal',
-      department: seed.department,
-      city: seed.city,
-      address: seed.address,
-      reference: 'Punto de acopio principal de la fundacion.',
-      phone: seed.phone,
-      openingHours: 'Lunes a viernes 8:00 - 17:00',
-      latitude: seed.latitude,
-      longitude: seed.longitude,
-      createdAt,
-      updatedAt,
-    },
-  });
+  const { primaryBranch } = await seedFoundationBranches(
+    foundation.id,
+    seed.branches,
+    createdAt,
+  );
 
   const needIds = await seedCampaigns(
     foundation.id,
-    branch.id,
+    primaryBranch.id,
     {
-      address: branch.address,
-      city: branch.city,
-      department: branch.department,
-      latitude: branch.latitude,
-      longitude: branch.longitude,
+      address: primaryBranch.address,
+      city: primaryBranch.city,
+      department: primaryBranch.department,
+      latitude: primaryBranch.latitude,
+      longitude: primaryBranch.longitude,
     },
     seed.campaigns,
   );
@@ -509,12 +575,22 @@ async function seedHistoricalDonations(
         quantity,
         receivedQuantity: isReceived ? quantity : null,
         receivedAt: isReceived ? receptionDate : null,
-        notes: 'Donacion de demostracion generada por seed historico.',
+        receptionNotes: isReceived
+          ? SEED_DONATION_RECEPTION_NOTES[index % SEED_DONATION_RECEPTION_NOTES.length]
+          : null,
+        notes: SEED_DONATION_DONOR_NOTES[index % SEED_DONATION_DONOR_NOTES.length],
         estimatedDeliveryAt: daysFromNow(offsetDays + 5),
         createdAt,
         updatedAt,
       },
     });
+
+    const statusHistoryNote =
+      status === DonationStatus.RECEIVED
+        ? 'Recepcion confirmada en sede de acopio.'
+        : status === DonationStatus.CANCELLED
+          ? 'Compromiso cancelado por el donante.'
+          : null;
 
     await prisma.donationStatusHistory.create({
       data: {
@@ -522,7 +598,7 @@ async function seedHistoricalDonations(
         fromStatus: null,
         toStatus: status,
         changedById: changerId,
-        note: 'Estado inicial de donacion demo.',
+        note: statusHistoryNote,
         createdAt,
       },
     });
@@ -535,6 +611,274 @@ async function seedHistoricalDonations(
   }
 
   console.log(`[SEED] Donaciones demo creadas: ${created} (historial ~6 meses)`);
+}
+
+type SeedChatTurn = {
+  from: 'donor' | 'foundation';
+  body: string;
+  hoursOffset: number;
+};
+
+const SEED_CHAT_THREADS: SeedChatTurn[][] = [
+  [
+    {
+      from: 'donor',
+      body: 'Hola, acabo de comprometer mi donacion. ¿Me confirman la direccion de la sede de entrega?',
+      hoursOffset: 1,
+    },
+  ],
+  [
+    {
+      from: 'donor',
+      body: 'Buenos dias, puedo llevar los productos este sabado por la tarde.',
+      hoursOffset: 1,
+    },
+    {
+      from: 'foundation',
+      body: 'Hola, gracias por tu apoyo. Te esperamos el sabado de 9:00 a 17:00 en la sede de la campana.',
+      hoursOffset: 3,
+    },
+    {
+      from: 'donor',
+      body: 'Perfecto, llegare alrededor de las 11:00. Muchas gracias.',
+      hoursOffset: 5,
+    },
+  ],
+  [
+    {
+      from: 'donor',
+      body: 'Tengo listos los articulos. ¿Hay parqueadero disponible cerca de la sede?',
+      hoursOffset: 2,
+    },
+    {
+      from: 'foundation',
+      body: 'Si, hay parqueadero para visitantes frente al punto de acopio.',
+      hoursOffset: 4,
+    },
+  ],
+  [
+    {
+      from: 'donor',
+      body: '¿Puedo entregar en varias partes o debe ser todo el mismo dia?',
+      hoursOffset: 1,
+    },
+  ],
+  [
+    {
+      from: 'donor',
+      body: 'Hola, coordinemos la entrega. Estoy disponible entre semana despues de las 4pm.',
+      hoursOffset: 2,
+    },
+    {
+      from: 'foundation',
+      body: 'Con gusto. Puedes acercarte de lunes a viernes de 8:00 a 17:00.',
+      hoursOffset: 6,
+    },
+    {
+      from: 'donor',
+      body: 'Excelente, paso el jueves a las 4:30pm. Llevo todo lo comprometido.',
+      hoursOffset: 8,
+    },
+    {
+      from: 'foundation',
+      body: 'Te esperamos el jueves. Gracias por sumarte a la campana.',
+      hoursOffset: 10,
+    },
+  ],
+];
+
+/**
+ * Entrada: donors: usuarios donantes del seed.
+ * Proceso: Crea hilos de chat en donaciones activas para demo de mensajeria.
+ * Salida: No retorna valor.
+ */
+async function seedDonationMessages(donors: User[]): Promise<void> {
+  const donations = await prisma.donation.findMany({
+    where: {
+      status: { in: [DonationStatus.COMMITTED, DonationStatus.RECEIVED] },
+      conversation: { isNot: null },
+    },
+    include: {
+      conversation: true,
+      need: {
+        select: {
+          campaign: {
+            select: {
+              foundation: {
+                select: {
+                  userId: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+    take: 18,
+  });
+
+  if (donations.length === 0) {
+    console.log('[SEED] Mensajeria demo omitida: sin donaciones con conversacion.');
+    return;
+  }
+
+  let messageCount = 0;
+
+  for (let index = 0; index < donations.length; index += 1) {
+    const donation = donations[index];
+    const conversation = donation.conversation;
+
+    if (!conversation) {
+      continue;
+    }
+
+    const thread = SEED_CHAT_THREADS[index % SEED_CHAT_THREADS.length] ?? SEED_CHAT_THREADS[0]!;
+    const recentActivity = index < 8;
+    const baseTime = recentActivity ? daysFromNow(-2 + (index % 3)) : donation.createdAt;
+    const foundationHasRead = index % 4 === 0;
+
+    for (const turn of thread) {
+      const createdAt = new Date(baseTime);
+      createdAt.setHours(createdAt.getHours() + turn.hoursOffset);
+      const senderId =
+        turn.from === 'donor'
+          ? donation.donorUserId
+          : donation.need.campaign.foundation.userId;
+
+      await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          senderId,
+          body: turn.body,
+          createdAt,
+        },
+      });
+      messageCount += 1;
+    }
+
+    const lastTurn = thread[thread.length - 1]!;
+    const lastCreatedAt = new Date(baseTime);
+    lastCreatedAt.setHours(lastCreatedAt.getHours() + lastTurn.hoursOffset);
+    const lastSenderId =
+      lastTurn.from === 'donor'
+        ? donation.donorUserId
+        : donation.need.campaign.foundation.userId;
+    const lastFromDonor = lastTurn.from === 'donor';
+
+    await prisma.conversation.update({
+      where: { id: conversation.id },
+      data: {
+        lastMessageAt: lastCreatedAt,
+        lastMessageBody: lastTurn.body,
+        lastMessageSenderId: lastSenderId,
+        foundationLastReadAt:
+          lastFromDonor && !foundationHasRead ? null : lastCreatedAt,
+        donorLastReadAt: lastFromDonor ? lastCreatedAt : null,
+      },
+    });
+  }
+
+  const demoDonor = donors.find((donor) => donor.email === DEMO_DONOR_EMAIL);
+  const spotlightDonation = demoDonor
+    ? await prisma.donation.findFirst({
+        where: {
+          donorUserId: demoDonor.id,
+          status: DonationStatus.COMMITTED,
+          conversation: { isNot: null },
+        },
+        include: {
+          conversation: true,
+          need: {
+            select: {
+              campaign: {
+                select: {
+                  foundation: { select: { userId: true, name: true } },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+    : null;
+
+  if (spotlightDonation?.conversation) {
+    await prisma.message.deleteMany({
+      where: { conversationId: spotlightDonation.conversation.id },
+    });
+
+    const spotlightThread: SeedChatTurn[] = [
+      {
+        from: 'donor',
+        body: 'Hola, soy Maria. Quiero coordinar la entrega de mi donacion esta semana.',
+        hoursOffset: 0,
+      },
+      {
+        from: 'foundation',
+        body: 'Hola Maria, gracias por escribir. Puedes acercarte a la sede de la campana de lunes a viernes.',
+        hoursOffset: 2,
+      },
+      {
+        from: 'donor',
+        body: 'Perfecto. ¿Debo llevar alguna lista o comprobante al momento de entregar?',
+        hoursOffset: 4,
+      },
+      {
+        from: 'foundation',
+        body: 'Solo indica tu nombre y la campana. Nosotros validamos el compromiso en el sistema.',
+        hoursOffset: 6,
+      },
+      {
+        from: 'donor',
+        body: 'Listo, paso manana a las 10:00 am. Muchas gracias por la orientacion.',
+        hoursOffset: 8,
+      },
+    ];
+
+    const baseTime = daysFromNow(-1);
+
+    for (const turn of spotlightThread) {
+      const createdAt = new Date(baseTime);
+      createdAt.setHours(createdAt.getHours() + turn.hoursOffset);
+      const senderId =
+        turn.from === 'donor'
+          ? spotlightDonation.donorUserId
+          : spotlightDonation.need.campaign.foundation.userId;
+
+      await prisma.message.create({
+        data: {
+          conversationId: spotlightDonation.conversation.id,
+          senderId,
+          body: turn.body,
+          createdAt,
+        },
+      });
+      messageCount += 1;
+    }
+
+    const lastTurn = spotlightThread[spotlightThread.length - 1]!;
+    const lastCreatedAt = new Date(baseTime);
+    lastCreatedAt.setHours(lastCreatedAt.getHours() + lastTurn.hoursOffset);
+
+    await prisma.conversation.update({
+      where: { id: spotlightDonation.conversation.id },
+      data: {
+        lastMessageAt: lastCreatedAt,
+        lastMessageBody: lastTurn.body,
+        lastMessageSenderId: spotlightDonation.donorUserId,
+        foundationLastReadAt: null,
+        donorLastReadAt: lastCreatedAt,
+      },
+    });
+
+    console.log(
+      `[SEED] Conversacion demo destacada: donacion ${spotlightDonation.id} (${spotlightDonation.need.campaign.foundation.name})`,
+    );
+  }
+
+  console.log(`[SEED] Mensajeria demo creada: ${messageCount} mensajes en ${donations.length} conversaciones.`);
 }
 
 const DEMO_DONOR_EMAIL = 'maria.gomez.donante@gmail.com';
@@ -568,7 +912,7 @@ async function seedDemoNotifications(donors: User[], admins: User[]): Promise<vo
             userId: demoDonor.id,
             type: NotificationType.DONATION_STATUS_CHANGED,
             title: 'Actualización de donación',
-            body: 'El estado de tu donación cambió a RECEIVED.',
+            body: 'Tu donacion fue recibida por la fundacion.',
             linkPath: `/my-donations/${donation.id}`,
             resourceType: 'DONATION',
             resourceId: donation.id,
@@ -645,14 +989,6 @@ async function seedDemoNotifications(donors: User[], admins: User[]): Promise<vo
 
   console.log('[SEED] Notificaciones demo creadas: 2 (admin demo)');
 }
-
-/** Imagenes publicas de entregas demo (Unsplash). */
-const SEED_POST_IMAGE_URLS = [
-  'https://images.unsplash.com/photo-1488521787991-ed7bbaae773f?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1532629345422-7515f3d2a388?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1593113598332-cf28858ce811?auto=format&fit=crop&w=900&q=80',
-] as const;
 
 const RECEIVED_DONATION_STATUSES: DonationStatus[] = [DonationStatus.RECEIVED];
 
@@ -755,7 +1091,7 @@ async function createOutboundWithPostAt(params: {
           foundationBranchId: params.foundationBranchId,
           type: StockMovementType.OUT,
           quantity: line.quantity,
-          note: 'Salida demo vinculada a entrega comunitaria.',
+          note: 'Salida registrada para entrega comunitaria.',
           createdById: params.createdById,
           createdAt: params.eventDate,
         },
@@ -871,7 +1207,7 @@ async function seedInventoryFromDonations(donors: User[]): Promise<void> {
         foundationBranchId: donation.foundationBranchId,
         type: StockMovementType.IN,
         quantity: receivedQty,
-        note: `Recepcion de donacion demo (${donation.id.slice(0, 8)}).`,
+        note: SEED_INVENTORY_IN_NOTES[stockInMovements % SEED_INVENTORY_IN_NOTES.length],
         createdAt: receptionDate,
       },
     });
@@ -990,7 +1326,8 @@ async function seedInventoryFromDonations(donors: User[]): Promise<void> {
         foundationBranchId: campaign.foundationBranchId,
         title: `${template.title} — ${campaign.title}`,
         description: template.description,
-        observations: 'Entrega demo registrada desde seed.',
+        observations:
+          SEED_OUTBOUND_OBSERVATIONS[outboundCount % SEED_OUTBOUND_OBSERVATIONS.length],
         slug: buildSeedPostSlug(foundationSlug, template.title, outboundCount + 1),
         lines,
         imageUrls: postImages,
@@ -1104,6 +1441,7 @@ async function main(): Promise<void> {
   }
 
   await seedHistoricalDonations(donors, allNeedIds, verifierId);
+  await seedDonationMessages(donors);
   await seedDemoNotifications(donors, admins);
   await seedInventoryFromDonations(donors);
 
