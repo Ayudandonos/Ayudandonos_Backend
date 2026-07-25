@@ -62,17 +62,27 @@ Password: `SEED_DEMO_PASSWORD` o `AyudaDemo2026!`.
 | Fundacion Exito | VERIFIED | fundacion.exito@demo.org |
 | Asociacion Manos que Suman | PENDING | nueva.fundacion@pendiente.org |
 
-Cada fundacion verificada incluye documentos placeholder, redes sociales, campanas, needs y logos (`logoUrl` via Unsplash).
+Cada fundacion verificada incluye documentos placeholder, redes sociales, **3 sedes** (una marcada como principal), campanas, needs y logos (`logoUrl` via Unsplash).
 
 Password de cuentas `FOUNDATION`: misma que donantes demo.
 
 ### Donaciones demo
 
-Aproximadamente **40 donaciones** distribuidas en los ultimos 6 meses, con estados variados (`COMMITTED`, `IN_TRANSIT`, `DELIVERED`, `CONFIRMED`, `CANCELLED`) segun antiguedad.
+Aproximadamente **40 donaciones** distribuidas en los ultimos 6 meses, con estados `COMMITTED`, `RECEIVED` y `CANCELLED` segun antiguedad.
+
+### Mensajeria demo
+
+Tras crear las donaciones, el seed agrega **mensajes de donantes** (y algunas respuestas de fundacion) en hasta 18 conversaciones activas:
+
+- Hilos de 1 a 4 mensajes en espanol.
+- Preview en bandeja (`lastMessageAt`, `lastMessageBody`, `unreadCount`).
+- Conversacion destacada de **Maria Camila Gomez** (`maria.gomez.donante@gmail.com`) con hilo completo y mensajes sin leer para la fundacion.
+
+El log del seed imprime el UUID de la donacion destacada para pruebas en `/foundation/messages/:donationId`.
 
 ### Inventario y publicaciones de impacto
 
-Tras crear las donaciones, el seed genera inventario **coherente con donaciones recibidas** (`DELIVERED` y `CONFIRMED`):
+Tras crear las donaciones, el seed genera inventario **coherente con donaciones recibidas** (`RECEIVED`):
 
 1. **Entradas (IN):** una por cada donacion recibida, con producto alineado al nombre y unidad de la necesidad (`need`).
 2. **Salidas (OUT):** hasta 2 por fundacion verificada, con stock descontado y campana asociada a donaciones reales.
