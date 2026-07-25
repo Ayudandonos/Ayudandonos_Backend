@@ -37,9 +37,9 @@ Tambien crea:
 
 | Tipo | Detalle |
 | ---- | ------- |
-| Donantes | 8 usuarios `USER` con perfiles realistas |
+| Donantes | 8 usuarios `USER` con perfiles realistas + 10 historicos |
 | Fundaciones | UNICEF, Cruz Roja, Banco de Alimentos, TECHO, Fundacion Exito (+ 1 pendiente) |
-| Campañas | Publicadas/finalizadas/borrador con needs, logos Unsplash y donaciones demo |
+| Campañas | Publicadas/finalizadas/borrador con needs, logos Unsplash y donaciones demo (~6 meses) |
 
 Contraseña compartida de donantes y cuentas de fundación demo: `SEED_DEMO_PASSWORD` o, por defecto, `AyudaDemo2026!`.
 

@@ -45,7 +45,9 @@ Password: valor de `SEED_ADMIN_PASSWORD`.
 
 ### Donantes (`USER`)
 
-8 usuarios con perfil (telefono, ciudad, departamento, bio). Emails en `DONOR_USERS` de `seed-data.ts`.
+18 usuarios con perfil: 8 principales + 10 historicos adicionales. Emails en `DONOR_USERS` y `HISTORICAL_DONOR_USERS` de `seed-data.ts`.
+
+Las fechas de registro, altas de fundaciones/campanas y donaciones se distribuyen en **~6 meses** para alimentar graficas del panel admin.
 
 Password: `SEED_DEMO_PASSWORD` o `AyudaDemo2026!`.
 
@@ -66,7 +68,7 @@ Password de cuentas `FOUNDATION`: misma que donantes demo.
 
 ### Donaciones demo
 
-Hasta 12 donaciones de muestra con historial de estado, asociadas a donantes y needs del seed.
+Aproximadamente **40 donaciones** distribuidas en los ultimos 6 meses, con estados variados (`COMMITTED`, `IN_TRANSIT`, `DELIVERED`, `CONFIRMED`, `CANCELLED`) segun antiguedad.
 
 ## Imagenes
 

@@ -13,6 +13,8 @@ export interface SeedAdminUser {
   city?: string;
   department?: string;
   bio?: string;
+  /** Dias respecto a hoy (negativo = pasado). */
+  registeredOffsetDays?: number;
 }
 
 export interface SeedDonorUser {
@@ -22,6 +24,30 @@ export interface SeedDonorUser {
   city: string;
   department: string;
   bio: string;
+  /** Dias respecto a hoy (negativo = pasado). */
+  registeredOffsetDays?: number;
+}
+
+export interface SeedCampaignInput {
+  title: string;
+  description: string;
+  imageUrl: string;
+  status: CampaignStatus;
+  startOffsetDays: number;
+  endOffsetDays: number;
+  deliveryAddress: string;
+  deliveryLatitude: number;
+  deliveryLongitude: number;
+  /** Dias respecto a hoy para created_at de la campana (negativo = pasado). */
+  createdOffsetDays?: number;
+  needs: Array<{
+    name: string;
+    description: string;
+    quantity: number;
+    unit: string;
+    priority: NeedPriority;
+    fulfilledQuantity: number;
+  }>;
 }
 
 export interface SeedFoundationInput {
@@ -49,26 +75,10 @@ export interface SeedFoundationInput {
   legalRepresentativeDocument: string;
   logoUrl: string;
   status: FoundationStatus;
+  /** Dias respecto a hoy para alta de la fundacion (negativo = pasado). */
+  registeredOffsetDays?: number;
   socialLinks: Array<{ network: SocialNetworkType; url: string }>;
-  campaigns: Array<{
-    title: string;
-    description: string;
-    imageUrl: string;
-    status: CampaignStatus;
-    startOffsetDays: number;
-    endOffsetDays: number;
-    deliveryAddress: string;
-    deliveryLatitude: number;
-    deliveryLongitude: number;
-    needs: Array<{
-      name: string;
-      description: string;
-      quantity: number;
-      unit: string;
-      priority: NeedPriority;
-      fulfilledQuantity: number;
-    }>;
-  }>;
+  campaigns: SeedCampaignInput[];
 }
 
 export const ADMIN_USERS: SeedAdminUser[] = [
@@ -79,6 +89,7 @@ export const ADMIN_USERS: SeedAdminUser[] = [
     city: 'Cucuta',
     department: 'Norte de Santander',
     bio: 'Administrador de la plataforma Ayudandonos — unidad de apoyo FESC.',
+    registeredOffsetDays: -175,
   },
   {
     email: 'ericksperezc@gmail.com',
@@ -87,6 +98,7 @@ export const ADMIN_USERS: SeedAdminUser[] = [
     city: 'Cucuta',
     department: 'Norte de Santander',
     bio: 'Administrador tecnico de Ayudandonos.',
+    registeredOffsetDays: -170,
   },
   {
     email: 'tecnico_ud@fesc.edu.co',
@@ -95,6 +107,7 @@ export const ADMIN_USERS: SeedAdminUser[] = [
     city: 'Cucuta',
     department: 'Norte de Santander',
     bio: 'Cuenta tecnica institucional FESC para administracion de Ayudandonos.',
+    registeredOffsetDays: -168,
   },
 ];
 
@@ -108,6 +121,7 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Bogota',
     department: 'Cundinamarca',
     bio: 'Donante recurrente de viveres y kits escolares en Bogota.',
+    registeredOffsetDays: -158,
   },
   {
     email: 'andres.lopez.ayuda@gmail.com',
@@ -116,6 +130,7 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Medellin',
     department: 'Antioquia',
     bio: 'Voluntario y donante de ropa y elementos de aseo.',
+    registeredOffsetDays: -142,
   },
   {
     email: 'laura.martinez.solidaria@outlook.com',
@@ -124,6 +139,7 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Cali',
     department: 'Valle del Cauca',
     bio: 'Apoyo campañas de nutricion infantil en el Valle.',
+    registeredOffsetDays: -128,
   },
   {
     email: 'juan.castro.donaciones@gmail.com',
@@ -132,6 +148,7 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Bucaramanga',
     department: 'Santander',
     bio: 'Donante de mercados y productos no perecederos.',
+    registeredOffsetDays: -112,
   },
   {
     email: 'sofia.ramirez.ayuda@hotmail.com',
@@ -140,6 +157,7 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Cucuta',
     department: 'Norte de Santander',
     bio: 'Donante local enfocada en primera infancia y educacion.',
+    registeredOffsetDays: -96,
   },
   {
     email: 'carlos.hernandez.donor@gmail.com',
@@ -148,6 +166,7 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Barrancabermeja',
     department: 'Santander',
     bio: 'Empresario solidario que aporta insumos de higiene.',
+    registeredOffsetDays: -78,
   },
   {
     email: 'valentina.rojas.donante@gmail.com',
@@ -156,6 +175,7 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Bogota',
     department: 'Cundinamarca',
     bio: 'Apoya jornadas de recoleccion de utiles escolares.',
+    registeredOffsetDays: -52,
   },
   {
     email: 'diego.moreno.solidario@gmail.com',
@@ -164,6 +184,101 @@ export const DONOR_USERS: SeedDonorUser[] = [
     city: 'Pereira',
     department: 'Risaralda',
     bio: 'Donante de enseres y materiales de construccion liviana.',
+    registeredOffsetDays: -24,
+  },
+];
+
+/** Donantes adicionales para simular crecimiento historico de la plataforma. */
+export const HISTORICAL_DONOR_USERS: SeedDonorUser[] = [
+  {
+    email: 'camila.rios.solidaria@gmail.com',
+    fullName: 'Camila Rios Ortiz',
+    phone: '3185551001',
+    city: 'Manizales',
+    department: 'Caldas',
+    bio: 'Donante activa desde el lanzamiento de la plataforma.',
+    registeredOffsetDays: -165,
+  },
+  {
+    email: 'felipe.garcia.ayuda@gmail.com',
+    fullName: 'Felipe Garcia Montoya',
+    phone: '3185551002',
+    city: 'Ibague',
+    department: 'Tolima',
+    bio: 'Aporta mercados no perecederos cada trimestre.',
+    registeredOffsetDays: -149,
+  },
+  {
+    email: 'isabella.torres.donante@outlook.com',
+    fullName: 'Isabella Torres Vargas',
+    phone: '3185551003',
+    city: 'Cartagena',
+    department: 'Bolivar',
+    bio: 'Voluntaria en campanas de primera infancia.',
+    registeredOffsetDays: -135,
+  },
+  {
+    email: 'santiago.munoz.solidario@gmail.com',
+    fullName: 'Santiago Munoz Delgado',
+    phone: '3185551004',
+    city: 'Neiva',
+    department: 'Huila',
+    bio: 'Donante de kits de aseo y ropa.',
+    registeredOffsetDays: -118,
+  },
+  {
+    email: 'daniela.castro.ayuda@hotmail.com',
+    fullName: 'Daniela Castro Mejia',
+    phone: '3185551005',
+    city: 'Pasto',
+    department: 'Narino',
+    bio: 'Apoya fundaciones verificadas en el sur del pais.',
+    registeredOffsetDays: -101,
+  },
+  {
+    email: 'mateo.salazar.donante@gmail.com',
+    fullName: 'Mateo Salazar Henao',
+    phone: '3185551006',
+    city: 'Armenia',
+    department: 'Quindio',
+    bio: 'Donante de utiles escolares y mochilas.',
+    registeredOffsetDays: -84,
+  },
+  {
+    email: 'juliana.ospina.solidaria@gmail.com',
+    fullName: 'Juliana Ospina Ruiz',
+    phone: '3185551007',
+    city: 'Villavicencio',
+    department: 'Meta',
+    bio: 'Participa en donaciones de alimentos fortificados.',
+    registeredOffsetDays: -67,
+  },
+  {
+    email: 'nicolas.velez.ayuda@gmail.com',
+    fullName: 'Nicolas Velez Cardona',
+    phone: '3185551008',
+    city: 'Monteria',
+    department: 'Cordoba',
+    bio: 'Donante recurrente en campanas de nutricion.',
+    registeredOffsetDays: -45,
+  },
+  {
+    email: 'paula.herrera.donante@outlook.com',
+    fullName: 'Paula Herrera Jimenez',
+    phone: '3185551009',
+    city: 'Santa Marta',
+    department: 'Magdalena',
+    bio: 'Solidaria con campanas de ayuda humanitaria.',
+    registeredOffsetDays: -31,
+  },
+  {
+    email: 'sebastian.angulo.solidario@gmail.com',
+    fullName: 'Sebastian Angulo Pardo',
+    phone: '3185551010',
+    city: 'Popayan',
+    department: 'Cauca',
+    bio: 'Nuevo donante con aportes en especie locales.',
+    registeredOffsetDays: -12,
   },
 ];
 
@@ -197,6 +312,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
     logoUrl:
       'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=400&q=80',
     status: FoundationStatus.VERIFIED,
+    registeredOffsetDays: -155,
     socialLinks: [
       { network: SocialNetworkType.INSTAGRAM, url: 'https://www.instagram.com/unicefcolombia' },
       { network: SocialNetworkType.FACEBOOK, url: 'https://www.facebook.com/UNICEFColombia' },
@@ -212,6 +328,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
         status: CampaignStatus.PUBLISHED,
         startOffsetDays: -20,
         endOffsetDays: 40,
+        createdOffsetDays: -45,
         deliveryAddress: 'Bodega UNICEF — Calle 100 No. 19-61, Bogota',
         deliveryLatitude: 4.6855,
         deliveryLongitude: -74.0478,
@@ -243,6 +360,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
         status: CampaignStatus.PUBLISHED,
         startOffsetDays: -10,
         endOffsetDays: 50,
+        createdOffsetDays: -28,
         deliveryAddress: 'Centro de acopio UNICEF — Av. El Dorado No. 69-76, Bogota',
         deliveryLatitude: 4.6682,
         deliveryLongitude: -74.1009,
@@ -262,6 +380,38 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
             unit: 'paquetes',
             priority: NeedPriority.MEDIUM,
             fulfilledQuantity: 40,
+          },
+        ],
+      },
+      {
+        title: 'Agua segura para comunidades rurales',
+        description:
+          'Campana finalizada de filtros de agua y bidones para familias en zonas rurales de Boyaca y Cundinamarca.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&w=1200&q=80',
+        status: CampaignStatus.FINISHED,
+        startOffsetDays: -140,
+        endOffsetDays: -75,
+        createdOffsetDays: -148,
+        deliveryAddress: 'Bodega UNICEF — Calle 100 No. 19-61, Bogota',
+        deliveryLatitude: 4.6855,
+        deliveryLongitude: -74.0478,
+        needs: [
+          {
+            name: 'Filtros purificadores',
+            description: 'Filtros de agua portatiles',
+            quantity: 120,
+            unit: 'unidades',
+            priority: NeedPriority.HIGH,
+            fulfilledQuantity: 120,
+          },
+          {
+            name: 'Bidones de almacenamiento',
+            description: 'Bidones de 20 litros',
+            quantity: 150,
+            unit: 'unidades',
+            priority: NeedPriority.MEDIUM,
+            fulfilledQuantity: 142,
           },
         ],
       },
@@ -296,6 +446,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
     logoUrl:
       'https://images.unsplash.com/photo-1584515933487-779824d29309?auto=format&fit=crop&w=400&q=80',
     status: FoundationStatus.VERIFIED,
+    registeredOffsetDays: -132,
     socialLinks: [
       { network: SocialNetworkType.INSTAGRAM, url: 'https://www.instagram.com/cruzrojacol' },
       { network: SocialNetworkType.FACEBOOK, url: 'https://www.facebook.com/CruzRojaColombiana' },
@@ -310,6 +461,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
         status: CampaignStatus.PUBLISHED,
         startOffsetDays: -5,
         endOffsetDays: 25,
+        createdOffsetDays: -38,
         deliveryAddress: 'Bodega Cruz Roja — Av. 68 No. 66-31, Bogota',
         deliveryLatitude: 4.6667,
         deliveryLongitude: -74.0965,
@@ -329,6 +481,30 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
             unit: 'rollos',
             priority: NeedPriority.MEDIUM,
             fulfilledQuantity: 200,
+          },
+        ],
+      },
+      {
+        title: 'Respuesta a inundaciones — enseres de cocina',
+        description:
+          'Campana cerrada de ollas, utensilios y vajilla para familias afectadas por emergencias hidricas.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=1200&q=80',
+        status: CampaignStatus.FINISHED,
+        startOffsetDays: -120,
+        endOffsetDays: -55,
+        createdOffsetDays: -126,
+        deliveryAddress: 'Bodega Cruz Roja — Av. 68 No. 66-31, Bogota',
+        deliveryLatitude: 4.6667,
+        deliveryLongitude: -74.0965,
+        needs: [
+          {
+            name: 'Ollas y sartenes',
+            description: 'Sets basicos de cocina',
+            quantity: 90,
+            unit: 'kits',
+            priority: NeedPriority.HIGH,
+            fulfilledQuantity: 90,
           },
         ],
       },
@@ -363,6 +539,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
     logoUrl:
       'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=400&q=80',
     status: FoundationStatus.VERIFIED,
+    registeredOffsetDays: -118,
     socialLinks: [
       {
         network: SocialNetworkType.INSTAGRAM,
@@ -380,6 +557,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
         status: CampaignStatus.PUBLISHED,
         startOffsetDays: -15,
         endOffsetDays: 30,
+        createdOffsetDays: -72,
         deliveryAddress: 'Centro logistico BAB — Calle 22C No. 68A-45, Bogota',
         deliveryLatitude: 4.6412,
         deliveryLongitude: -74.1201,
@@ -407,6 +585,30 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
             unit: 'botellas',
             priority: NeedPriority.HIGH,
             fulfilledQuantity: 90,
+          },
+        ],
+      },
+      {
+        title: 'Canastas navidenas para comedores comunitarios',
+        description:
+          'Campana finalizada de canastas con arroz, lentejas, aceite y panela para comedores de Bogota.',
+        imageUrl:
+          'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80',
+        status: CampaignStatus.FINISHED,
+        startOffsetDays: -105,
+        endOffsetDays: -40,
+        createdOffsetDays: -112,
+        deliveryAddress: 'Centro logistico BAB — Calle 22C No. 68A-45, Bogota',
+        deliveryLatitude: 4.6412,
+        deliveryLongitude: -74.1201,
+        needs: [
+          {
+            name: 'Canastas navidenas',
+            description: 'Canastas con alimentos no perecederos',
+            quantity: 200,
+            unit: 'canastas',
+            priority: NeedPriority.HIGH,
+            fulfilledQuantity: 198,
           },
         ],
       },
@@ -441,6 +643,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
     logoUrl:
       'https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=400&q=80',
     status: FoundationStatus.VERIFIED,
+    registeredOffsetDays: -95,
     socialLinks: [
       { network: SocialNetworkType.INSTAGRAM, url: 'https://www.instagram.com/techocolombia' },
       { network: SocialNetworkType.YOUTUBE, url: 'https://www.youtube.com/@TECHOColombia' },
@@ -455,6 +658,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
         status: CampaignStatus.PUBLISHED,
         startOffsetDays: -8,
         endOffsetDays: 45,
+        createdOffsetDays: -58,
         deliveryAddress: 'Bodega TECHO — Parque Industrial Cazuca, Soacha',
         deliveryLatitude: 4.5781,
         deliveryLongitude: -74.2165,
@@ -486,6 +690,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
         status: CampaignStatus.FINISHED,
         startOffsetDays: -90,
         endOffsetDays: -10,
+        createdOffsetDays: -98,
         deliveryAddress: 'Bodega TECHO — Parque Industrial Cazuca, Soacha',
         deliveryLatitude: 4.5781,
         deliveryLongitude: -74.2165,
@@ -531,6 +736,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
     logoUrl:
       'https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&w=400&q=80',
     status: FoundationStatus.VERIFIED,
+    registeredOffsetDays: -68,
     socialLinks: [
       { network: SocialNetworkType.INSTAGRAM, url: 'https://www.instagram.com/fundacionexito' },
       { network: SocialNetworkType.FACEBOOK, url: 'https://www.facebook.com/FundacionExito' },
@@ -545,6 +751,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
         status: CampaignStatus.PUBLISHED,
         startOffsetDays: -12,
         endOffsetDays: 35,
+        createdOffsetDays: -42,
         deliveryAddress: 'Cedi Fundacion Exito — Envigado, Antioquia',
         deliveryLatitude: 6.1694,
         deliveryLongitude: -75.5842,
@@ -598,6 +805,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
     logoUrl:
       'https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&w=400&q=80',
     status: FoundationStatus.PENDING,
+    registeredOffsetDays: -16,
     socialLinks: [
       { network: SocialNetworkType.INSTAGRAM, url: 'https://www.instagram.com/manosquesuman' },
     ],
@@ -611,6 +819,7 @@ export const FOUNDATION_SEEDS: SeedFoundationInput[] = [
         status: CampaignStatus.DRAFT,
         startOffsetDays: 5,
         endOffsetDays: 60,
+        createdOffsetDays: -8,
         deliveryAddress: 'Sede AMS — Avenida 4 No. 15-20, Cucuta',
         deliveryLatitude: 7.8891,
         deliveryLongitude: -72.4967,

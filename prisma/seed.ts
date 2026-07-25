@@ -13,7 +13,9 @@ import {
   DOCUMENT_TYPES,
   DONOR_USERS,
   FOUNDATION_SEEDS,
+  HISTORICAL_DONOR_USERS,
   type SeedAdminUser,
+  type SeedDonorUser,
   type SeedFoundationInput,
 } from './seed-data.js';
 
@@ -21,6 +23,9 @@ dotenv.config();
 
 const SALT_ROUNDS = 12;
 const prisma = new PrismaClient();
+
+/** Dias de historial simulado para graficas administrativas (6 meses). */
+const HISTORY_SPAN_DAYS = 175;
 
 /**
  * Entrada: plainText: contrasena en texto plano.
@@ -32,8 +37,8 @@ async function hashPassword(plainText: string): Promise<string> {
 }
 
 /**
- * Entrada: days: desplazamiento en dias respecto a hoy.
- * Proceso: Calcula una fecha UTC a medianoche desplazada.
+ * Entrada: days: desplazamiento en dias respecto a hoy (negativo = pasado).
+ * Proceso: Calcula una fecha UTC al mediodia desplazada.
  * Salida: Retorna Date resultante.
  */
 function daysFromNow(days: number): Date {
@@ -41,6 +46,25 @@ function daysFromNow(days: number): Date {
   date.setUTCHours(12, 0, 0, 0);
   date.setUTCDate(date.getUTCDate() + days);
   return date;
+}
+
+/**
+ * Entrada: days: desplazamiento en dias respecto a hoy.
+ * Proceso: Construye createdAt y updatedAt para simular registros historicos.
+ * Salida: Retorna objeto con marcas de tiempo.
+ */
+function timestampsAt(days: number): { createdAt: Date; updatedAt: Date } {
+  const createdAt = daysFromNow(days);
+  return { createdAt, updatedAt: createdAt };
+}
+
+/**
+ * Entrada: offsetDays: desplazamiento opcional del registro.
+ * Proceso: Resuelve el desplazamiento por defecto a hoy si no se define.
+ * Salida: Retorna dias de desplazamiento efectivos.
+ */
+function resolveOffsetDays(offsetDays?: number): number {
+  return offsetDays ?? 0;
 }
 
 /**
@@ -71,10 +95,12 @@ async function resetDatabase(): Promise<void> {
 
 /**
  * Entrada: admin: datos del administrador; passwordHash: hash de contrasena.
- * Proceso: Crea un usuario ADMIN.
+ * Proceso: Crea un usuario ADMIN con fecha de registro historica.
  * Salida: Retorna el usuario persistido.
  */
 async function createAdmin(admin: SeedAdminUser, passwordHash: string): Promise<User> {
+  const { createdAt, updatedAt } = timestampsAt(resolveOffsetDays(admin.registeredOffsetDays));
+
   return prisma.user.create({
     data: {
       email: admin.email,
@@ -86,19 +112,23 @@ async function createAdmin(admin: SeedAdminUser, passwordHash: string): Promise<
       city: admin.city ?? null,
       department: admin.department ?? null,
       bio: admin.bio ?? null,
+      createdAt,
+      updatedAt,
     },
   });
 }
 
 /**
- * Entrada: passwordHash: hash compartido de contrasena demo.
- * Proceso: Crea donantes demo con perfil completo.
+ * Entrada: donors: lista de donantes; passwordHash: hash compartido.
+ * Proceso: Crea donantes demo con perfil y fechas de registro distribuidas.
  * Salida: Retorna la lista de usuarios donantes.
  */
-async function seedDonors(passwordHash: string): Promise<User[]> {
-  const donors: User[] = [];
+async function seedDonors(donors: SeedDonorUser[], passwordHash: string): Promise<User[]> {
+  const created: User[] = [];
 
-  for (const donor of DONOR_USERS) {
+  for (const donor of donors) {
+    const { createdAt, updatedAt } = timestampsAt(resolveOffsetDays(donor.registeredOffsetDays));
+
     const user = await prisma.user.create({
       data: {
         email: donor.email,
@@ -110,13 +140,15 @@ async function seedDonors(passwordHash: string): Promise<User[]> {
         city: donor.city,
         department: donor.department,
         bio: donor.bio,
+        createdAt,
+        updatedAt,
       },
     });
-    donors.push(user);
+    created.push(user);
     console.log(`[SEED] Donante listo: ${user.fullName} <${user.email}>`);
   }
 
-  return donors;
+  return created;
 }
 
 /**
@@ -124,7 +156,7 @@ async function seedDonors(passwordHash: string): Promise<User[]> {
  * Proceso: Crea documentos legales placeholder requeridos para operar.
  * Salida: No retorna valor.
  */
-async function seedFoundationDocuments(foundationId: string): Promise<void> {
+async function seedFoundationDocuments(foundationId: string, baseDate: Date): Promise<void> {
   for (const type of DOCUMENT_TYPES) {
     await prisma.foundationDocument.create({
       data: {
@@ -134,19 +166,22 @@ async function seedFoundationDocuments(foundationId: string): Promise<void> {
         mimeType: 'application/pdf',
         fileSize: 120_000,
         fileUrl: `https://example.com/seed-docs/${foundationId}/${type.toLowerCase()}.pdf`,
+        uploadedAt: baseDate,
+        updatedAt: baseDate,
       },
     });
   }
 }
 
 /**
- * Entrada: foundationId: id; links: redes sociales.
+ * Entrada: foundationId: id; links: redes sociales; baseDate: fecha de alta.
  * Proceso: Crea enlaces sociales por red.
  * Salida: No retorna valor.
  */
 async function seedSocialLinks(
   foundationId: string,
   links: SeedFoundationInput['socialLinks'],
+  baseDate: Date,
 ): Promise<void> {
   for (const link of links) {
     await prisma.foundationSocialLink.create({
@@ -154,6 +189,8 @@ async function seedSocialLinks(
         foundationId,
         network: link.network,
         url: link.url,
+        createdAt: baseDate,
+        updatedAt: baseDate,
       },
     });
   }
@@ -161,7 +198,7 @@ async function seedSocialLinks(
 
 /**
  * Entrada: foundationId: id; campaigns: campanas demo.
- * Proceso: Crea campanas y needs de la fundacion.
+ * Proceso: Crea campanas y needs con fechas historicas.
  * Salida: Retorna ids de needs para donaciones demo.
  */
 async function seedCampaigns(
@@ -171,6 +208,10 @@ async function seedCampaigns(
   const needIds: string[] = [];
 
   for (const campaignSeed of campaigns) {
+    const campaignCreatedAt = daysFromNow(
+      resolveOffsetDays(campaignSeed.createdOffsetDays ?? campaignSeed.startOffsetDays),
+    );
+
     const campaign = await prisma.campaign.create({
       data: {
         foundationId,
@@ -183,6 +224,8 @@ async function seedCampaigns(
         deliveryAddress: campaignSeed.deliveryAddress,
         deliveryLatitude: campaignSeed.deliveryLatitude,
         deliveryLongitude: campaignSeed.deliveryLongitude,
+        createdAt: campaignCreatedAt,
+        updatedAt: campaignCreatedAt,
       },
     });
 
@@ -196,6 +239,8 @@ async function seedCampaigns(
           unit: needSeed.unit,
           priority: needSeed.priority,
           fulfilledQuantity: needSeed.fulfilledQuantity,
+          createdAt: campaignCreatedAt,
+          updatedAt: campaignCreatedAt,
         },
       });
 
@@ -218,6 +263,11 @@ async function seedFoundation(
   passwordHash: string,
   verifierId: string,
 ): Promise<string[]> {
+  const foundationOffset = resolveOffsetDays(seed.registeredOffsetDays);
+  const { createdAt, updatedAt } = timestampsAt(foundationOffset);
+  const verifiedAt =
+    seed.status === FoundationStatus.VERIFIED ? daysFromNow(foundationOffset + 3) : null;
+
   const account = await prisma.user.create({
     data: {
       email: seed.accountEmail,
@@ -229,6 +279,8 @@ async function seedFoundation(
       city: seed.city,
       department: seed.department,
       bio: `Cuenta institucional de ${seed.name}.`,
+      createdAt,
+      updatedAt,
     },
   });
 
@@ -256,17 +308,19 @@ async function seedFoundation(
       legalRepresentativeDocument: seed.legalRepresentativeDocument,
       logoUrl: seed.logoUrl,
       status: seed.status,
-      verifiedAt: seed.status === FoundationStatus.VERIFIED ? new Date() : null,
+      verifiedAt,
       verifiedById: seed.status === FoundationStatus.VERIFIED ? verifierId : null,
       adminNotes:
         seed.status === FoundationStatus.PENDING
           ? 'Fundacion demo pendiente de revision administrativa.'
           : 'Fundacion demo verificada por seed.',
+      createdAt,
+      updatedAt,
     },
   });
 
-  await seedFoundationDocuments(foundation.id);
-  await seedSocialLinks(foundation.id, seed.socialLinks);
+  await seedFoundationDocuments(foundation.id, createdAt);
+  await seedSocialLinks(foundation.id, seed.socialLinks, createdAt);
   const needIds = await seedCampaigns(foundation.id, seed.campaigns);
 
   console.log(`[SEED] Fundacion lista: ${foundation.name} (${foundation.status})`);
@@ -274,11 +328,68 @@ async function seedFoundation(
 }
 
 /**
+ * Entrada: offsetDays: antiguedad de la donacion; index: indice para variar estado.
+ * Proceso: Asigna un estado coherente con la antiguedad simulada.
+ * Salida: Retorna estado de donacion.
+ */
+function donationStatusForAge(offsetDays: number, index: number): DonationStatus {
+  if (offsetDays < -100) {
+    const pool = [
+      DonationStatus.CONFIRMED,
+      DonationStatus.CONFIRMED,
+      DonationStatus.DELIVERED,
+      DonationStatus.CANCELLED,
+    ];
+    return pool[index % pool.length] ?? DonationStatus.CONFIRMED;
+  }
+
+  if (offsetDays < -50) {
+    const pool = [
+      DonationStatus.CONFIRMED,
+      DonationStatus.DELIVERED,
+      DonationStatus.IN_TRANSIT,
+    ];
+    return pool[index % pool.length] ?? DonationStatus.DELIVERED;
+  }
+
+  const pool = [
+    DonationStatus.COMMITTED,
+    DonationStatus.IN_TRANSIT,
+    DonationStatus.DELIVERED,
+    DonationStatus.CONFIRMED,
+  ];
+  return pool[index % pool.length] ?? DonationStatus.COMMITTED;
+}
+
+/**
+ * Entrada: Ninguna.
+ * Proceso: Genera offsets de donaciones distribuidos en los ultimos 6 meses.
+ * Salida: Retorna lista de dias negativos para created_at de donaciones.
+ */
+function buildHistoricalDonationOffsets(): number[] {
+  const offsets: number[] = [];
+
+  for (let month = 5; month >= 0; month -= 1) {
+    const base = month * 28 + 8;
+    const donationsThisMonth = 6 + (month % 3);
+
+    for (let index = 0; index < donationsThisMonth; index += 1) {
+      const day = base + index * 4 + (month % 2);
+      if (day <= HISTORY_SPAN_DAYS) {
+        offsets.push(-day);
+      }
+    }
+  }
+
+  return offsets.sort((a, b) => a - b);
+}
+
+/**
  * Entrada: donors: usuarios donantes; needIds: necesidades publicadas; changerId: admin.
- * Proceso: Crea donaciones demo asociadas a donantes y needs.
+ * Proceso: Crea donaciones demo distribuidas en el tiempo para graficas administrativas.
  * Salida: No retorna valor.
  */
-async function seedSampleDonations(
+async function seedHistoricalDonations(
   donors: User[],
   needIds: string[],
   changerId: string,
@@ -287,28 +398,26 @@ async function seedSampleDonations(
     return;
   }
 
-  const samples = Math.min(12, needIds.length * 2);
+  const offsets = buildHistoricalDonationOffsets();
   let created = 0;
 
-  for (let index = 0; index < samples; index += 1) {
+  for (let index = 0; index < offsets.length; index += 1) {
+    const offsetDays = offsets[index] ?? -7;
     const donor = donors[index % donors.length];
     const needId = needIds[index % needIds.length];
-    const statuses = [
-      DonationStatus.COMMITTED,
-      DonationStatus.IN_TRANSIT,
-      DonationStatus.DELIVERED,
-      DonationStatus.CONFIRMED,
-    ];
-    const status = statuses[index % statuses.length];
+    const status = donationStatusForAge(offsetDays, index);
+    const { createdAt, updatedAt } = timestampsAt(offsetDays);
 
     const donation = await prisma.donation.create({
       data: {
         needId,
         donorUserId: donor.id,
         status,
-        quantity: 2 + (index % 5),
-        notes: 'Donacion de demostracion generada por seed.',
-        estimatedDeliveryAt: daysFromNow(3 + (index % 7)),
+        quantity: 2 + (index % 7),
+        notes: 'Donacion de demostracion generada por seed historico.',
+        estimatedDeliveryAt: daysFromNow(offsetDays + 5),
+        createdAt,
+        updatedAt,
       },
     });
 
@@ -319,13 +428,14 @@ async function seedSampleDonations(
         toStatus: status,
         changedById: changerId,
         note: 'Estado inicial de donacion demo.',
+        createdAt,
       },
     });
 
     created += 1;
   }
 
-  console.log(`[SEED] Donaciones demo creadas: ${created}`);
+  console.log(`[SEED] Donaciones demo creadas: ${created} (historial ~6 meses)`);
 }
 
 /**
@@ -367,7 +477,8 @@ async function main(): Promise<void> {
     throw new Error('No hay administradores para verificar fundaciones demo.');
   }
 
-  const donors = await seedDonors(demoPasswordHash);
+  const allDonorSeeds = [...DONOR_USERS, ...HISTORICAL_DONOR_USERS];
+  const donors = await seedDonors(allDonorSeeds, demoPasswordHash);
   const allNeedIds: string[] = [];
 
   for (const foundationSeed of FOUNDATION_SEEDS) {
@@ -375,9 +486,10 @@ async function main(): Promise<void> {
     allNeedIds.push(...needIds);
   }
 
-  await seedSampleDonations(donors, allNeedIds, verifierId);
+  await seedHistoricalDonations(donors, allNeedIds, verifierId);
 
   console.log('[SEED] Dataset completo listo (solo seeders).');
+  console.log('[SEED] Historial simulado: ~6 meses para reportes administrativos.');
   console.log('[SEED] Password admins: SEED_ADMIN_PASSWORD');
   console.log(`[SEED] Password donantes/fundaciones demo: ${demoPassword}`);
 }
