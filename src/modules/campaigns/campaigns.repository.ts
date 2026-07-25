@@ -150,7 +150,7 @@ export class CampaignsRepository {
         foundationId,
         title: data.title,
         description: data.description,
-        imageUrl: data.imageUrl ?? null,
+        imageUrl: null,
         status: data.status ?? CampaignStatus.DRAFT,
         startDate: toOptionalDate(data.startDate) ?? null,
         endDate: toOptionalDate(data.endDate) ?? null,

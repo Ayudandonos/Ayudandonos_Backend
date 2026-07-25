@@ -5,6 +5,7 @@ import {
   optionalAuthenticate,
 } from '../../middlewares/auth.middleware.js';
 import { requireFoundationOperational } from '../../middlewares/foundation-access.middleware.js';
+import { campaignImageUpload } from '../../middlewares/upload.middleware.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { campaignsController } from './campaigns.controller.js';
 import {
@@ -147,9 +148,6 @@ campaignsRoutes.get(
  *                 type: string
  *               description:
  *                 type: string
- *               imageUrl:
- *                 type: string
- *                 nullable: true
  *               status:
  *                 type: string
  *                 enum: [DRAFT, PUBLISHED]
@@ -204,9 +202,6 @@ campaignsRoutes.post(
  *                 type: string
  *               description:
  *                 type: string
- *               imageUrl:
- *                 type: string
- *                 nullable: true
  *               status:
  *                 type: string
  *                 enum: [DRAFT, PUBLISHED, FINISHED, CANCELLED]
@@ -234,6 +229,52 @@ campaignsRoutes.patch(
   validate(campaignIdParamSchema, 'params'),
   validate(updateCampaignSchema),
   campaignsController.update,
+);
+
+/**
+ * @swagger
+ * /campaigns/{id}/image:
+ *   post:
+ *     summary: Subir o reemplazar imagen de la campana
+ *     tags: [Campaigns]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [image]
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Imagen actualizada
+ *       400:
+ *         description: Archivo invalido o faltante
+ *       403:
+ *         description: Sin permiso sobre la campana
+ *       404:
+ *         description: Campana no encontrada
+ */
+campaignsRoutes.post(
+  '/:id/image',
+  authenticate,
+  authorize('FOUNDATION'),
+  requireFoundationOperational,
+  validate(campaignIdParamSchema, 'params'),
+  campaignImageUpload,
+  campaignsController.uploadImage,
 );
 
 /**

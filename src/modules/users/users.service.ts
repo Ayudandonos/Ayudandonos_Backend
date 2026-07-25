@@ -1,6 +1,11 @@
 import type { UserRole } from '@prisma/client';
 import { AppError } from '../../shared/errors/app.error.js';
 import { API_MESSAGES } from '../../shared/constants/messages.constants.js';
+import { mapUnknownError } from '../../shared/errors/map-unknown-error.js';
+import {
+  deleteStoredFile,
+  saveUserAvatar,
+} from '../../shared/utils/upload.util.js';
 import { toPublicFoundationDto } from '../foundations/public-foundation.mapper.js';
 import { donationsRepository } from '../donations/donations.repository.js';
 import type {
@@ -88,6 +93,48 @@ export class UsersService {
     input: UpdateUserDto,
   ): Promise<UserDetailResponseDto> {
     return this.updateUser(requester.id, input, requester);
+  }
+
+  /**
+   * Entrada: requester: usuario autenticado; file: archivo de imagen de avatar.
+   * Proceso: Reemplaza el avatar del usuario en Blob o almacenamiento local.
+   * Salida: Retorna el perfil actualizado.
+   */
+  async uploadAvatar(
+    requester: RequesterContext,
+    file: Express.Multer.File,
+  ): Promise<UserDetailResponseDto> {
+    try {
+      const existingUser = await usersRepository.findByIdWithFoundation(requester.id);
+
+      if (!existingUser) {
+        throw new AppError(API_MESSAGES.AUTH_USER_NOT_FOUND, 404);
+      }
+
+      const saved = await saveUserAvatar(requester.id, file);
+      const previousAvatar = existingUser.avatarUrl;
+
+      try {
+        await usersRepository.updateById(requester.id, { avatarUrl: saved.publicUrl });
+      } catch (error) {
+        await deleteStoredFile(saved.storageKey);
+        throw mapUnknownError(error);
+      }
+
+      if (previousAvatar) {
+        await deleteStoredFile(previousAvatar);
+      }
+
+      const refreshed = await usersRepository.findByIdWithFoundation(requester.id);
+
+      if (!refreshed) {
+        throw new AppError(API_MESSAGES.AUTH_USER_NOT_FOUND, 404);
+      }
+
+      return this.toDetailResponse(refreshed);
+    } catch (error) {
+      throw mapUnknownError(error);
+    }
   }
 
   /**
@@ -233,7 +280,6 @@ export class UsersService {
       city: input.city,
       department: input.department,
       bio: input.bio,
-      avatarUrl: input.avatarUrl,
     };
   }
 

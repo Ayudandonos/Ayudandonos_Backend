@@ -49,6 +49,8 @@ export const API_MESSAGES = {
   FOUNDATIONS_STATUS_UPDATE_SUCCESS: 'Estado de fundación actualizado correctamente',
   FOUNDATIONS_LOGO_UPLOAD_SUCCESS: 'Logo de fundación actualizado correctamente',
   FOUNDATIONS_DOCUMENT_UPLOAD_SUCCESS: 'Documento de fundación cargado correctamente',
+  USERS_AVATAR_UPLOAD_SUCCESS: 'Avatar actualizado correctamente',
+  CAMPAIGNS_IMAGE_UPLOAD_SUCCESS: 'Imagen de campaña actualizada correctamente',
   FOUNDATIONS_NOT_FOUND: 'Fundación no encontrada',
   FOUNDATIONS_NOT_PUBLIC: 'Esta fundación no está disponible públicamente',
   FOUNDATIONS_CANNOT_MANAGE_OTHERS: 'No tienes permiso para gestionar esta fundación',

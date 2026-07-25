@@ -20,13 +20,6 @@ const optionalDateField = z
   .nullable()
   .optional();
 
-const optionalImageUrlField = z
-  .string()
-  .trim()
-  .url(VALIDATION_MESSAGES.INVALID_URL)
-  .nullable()
-  .optional();
-
 const optionalDeliveryAddressField = z
   .string()
   .trim()
@@ -85,7 +78,6 @@ export const createCampaignSchema = z
   .object({
     title: titleField,
     description: descriptionField,
-    imageUrl: optionalImageUrlField,
     status: z.nativeEnum(CampaignStatus).optional(),
     startDate: optionalDateField,
     endDate: optionalDateField,
@@ -123,7 +115,6 @@ export const updateCampaignSchema = z
   .object({
     title: titleField.optional(),
     description: descriptionField.optional(),
-    imageUrl: optionalImageUrlField,
     status: z.nativeEnum(CampaignStatus).optional(),
     startDate: optionalDateField,
     endDate: optionalDateField,

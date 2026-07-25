@@ -222,6 +222,90 @@ export async function deleteStoredFile(storageKey: string): Promise<void> {
 }
 
 /**
+ * Entrada: storagePath: carpeta relativa publica; file: archivo multer de imagen.
+ * Proceso: Persiste imagen publica en Vercel Blob o disco local.
+ * Salida: Retorna metadatos y URL publica del archivo.
+ */
+export async function savePublicImage(
+  storagePath: string,
+  file: Express.Multer.File,
+): Promise<StoredFileResult> {
+  try {
+    const extension = path.extname(file.originalname) || inferExtension(file.mimetype);
+    const safeName = `${randomUUID()}${extension}`;
+    const normalizedPath = storagePath.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+    const pathname = `${normalizedPath}/${safeName}`;
+
+    if (isVercelRuntime && !isBlobStorageEnabled()) {
+      throw new AppError(API_MESSAGES.UPLOAD_STORAGE_UNAVAILABLE, 503);
+    }
+
+    if (isBlobStorageEnabled()) {
+      const blob = await put(pathname, file.buffer, {
+        access: uploadConfig.blobAccess,
+        contentType: file.mimetype,
+        token: uploadConfig.blobReadWriteToken,
+        addRandomSuffix: false,
+      });
+
+      return {
+        relativePath: pathname,
+        storageKey: blob.url,
+        publicUrl: blob.url,
+        fileName: file.originalname,
+        mimeType: file.mimetype,
+        fileSize: file.size,
+      };
+    }
+
+    const relativeDir = path.join(normalizedPath);
+    const absoluteDir = path.join(uploadConfig.rootDir, relativeDir);
+
+    await fs.mkdir(absoluteDir, { recursive: true });
+
+    const relativePath = path.join(relativeDir, safeName).replace(/\\/g, '/');
+    const absolutePath = path.join(uploadConfig.rootDir, relativePath);
+
+    await fs.writeFile(absolutePath, file.buffer);
+
+    return {
+      relativePath,
+      storageKey: relativePath,
+      publicUrl: buildPublicUploadUrl(relativePath),
+      fileName: file.originalname,
+      mimeType: file.mimetype,
+      fileSize: file.size,
+    };
+  } catch (error) {
+    throw mapUnknownError(error);
+  }
+}
+
+/**
+ * Entrada: userId: identificador del usuario; file: archivo de avatar.
+ * Proceso: Guarda avatar publico bajo users/{id}/avatar.
+ * Salida: Retorna metadatos del archivo almacenado.
+ */
+export async function saveUserAvatar(
+  userId: string,
+  file: Express.Multer.File,
+): Promise<StoredFileResult> {
+  return savePublicImage(`users/${userId}/avatar`, file);
+}
+
+/**
+ * Entrada: campaignId: identificador de la campana; file: archivo de imagen.
+ * Proceso: Guarda imagen publica bajo campaigns/{id}/image.
+ * Salida: Retorna metadatos del archivo almacenado.
+ */
+export async function saveCampaignImage(
+  campaignId: string,
+  file: Express.Multer.File,
+): Promise<StoredFileResult> {
+  return savePublicImage(`campaigns/${campaignId}/image`, file);
+}
+
+/**
  * Entrada: mimeType: tipo MIME del archivo.
  * Proceso: Infiere extension por tipo MIME cuando el nombre original no la incluye.
  * Salida: Retorna extension con punto o cadena vacia.

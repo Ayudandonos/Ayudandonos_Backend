@@ -1,6 +1,11 @@
 import { CampaignStatus, FoundationStatus } from '@prisma/client';
 import { AppError } from '../../shared/errors/app.error.js';
 import { API_MESSAGES } from '../../shared/constants/messages.constants.js';
+import { mapUnknownError } from '../../shared/errors/map-unknown-error.js';
+import {
+  deleteStoredFile,
+  saveCampaignImage,
+} from '../../shared/utils/upload.util.js';
 import type { ApiResponseMeta } from '../../shared/responses/api.response.js';
 import type { FoundationWithRelations } from '../foundations/foundations.repository.js';
 import { resolveCoordinatesForPersist } from '../locations/resolve-coordinates.util.js';
@@ -198,6 +203,42 @@ export class CampaignsService {
 
     const updated = await campaignsRepository.update(id, payload);
     return this.toDto(updated);
+  }
+
+  /**
+   * Entrada: id: identificador; file: archivo de imagen; foundation: fundacion autenticada.
+   * Proceso: Reemplaza la imagen de la campana en Blob o almacenamiento local.
+   * Salida: Retorna la campana actualizada.
+   */
+  async uploadImage(
+    id: string,
+    file: Express.Multer.File,
+    foundation: FoundationWithRelations,
+  ): Promise<CampaignDto> {
+    try {
+      const campaign = await this.requireCampaign(id);
+      this.assertIsOwner(campaign, foundation.id);
+      this.assertIsMutable(campaign.status);
+
+      const saved = await saveCampaignImage(id, file);
+      const previousImage = campaign.imageUrl;
+
+      try {
+        await campaignsRepository.update(id, { imageUrl: saved.publicUrl });
+      } catch (error) {
+        await deleteStoredFile(saved.storageKey);
+        throw mapUnknownError(error);
+      }
+
+      if (previousImage) {
+        await deleteStoredFile(previousImage);
+      }
+
+      const refreshed = await this.requireCampaign(id);
+      return this.toDto(refreshed);
+    } catch (error) {
+      throw mapUnknownError(error);
+    }
   }
 
   /**

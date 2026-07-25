@@ -56,12 +56,6 @@ export const updateUserSchema = z
       .max(500, VALIDATION_MESSAGES.USER_BIO_MAX_LENGTH)
       .nullable()
       .optional(),
-    avatarUrl: z
-      .string()
-      .trim()
-      .url(VALIDATION_MESSAGES.INVALID_URL)
-      .nullable()
-      .optional(),
     isActive: z.boolean().optional(),
     role: z.enum(['USER', 'FOUNDATION', 'ADMIN']).optional(),
   })

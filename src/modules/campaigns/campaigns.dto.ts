@@ -10,7 +10,6 @@ export interface ListCampaignsQueryDto {
 export interface CreateCampaignDto {
   title: string;
   description: string;
-  imageUrl?: string | null;
   status?: CampaignStatus;
   startDate?: string | null;
   endDate?: string | null;

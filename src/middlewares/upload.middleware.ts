@@ -76,3 +76,35 @@ export const foundationDocumentUpload = (
     }
   });
 };
+
+/**
+ * Entrada: Ninguna.
+ * Proceso: Configura middleware para subida de avatar de usuario.
+ * Salida: Retorna middleware Express para campo "avatar".
+ */
+export const userAvatarUpload = (req: Request, res: Response, next: NextFunction) => {
+  upload.single('avatar')(req, res, (err) => {
+    try {
+      assertValidUpload(err, uploadConfig.allowedLogoMimeTypes, req.file);
+      next();
+    } catch (error) {
+      next(error);
+    }
+  });
+};
+
+/**
+ * Entrada: Ninguna.
+ * Proceso: Configura middleware para subida de imagen de campana.
+ * Salida: Retorna middleware Express para campo "image".
+ */
+export const campaignImageUpload = (req: Request, res: Response, next: NextFunction) => {
+  upload.single('image')(req, res, (err) => {
+    try {
+      assertValidUpload(err, uploadConfig.allowedLogoMimeTypes, req.file);
+      next();
+    } catch (error) {
+      next(error);
+    }
+  });
+};

@@ -47,6 +47,11 @@ export function createApp(): Express {
     '/uploads/foundations',
     express.static(path.join(uploadConfig.rootDir, uploadConfig.foundationsDir)),
   );
+  app.use('/uploads/users', express.static(path.join(uploadConfig.rootDir, 'users')));
+  app.use(
+    '/uploads/campaigns',
+    express.static(path.join(uploadConfig.rootDir, 'campaigns')),
+  );
 
   if (isDevelopment) {
     app.use(morgan('dev'));

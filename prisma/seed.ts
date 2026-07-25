@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import {
   DonationStatus,
   FoundationStatus,
+  NotificationType,
   PrismaClient,
   UserRole,
   type User,
@@ -438,6 +439,115 @@ async function seedHistoricalDonations(
   console.log(`[SEED] Donaciones demo creadas: ${created} (historial ~6 meses)`);
 }
 
+const DEMO_DONOR_EMAIL = 'maria.gomez.donante@gmail.com';
+const DEMO_ADMIN_EMAIL = 'ericksperezc@gmail.com';
+
+/**
+ * Entrada: donors y admins: usuarios demo del seed.
+ * Proceso: Crea notificaciones in-app de ejemplo para donante y administrador demo.
+ * Salida: No retorna valor.
+ */
+async function seedDemoNotifications(donors: User[], admins: User[]): Promise<void> {
+  const demoDonor = donors.find((donor) => donor.email === DEMO_DONOR_EMAIL);
+
+  if (!demoDonor) {
+    console.log('[SEED] Notificaciones donante omitidas: donante demo no encontrado.');
+  } else {
+    const donation = await prisma.donation.findFirst({
+      where: { donorUserId: demoDonor.id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!donation) {
+      console.log('[SEED] Notificaciones donante omitidas: sin donaciones del donante demo.');
+    } else {
+      const recentAt = daysFromNow(-1);
+      const olderAt = daysFromNow(-3);
+
+      await prisma.notification.createMany({
+        data: [
+          {
+            userId: demoDonor.id,
+            type: NotificationType.DONATION_STATUS_CHANGED,
+            title: 'Actualización de donación',
+            body: 'El estado de tu donación cambió a IN_TRANSIT.',
+            linkPath: `/my-donations/${donation.id}`,
+            resourceType: 'DONATION',
+            resourceId: donation.id,
+            isRead: false,
+            createdAt: recentAt,
+          },
+          {
+            userId: demoDonor.id,
+            type: NotificationType.DONATION_DELIVERY_UPDATED,
+            title: 'Entrega actualizada',
+            body: 'La fundación actualizó los datos de entrega de tu donación.',
+            linkPath: `/my-donations/${donation.id}`,
+            resourceType: 'DONATION',
+            resourceId: donation.id,
+            isRead: true,
+            readAt: olderAt,
+            createdAt: olderAt,
+          },
+        ],
+      });
+
+      console.log('[SEED] Notificaciones demo creadas: 2 (donante demo)');
+    }
+  }
+
+  const demoAdmin = admins.find((admin) => admin.email === DEMO_ADMIN_EMAIL);
+
+  if (!demoAdmin) {
+    console.log('[SEED] Notificaciones admin omitidas: admin demo no encontrado.');
+    return;
+  }
+
+  const pendingFoundation = await prisma.foundation.findFirst({
+    where: { status: FoundationStatus.PENDING },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const recentDonation = await prisma.donation.findFirst({
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const adminRecentAt = daysFromNow(-1);
+  const adminOlderAt = daysFromNow(-4);
+
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: demoAdmin.id,
+        type: NotificationType.DONATION_CREATED,
+        title: 'Fundación pendiente de verificación',
+        body: pendingFoundation
+          ? `"${pendingFoundation.name}" espera revisión administrativa.`
+          : 'Hay fundaciones pendientes de verificación en el panel.',
+        linkPath: '/admin/foundations',
+        resourceType: pendingFoundation ? 'FOUNDATION' : null,
+        resourceId: pendingFoundation?.id ?? null,
+        isRead: false,
+        createdAt: adminRecentAt,
+      },
+      {
+        userId: demoAdmin.id,
+        type: NotificationType.DONATION_STATUS_CHANGED,
+        title: 'Actividad reciente en donaciones',
+        body: 'Revisa el panel de reportes para ver el resumen del último mes.',
+        linkPath: '/admin/reports',
+        resourceType: recentDonation ? 'DONATION' : null,
+        resourceId: recentDonation?.id ?? null,
+        isRead: true,
+        readAt: adminOlderAt,
+        createdAt: adminOlderAt,
+      },
+    ],
+  });
+
+  console.log('[SEED] Notificaciones demo creadas: 2 (admin demo)');
+}
+
 /**
  * Entrada: Ninguna.
  * Proceso: Vacia la BD y carga unicamente el dataset del seed.
@@ -487,6 +597,7 @@ async function main(): Promise<void> {
   }
 
   await seedHistoricalDonations(donors, allNeedIds, verifierId);
+  await seedDemoNotifications(donors, admins);
 
   console.log('[SEED] Dataset completo listo (solo seeders).');
   console.log('[SEED] Historial simulado: ~6 meses para reportes administrativos.');

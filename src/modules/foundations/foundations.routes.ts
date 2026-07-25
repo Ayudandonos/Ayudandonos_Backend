@@ -29,6 +29,55 @@ const foundationsRoutes = Router();
  *   description: Gestion de fundaciones
  */
 
+/**
+ * @swagger
+ * /foundations:
+ *   get:
+ *     summary: Listar fundaciones (paginado)
+ *     tags: [Foundations]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, VERIFIED, REJECTED, SUSPENDED]
+ *         description: Solo ADMIN puede filtrar por estados no publicos
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: country
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: city
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: department
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Listado obtenido correctamente
+ *       400:
+ *         description: Validacion
+ */
 foundationsRoutes.get(
   '/',
   optionalAuthenticate,
@@ -36,6 +85,24 @@ foundationsRoutes.get(
   foundationsController.findAll,
 );
 
+/**
+ * @swagger
+ * /foundations/me:
+ *   get:
+ *     summary: Obtener perfil completo de la fundacion autenticada
+ *     tags: [Foundations]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Perfil de fundacion obtenido
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: Rol no permitido
+ *       404:
+ *         description: Fundacion no encontrada
+ */
 foundationsRoutes.get('/me', authenticate, foundationsController.findMine);
 
 /**
@@ -74,6 +141,42 @@ foundationsRoutes.get(
   foundationsController.findNearby,
 );
 
+/**
+ * @swagger
+ * /foundations/{id}/documents/{type}/download:
+ *   get:
+ *     summary: Descargar documento legal de la fundacion
+ *     tags: [Foundations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: path
+ *         name: type
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [RUT, LEGAL_EXISTENCE_CERTIFICATE, LEGAL_REPRESENTATIVE_ID, BANK_CERTIFICATION]
+ *     responses:
+ *       200:
+ *         description: Archivo del documento
+ *         content:
+ *           application/octet-stream:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: Sin permiso (solo owner o ADMIN)
+ *       404:
+ *         description: Fundacion o documento no encontrado
+ */
 foundationsRoutes.get(
   '/:id/documents/:type/download',
   authenticate,
@@ -81,6 +184,27 @@ foundationsRoutes.get(
   foundationsController.downloadDocument,
 );
 
+/**
+ * @swagger
+ * /foundations/{id}:
+ *   get:
+ *     summary: Obtener fundacion por id
+ *     tags: [Foundations]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Fundacion encontrada
+ *       403:
+ *         description: Fundacion no visible publicamente
+ *       404:
+ *         description: Fundacion no encontrada
+ */
 foundationsRoutes.get(
   '/:id',
   optionalAuthenticate,
@@ -88,6 +212,99 @@ foundationsRoutes.get(
   foundationsController.findById,
 );
 
+/**
+ * @swagger
+ * /foundations/{id}:
+ *   patch:
+ *     summary: Actualizar perfil de fundacion propia
+ *     tags: [Foundations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               acronym:
+ *                 type: string
+ *                 nullable: true
+ *               nit:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               mission:
+ *                 type: string
+ *                 nullable: true
+ *               vision:
+ *                 type: string
+ *                 nullable: true
+ *               description:
+ *                 type: string
+ *                 nullable: true
+ *               city:
+ *                 type: string
+ *               department:
+ *                 type: string
+ *               country:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               latitude:
+ *                 type: number
+ *                 nullable: true
+ *               longitude:
+ *                 type: number
+ *                 nullable: true
+ *               institutionalEmail:
+ *                 type: string
+ *                 format: email
+ *               phone:
+ *                 type: string
+ *               website:
+ *                 type: string
+ *                 format: uri
+ *                 nullable: true
+ *               legalRepresentativeName:
+ *                 type: string
+ *               legalRepresentativeDocument:
+ *                 type: string
+ *               socialLinks:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required: [network, url]
+ *                   properties:
+ *                     network:
+ *                       type: string
+ *                       enum: [FACEBOOK, INSTAGRAM, X, LINKEDIN, YOUTUBE, TIKTOK, OTHER]
+ *                     url:
+ *                       type: string
+ *                       format: uri
+ *     responses:
+ *       200:
+ *         description: Fundacion actualizada
+ *       400:
+ *         description: Validacion
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: Sin permiso
+ *       404:
+ *         description: Fundacion no encontrada
+ *       409:
+ *         description: NIT duplicado
+ */
 foundationsRoutes.patch(
   '/:id',
   authenticate,
@@ -96,6 +313,51 @@ foundationsRoutes.patch(
   foundationsController.update,
 );
 
+/**
+ * @swagger
+ * /foundations/{id}/status:
+ *   patch:
+ *     summary: Cambiar estado de verificacion (solo ADMIN)
+ *     tags: [Foundations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [status]
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [PENDING, VERIFIED, REJECTED, SUSPENDED]
+ *               rejectionReason:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Obligatorio si status es REJECTED
+ *               adminNotes:
+ *                 type: string
+ *                 nullable: true
+ *     responses:
+ *       200:
+ *         description: Estado actualizado
+ *       400:
+ *         description: Validacion
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: Solo administradores
+ *       404:
+ *         description: Fundacion no encontrada
+ */
 foundationsRoutes.patch(
   '/:id/status',
   authenticate,
@@ -105,6 +367,45 @@ foundationsRoutes.patch(
   foundationsController.updateStatus,
 );
 
+/**
+ * @swagger
+ * /foundations/{id}/logo:
+ *   post:
+ *     summary: Subir o reemplazar logo de la fundacion
+ *     tags: [Foundations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [logo]
+ *             properties:
+ *               logo:
+ *                 type: string
+ *                 format: binary
+ *                 description: Imagen JPEG, PNG o WebP
+ *     responses:
+ *       200:
+ *         description: Logo actualizado
+ *       400:
+ *         description: Archivo invalido o validacion
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: Sin permiso
+ *       404:
+ *         description: Fundacion no encontrada
+ */
 foundationsRoutes.post(
   '/:id/logo',
   authenticate,
@@ -113,6 +414,48 @@ foundationsRoutes.post(
   foundationsController.uploadLogo,
 );
 
+/**
+ * @swagger
+ * /foundations/{id}/documents:
+ *   post:
+ *     summary: Subir o reemplazar documento legal de la fundacion
+ *     tags: [Foundations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [type, file]
+ *             properties:
+ *               type:
+ *                 type: string
+ *                 enum: [RUT, LEGAL_EXISTENCE_CERTIFICATE, LEGAL_REPRESENTATIVE_ID, BANK_CERTIFICATION]
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: PDF o imagen JPEG/PNG
+ *     responses:
+ *       200:
+ *         description: Documento cargado
+ *       400:
+ *         description: Archivo invalido o validacion
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: Sin permiso
+ *       404:
+ *         description: Fundacion no encontrada
+ */
 foundationsRoutes.post(
   '/:id/documents',
   authenticate,
