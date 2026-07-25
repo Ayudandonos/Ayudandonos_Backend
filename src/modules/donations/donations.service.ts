@@ -410,13 +410,13 @@ export class DonationsService {
   }
 
   /**
-   * Entrada: donation, conversationId y requester.
-   * Proceso: Valida que la donacion permita enviar mensajes y que la fundacion solo responda.
+   * Entrada: donation y requester.
+   * Proceso: Valida que la donacion permita enviar mensajes y que la fundacion este operativa.
    * Salida: Retorna void o lanza AppError.
    */
   private async assertCanSendMessage(
     donation: DonationWithRelations,
-    conversationId: string,
+    _conversationId: string,
     requester: RequesterContext,
   ): Promise<void> {
     if (donation.status === DonationStatus.CANCELLED) {
@@ -427,15 +427,6 @@ export class DonationsService {
 
     if (requester.id === foundationUserId) {
       await this.assertFoundationOperational(foundationUserId);
-
-      const donorMessageCount = await donationsRepository.countDonorMessages(
-        conversationId,
-        donation.donorUserId,
-      );
-
-      if (donorMessageCount === 0) {
-        throw new AppError(API_MESSAGES.MESSAGES_FOUNDATION_CANNOT_INITIATE, 403);
-      }
     }
   }
 
