@@ -22,6 +22,8 @@ Base: `/api/v1/notifications` (JWT requerido)
 | Nuevo mensaje (incluye `initialMessage`) | La otra parte | `DONATION_MESSAGE` |
 | Actualizacion de entrega | Donante | `DONATION_DELIVERY_UPDATED` |
 
+Detalle del chat: `docs/MESSAGING_MODULE.md`.
+
 ## Modelo
 
 Tabla `notifications`: userId, type, title, body, linkPath, resourceType, resourceId, isRead, readAt, createdAt.

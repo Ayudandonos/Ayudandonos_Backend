@@ -21,6 +21,19 @@ export type DonationFoundationSummaryDto = {
   logoUrl: string | null;
 };
 
+export type DonationBranchSummaryDto = {
+  id: string;
+  name: string;
+  department: string;
+  city: string;
+  address: string;
+  reference: string | null;
+  phone: string;
+  openingHours: string;
+  latitude: number | null;
+  longitude: number | null;
+};
+
 export type DonationDonorSummaryDto = {
   id: string;
   fullName: string;
@@ -36,23 +49,33 @@ export type DonationStatusHistoryDto = {
   createdAt: string;
 };
 
+export type DonationConversationSummaryDto = {
+  lastMessageAt: string | null;
+  lastMessageBody: string | null;
+  lastMessageSenderId: string | null;
+  unreadCount: number;
+};
+
 export type DonationDto = {
   id: string;
   needId: string;
   donorUserId: string;
+  foundationBranchId: string;
   status: DonationStatus;
   quantity: number;
+  receivedQuantity: number | null;
   notes: string | null;
   estimatedDeliveryAt: string | null;
-  deliveryAddress: string | null;
-  deliveryLatitude: number | null;
-  deliveryLongitude: number | null;
+  receivedAt: string | null;
+  receptionNotes: string | null;
   createdAt: string;
   updatedAt: string;
   conversationId: string | null;
+  conversation: DonationConversationSummaryDto | null;
   need: DonationNeedSummaryDto;
   campaign: DonationCampaignSummaryDto;
   foundation: DonationFoundationSummaryDto;
+  branch: DonationBranchSummaryDto;
   donor: DonationDonorSummaryDto;
   statusHistory: DonationStatusHistoryDto[];
 };
@@ -67,13 +90,8 @@ export type CreateDonationDto = {
 
 export type UpdateDonationStatusDto = {
   status: DonationStatus;
-};
-
-export type UpdateDonationDeliveryDto = {
-  deliveryAddress?: string | null;
-  deliveryLatitude?: number | null;
-  deliveryLongitude?: number | null;
-  estimatedDeliveryAt?: string | null;
+  receivedQuantity?: number;
+  receptionNotes?: string | null;
 };
 
 export type ListDonationsQueryDto = {
@@ -108,7 +126,7 @@ export type DonationStatusStatsDto = {
 export type DonorDonationStatsDto = {
   totalDonations: number;
   totalQuantity: number;
-  deliveredQuantity: number;
+  receivedQuantity: number;
   cancelledDonations: number;
   byStatus: Record<DonationStatus, DonationStatusStatsDto>;
 };

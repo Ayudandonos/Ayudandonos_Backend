@@ -42,15 +42,13 @@ export class ImpactRepository {
 
   /**
    * Entrada: Ninguna.
-   * Proceso: Cuenta donaciones entregadas o confirmadas.
-   * Salida: Retorna el total de entregas confirmadas.
+   * Proceso: Cuenta donaciones recibidas por la fundacion.
+   * Salida: Retorna el total de recepciones confirmadas.
    */
   async countConfirmedDeliveries(): Promise<number> {
     return prisma.donation.count({
       where: {
-        status: {
-          in: [DonationStatus.DELIVERED, DonationStatus.CONFIRMED],
-        },
+        status: DonationStatus.RECEIVED,
       },
     });
   }

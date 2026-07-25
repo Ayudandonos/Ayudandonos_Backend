@@ -6,6 +6,7 @@ import {
   isFoundationProfileReady,
 } from '../modules/foundations/foundation-profile.util.js';
 import { foundationsRepository } from '../modules/foundations/foundations.repository.js';
+import { foundationBranchesRepository } from '../modules/foundations/foundation-branches.repository.js';
 
 /**
  * Entrada: req: peticion autenticada; _res: respuesta HTTP; next: siguiente middleware.
@@ -28,7 +29,9 @@ export const requireFoundationProfileReady = async (
     throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
   }
 
-  if (!isFoundationProfileReady(foundation, foundation.documents)) {
+  const branches = await foundationBranchesRepository.findByFoundationId(foundation.id);
+
+  if (!isFoundationProfileReady(foundation, foundation.documents, branches)) {
     throw new AppError(API_MESSAGES.FOUNDATIONS_ACCESS_PROFILE_REQUIRED, 403);
   }
 
@@ -58,11 +61,13 @@ export const requireFoundationOperational = async (
     throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
   }
 
-  if (!isFoundationProfileReady(foundation, foundation.documents)) {
+  const branches = await foundationBranchesRepository.findByFoundationId(foundation.id);
+
+  if (!isFoundationProfileReady(foundation, foundation.documents, branches)) {
     throw new AppError(API_MESSAGES.FOUNDATIONS_ACCESS_PROFILE_REQUIRED, 403);
   }
 
-  if (!isFoundationOperationalReady(foundation, foundation.documents)) {
+  if (!isFoundationOperationalReady(foundation, foundation.documents, branches)) {
     throw new AppError(API_MESSAGES.FOUNDATIONS_ACCESS_VERIFICATION_REQUIRED, 403);
   }
 

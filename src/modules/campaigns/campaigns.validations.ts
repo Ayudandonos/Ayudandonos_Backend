@@ -20,48 +20,9 @@ const optionalDateField = z
   .nullable()
   .optional();
 
-const optionalDeliveryAddressField = z
+const foundationBranchIdField = z
   .string()
-  .trim()
-  .min(5, VALIDATION_MESSAGES.DELIVERY_ADDRESS_MIN_LENGTH)
-  .nullable()
-  .optional();
-
-const optionalLatitudeField = z
-  .number()
-  .min(-90, VALIDATION_MESSAGES.INVALID_LATITUDE)
-  .max(90, VALIDATION_MESSAGES.INVALID_LATITUDE)
-  .nullable()
-  .optional();
-
-const optionalLongitudeField = z
-  .number()
-  .min(-180, VALIDATION_MESSAGES.INVALID_LONGITUDE)
-  .max(180, VALIDATION_MESSAGES.INVALID_LONGITUDE)
-  .nullable()
-  .optional();
-
-/**
- * Entrada: data: objeto con latitud y longitud opcionales.
- * Proceso: Exige que ambas coordenadas existan juntas o ambas sean null/omitidas.
- * Salida: Retorna true si el par de coordenadas es coherente.
- */
-function coordsTogether(data: {
-  deliveryLatitude?: number | null;
-  deliveryLongitude?: number | null;
-}): boolean {
-  const hasLat = data.deliveryLatitude !== undefined && data.deliveryLatitude !== null;
-  const hasLng = data.deliveryLongitude !== undefined && data.deliveryLongitude !== null;
-  const bothNull =
-    (data.deliveryLatitude === null || data.deliveryLatitude === undefined) &&
-    (data.deliveryLongitude === null || data.deliveryLongitude === undefined);
-
-  if (bothNull) {
-    return true;
-  }
-
-  return hasLat === hasLng;
-}
+  .uuid(VALIDATION_MESSAGES.INVALID_BRANCH_UUID);
 
 export const listCampaignsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -78,12 +39,10 @@ export const createCampaignSchema = z
   .object({
     title: titleField,
     description: descriptionField,
+    foundationBranchId: foundationBranchIdField,
     status: z.nativeEnum(CampaignStatus).optional(),
     startDate: optionalDateField,
     endDate: optionalDateField,
-    deliveryAddress: optionalDeliveryAddressField,
-    deliveryLatitude: optionalLatitudeField,
-    deliveryLongitude: optionalLongitudeField,
   })
   .superRefine((data, ctx) => {
     if (data.status && data.status !== CampaignStatus.DRAFT && data.status !== CampaignStatus.PUBLISHED) {
@@ -101,26 +60,16 @@ export const createCampaignSchema = z
         path: ['endDate'],
       });
     }
-
-    if (!coordsTogether(data)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: VALIDATION_MESSAGES.DELIVERY_COORDS_INCOMPLETE,
-        path: ['deliveryLatitude'],
-      });
-    }
   });
 
 export const updateCampaignSchema = z
   .object({
     title: titleField.optional(),
     description: descriptionField.optional(),
+    foundationBranchId: foundationBranchIdField.optional(),
     status: z.nativeEnum(CampaignStatus).optional(),
     startDate: optionalDateField,
     endDate: optionalDateField,
-    deliveryAddress: optionalDeliveryAddressField,
-    deliveryLatitude: optionalLatitudeField,
-    deliveryLongitude: optionalLongitudeField,
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: VALIDATION_MESSAGES.UPDATE_EMPTY_BODY,
@@ -131,14 +80,6 @@ export const updateCampaignSchema = z
         code: z.ZodIssueCode.custom,
         message: VALIDATION_MESSAGES.CAMPAIGN_END_BEFORE_START,
         path: ['endDate'],
-      });
-    }
-
-    if (!coordsTogether(data)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: VALIDATION_MESSAGES.DELIVERY_COORDS_INCOMPLETE,
-        path: ['deliveryLatitude'],
       });
     }
   });

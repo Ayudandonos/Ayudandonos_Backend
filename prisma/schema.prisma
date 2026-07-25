@@ -52,9 +52,7 @@ enum NeedPriority {
 
 enum DonationStatus {
   COMMITTED
-  IN_TRANSIT
-  DELIVERED
-  CONFIRMED
+  RECEIVED
   CANCELLED
 }
 
@@ -63,6 +61,22 @@ enum NotificationType {
   DONATION_STATUS_CHANGED
   DONATION_MESSAGE
   DONATION_DELIVERY_UPDATED
+}
+
+enum FoundationBranchStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum StockMovementType {
+  IN
+  OUT
+}
+
+enum PostReactionType {
+  LIKE
+  LOVE
+  PROUD
 }
 
 model User {
@@ -88,6 +102,10 @@ model User {
   donationStatusChanges  DonationStatusHistory[]      @relation("DonationStatusChanger")
   messages               Message[]
   notifications          Notification[]
+  stockMovementsCreated  StockMovement[] @relation("StockMovementCreator")
+  inventoryOutboundsCreated InventoryOutbound[] @relation("OutboundCreator")
+  postReactions          PostReaction[]
+  postComments           PostComment[]
 
   @@map("users")
 }
@@ -132,6 +150,11 @@ model Foundation {
   documents    FoundationDocument[]
   observations FoundationAdminObservation[]
   campaigns    Campaign[]
+  branches     FoundationBranch[]
+  inventoryItems    InventoryItem[]
+  inventoryOutbounds InventoryOutbound[]
+  foundationPosts   FoundationPost[]
+  stockMovements    StockMovement[]
 
   @@index([status])
   @@index([category])
@@ -185,9 +208,38 @@ model FoundationAdminObservation {
   @@map("foundation_admin_observations")
 }
 
+model FoundationBranch {
+  id           String                 @id @default(uuid()) @db.Uuid
+  foundationId String                 @map("foundation_id") @db.Uuid
+  name         String
+  department   String
+  city         String
+  address      String
+  reference    String?
+  phone        String
+  openingHours String                 @map("opening_hours")
+  latitude     Float?
+  longitude    Float?
+  status       FoundationBranchStatus @default(ACTIVE)
+  createdAt    DateTime               @default(now()) @map("created_at")
+  updatedAt    DateTime               @updatedAt @map("updated_at")
+
+  foundation Foundation @relation(fields: [foundationId], references: [id], onDelete: Cascade)
+  campaigns  Campaign[]
+  donations  Donation[]
+  inventoryOutbounds InventoryOutbound[]
+  foundationPosts    FoundationPost[]
+  stockMovements     StockMovement[]
+
+  @@index([foundationId])
+  @@index([foundationId, status])
+  @@map("foundation_branches")
+}
+
 model Campaign {
   id                 String         @id @default(uuid()) @db.Uuid
   foundationId       String         @map("foundation_id") @db.Uuid
+  foundationBranchId String         @map("foundation_branch_id") @db.Uuid
   title              String
   description        String
   imageUrl           String?        @map("image_url")
@@ -201,10 +253,15 @@ model Campaign {
   createdAt          DateTime       @default(now()) @map("created_at")
   updatedAt          DateTime       @updatedAt @map("updated_at")
 
-  foundation Foundation @relation(fields: [foundationId], references: [id], onDelete: Cascade)
-  needs      Need[]
+  foundation       Foundation       @relation(fields: [foundationId], references: [id], onDelete: Cascade)
+  foundationBranch FoundationBranch @relation(fields: [foundationBranchId], references: [id], onDelete: Restrict)
+  needs            Need[]
+  inventoryOutbounds InventoryOutbound[]
+  foundationPosts    FoundationPost[]
+  stockMovements     StockMovement[]
 
   @@index([foundationId])
+  @@index([foundationBranchId])
   @@index([status])
   @@index([startDate])
   @@index([endDate])
@@ -233,26 +290,30 @@ model Need {
 }
 
 model Donation {
-  id                   String         @id @default(uuid()) @db.Uuid
-  needId               String         @map("need_id") @db.Uuid
-  donorUserId          String         @map("donor_user_id") @db.Uuid
-  status               DonationStatus @default(COMMITTED)
-  quantity             Int
-  notes                String?
-  estimatedDeliveryAt  DateTime?      @map("estimated_delivery_at")
-  deliveryAddress      String?        @map("delivery_address")
-  deliveryLatitude     Float?         @map("delivery_latitude")
-  deliveryLongitude    Float?         @map("delivery_longitude")
-  createdAt            DateTime       @default(now()) @map("created_at")
-  updatedAt            DateTime       @updatedAt @map("updated_at")
+  id                  String         @id @default(uuid()) @db.Uuid
+  needId              String         @map("need_id") @db.Uuid
+  donorUserId         String         @map("donor_user_id") @db.Uuid
+  foundationBranchId  String         @map("foundation_branch_id") @db.Uuid
+  status              DonationStatus @default(COMMITTED)
+  quantity            Int
+  receivedQuantity    Int?           @map("received_quantity")
+  notes               String?
+  estimatedDeliveryAt DateTime?      @map("estimated_delivery_at")
+  receivedAt          DateTime?      @map("received_at")
+  receptionNotes      String?        @map("reception_notes")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
 
-  need         Need                    @relation(fields: [needId], references: [id], onDelete: Cascade)
-  donor        User                    @relation("DonationDonor", fields: [donorUserId], references: [id], onDelete: Cascade)
-  statusHistory DonationStatusHistory[]
-  conversation Conversation?
+  need             Need             @relation(fields: [needId], references: [id], onDelete: Cascade)
+  donor            User             @relation("DonationDonor", fields: [donorUserId], references: [id], onDelete: Cascade)
+  foundationBranch FoundationBranch @relation(fields: [foundationBranchId], references: [id], onDelete: Restrict)
+  statusHistory    DonationStatusHistory[]
+  conversation     Conversation?
+  stockMovements   StockMovement[]
 
   @@index([needId])
   @@index([donorUserId])
+  @@index([foundationBranchId])
   @@index([status])
   @@map("donations")
 }
@@ -274,14 +335,20 @@ model DonationStatusHistory {
 }
 
 model Conversation {
-  id         String   @id @default(uuid()) @db.Uuid
-  donationId String   @unique @map("donation_id") @db.Uuid
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id                    String    @id @default(uuid()) @db.Uuid
+  donationId            String    @unique @map("donation_id") @db.Uuid
+  lastMessageAt         DateTime? @map("last_message_at")
+  lastMessageBody       String?   @map("last_message_body")
+  lastMessageSenderId   String?   @map("last_message_sender_id") @db.Uuid
+  donorLastReadAt       DateTime? @map("donor_last_read_at")
+  foundationLastReadAt  DateTime? @map("foundation_last_read_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
 
   donation Donation  @relation(fields: [donationId], references: [id], onDelete: Cascade)
   messages Message[]
 
+  @@index([lastMessageAt])
   @@map("conversations")
 }
 
@@ -317,4 +384,176 @@ model Notification {
   @@index([userId, createdAt])
   @@index([userId, isRead])
   @@map("notifications")
+}
+
+model InventoryItem {
+  id                String   @id @default(uuid()) @db.Uuid
+  foundationId      String   @map("foundation_id") @db.Uuid
+  name              String
+  unit              String
+  quantityAvailable Int      @default(0) @map("quantity_available")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  foundation  Foundation            @relation(fields: [foundationId], references: [id], onDelete: Cascade)
+  movements   StockMovement[]
+  postLines   FoundationPostLine[]
+  outboundLines InventoryOutboundLine[]
+
+  @@index([foundationId])
+  @@map("inventory_items")
+}
+
+model InventoryOutbound {
+  id                     String   @id @default(uuid()) @db.Uuid
+  foundationId           String   @map("foundation_id") @db.Uuid
+  campaignId             String   @map("campaign_id") @db.Uuid
+  foundationBranchId     String   @map("foundation_branch_id") @db.Uuid
+  title                  String
+  description            String
+  observations           String?
+  totalQuantityDelivered Int      @map("total_quantity_delivered")
+  createdById            String?  @map("created_by_id") @db.Uuid
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  foundation       Foundation       @relation(fields: [foundationId], references: [id], onDelete: Cascade)
+  campaign         Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  foundationBranch FoundationBranch @relation(fields: [foundationBranchId], references: [id], onDelete: Restrict)
+  createdBy        User?            @relation("OutboundCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  lines            InventoryOutboundLine[]
+  movements        StockMovement[]
+  post             FoundationPost?
+
+  @@index([foundationId, createdAt])
+  @@index([campaignId])
+  @@index([foundationBranchId])
+  @@map("inventory_outbounds")
+}
+
+model InventoryOutboundLine {
+  id              String @id @default(uuid()) @db.Uuid
+  outboundId      String @map("outbound_id") @db.Uuid
+  inventoryItemId String @map("inventory_item_id") @db.Uuid
+  quantity        Int
+
+  outbound      InventoryOutbound @relation(fields: [outboundId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem     @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+
+  @@index([outboundId])
+  @@map("inventory_outbound_lines")
+}
+
+model StockMovement {
+  id                 String            @id @default(uuid()) @db.Uuid
+  foundationId       String            @map("foundation_id") @db.Uuid
+  inventoryItemId    String            @map("inventory_item_id") @db.Uuid
+  donationId         String?           @map("donation_id") @db.Uuid
+  campaignId         String?           @map("campaign_id") @db.Uuid
+  foundationBranchId String?           @map("foundation_branch_id") @db.Uuid
+  outboundId         String?           @map("outbound_id") @db.Uuid
+  type               StockMovementType
+  quantity           Int
+  note               String?
+  createdById        String?           @map("created_by_id") @db.Uuid
+  createdAt          DateTime          @default(now()) @map("created_at")
+
+  foundation       Foundation         @relation(fields: [foundationId], references: [id], onDelete: Cascade)
+  inventoryItem    InventoryItem      @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+  donation         Donation?          @relation(fields: [donationId], references: [id], onDelete: SetNull)
+  campaign         Campaign?          @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  foundationBranch FoundationBranch?  @relation(fields: [foundationBranchId], references: [id], onDelete: SetNull)
+  outbound         InventoryOutbound? @relation(fields: [outboundId], references: [id], onDelete: SetNull)
+  createdBy        User?              @relation("StockMovementCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([foundationId, createdAt])
+  @@index([inventoryItemId])
+  @@index([donationId])
+  @@map("stock_movements")
+}
+
+model FoundationPost {
+  id                     String   @id @default(uuid()) @db.Uuid
+  foundationId           String   @map("foundation_id") @db.Uuid
+  campaignId             String   @map("campaign_id") @db.Uuid
+  foundationBranchId     String   @map("foundation_branch_id") @db.Uuid
+  outboundId             String   @unique @map("outbound_id") @db.Uuid
+  title                  String
+  description            String
+  totalQuantityDelivered Int      @map("total_quantity_delivered")
+  slug                   String
+  publishedAt            DateTime @default(now()) @map("published_at")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  foundation       Foundation           @relation(fields: [foundationId], references: [id], onDelete: Cascade)
+  campaign         Campaign             @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  foundationBranch FoundationBranch     @relation(fields: [foundationBranchId], references: [id], onDelete: Restrict)
+  outbound         InventoryOutbound    @relation(fields: [outboundId], references: [id], onDelete: Cascade)
+  images           FoundationPostImage[]
+  lines            FoundationPostLine[]
+  reactions        PostReaction[]
+  comments         PostComment[]
+
+  @@unique([foundationId, slug])
+  @@index([foundationId, publishedAt])
+  @@index([foundationBranchId])
+  @@map("foundation_posts")
+}
+
+model FoundationPostLine {
+  id       String @id @default(uuid()) @db.Uuid
+  postId   String @map("post_id") @db.Uuid
+  inventoryItemId String? @map("inventory_item_id") @db.Uuid
+  itemName String @map("item_name")
+  unit     String
+  quantity Int
+
+  post          FoundationPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem? @relation(fields: [inventoryItemId], references: [id], onDelete: SetNull)
+
+  @@index([postId])
+  @@map("foundation_post_lines")
+}
+
+model FoundationPostImage {
+  id        String @id @default(uuid()) @db.Uuid
+  postId    String @map("post_id") @db.Uuid
+  imageUrl  String @map("image_url")
+  sortOrder Int    @default(0) @map("sort_order")
+
+  post FoundationPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, sortOrder])
+  @@map("foundation_post_images")
+}
+
+model PostReaction {
+  id        String           @id @default(uuid()) @db.Uuid
+  postId    String           @map("post_id") @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  type      PostReactionType
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  post FoundationPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@map("post_reactions")
+}
+
+model PostComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  post FoundationPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@map("post_comments")
 }

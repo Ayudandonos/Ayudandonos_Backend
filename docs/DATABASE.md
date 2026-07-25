@@ -1,6 +1,6 @@
 # Base de datos — Ayudandonos Backend
 
-Estado del esquema: **Perfil donante + coordenadas de fundaciones** (sobre Fase 5).
+Estado del esquema: **Sedes, inventario trazable, mensajeria mejorada y publicaciones de impacto** (sobre Fase 5).
 
 Motor: PostgreSQL. ORM: Prisma.
 
@@ -9,6 +9,7 @@ Motor: PostgreSQL. ORM: Prisma.
 ```mermaid
 erDiagram
   users ||--o| foundations : "1:1"
+  foundations ||--o{ foundation_branches : "has"
   foundations ||--o{ foundation_social_links : "has"
   foundations ||--o{ foundation_documents : "has"
   foundations ||--o{ foundation_admin_observations : "has"
@@ -132,6 +133,29 @@ erDiagram
 | `20260722010000_notifications` | Tabla `notifications` y enum `NotificationType` |
 | `20260722020000_user_profile_fields` | Perfil donante: phone, city, department, bio, avatar_url |
 | `20260722030000_foundation_coordinates` | Coordenadas latitude/longitude en fundaciones |
+| `20260722040000_foundation_country` | Campo country en fundaciones |
+| `20260722050000_foundation_branches` | Tabla `foundation_branches` y enum `FoundationBranchStatus` |
+| `20260725010000_inventory_posts` | Inventario (`inventory_items`, movimientos, salidas) y posts de impacto |
+| `20260725020000_campaign_foundation_branch` | `campaigns.foundation_branch_id` obligatorio |
+| `20260725030000_donation_flow_inventory_traceability` | Estados donacion simplificados; trazabilidad inventario |
+| `20260725040000_conversation_messaging_enhancements` | Preview y lectura en conversaciones |
+| `20260725050000_inventory_quantity_non_negative` | CHECK `quantity_available >= 0` |
+
+## Tablas adicionales (resumen)
+
+| Tabla | Proposito |
+| ----- | --------- |
+| `foundation_branches` | Sedes de acopio/entrega por fundacion |
+| `inventory_items` | Stock por fundacion y producto (need) |
+| `inventory_movements` | Entradas IN / salidas OUT trazables |
+| `inventory_outbounds` | Salidas con post de impacto asociado |
+| `impact_posts` | Publicaciones de impacto (imagenes, campana, sede) |
+
+## Constraints relevantes
+
+- `inventory_items.quantity_available >= 0` (CHECK en BD + validacion en service)
+- `campaigns.foundation_branch_id` NOT NULL con FK a sede activa al publicar
+- `donations.foundation_branch_id` snapshot de sede al comprometerse
 
 ## Extension futura
 

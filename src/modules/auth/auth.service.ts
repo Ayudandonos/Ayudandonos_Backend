@@ -114,7 +114,7 @@ export class AuthService {
       const user = await authRepository.findById(userId);
 
       if (!user) {
-        throw new AppError(API_MESSAGES.AUTH_USER_NOT_FOUND, 404);
+        throw new AppError(API_MESSAGES.AUTH_UNAUTHORIZED, 401);
       }
 
       this.ensureUserIsActive(user);

@@ -10,6 +10,18 @@ import {
 } from '../../middlewares/upload.middleware.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { foundationsController } from './foundations.controller.js';
+import { foundationBranchesController } from './foundation-branches.controller.js';
+import {
+  createFoundationBranchSchema,
+  foundationBranchIdParamSchema,
+  updateFoundationBranchSchema,
+} from './foundation-branches.validations.js';
+import { postsController } from '../posts/posts.controller.js';
+import {
+  foundationPostByIdParamSchema,
+  listFoundationPostsQuerySchema,
+  foundationPostsListByIdParamSchema,
+} from '../posts/posts.validations.js';
 import {
   foundationDocumentTypeParamSchema,
   foundationIdParamSchema,
@@ -107,6 +119,189 @@ foundationsRoutes.get('/me', authenticate, foundationsController.findMine);
 
 /**
  * @swagger
+ * /foundations/me/branches:
+ *   get:
+ *     summary: Listar sedes de acopio de la fundacion autenticada
+ *     tags: [Foundations]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Listado de sedes
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: Rol no permitido
+ *   post:
+ *     summary: Crear sede de acopio
+ *     tags: [Foundations]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, department, city, address, phone, openingHours]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               department:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               reference:
+ *                 type: string
+ *                 nullable: true
+ *               phone:
+ *                 type: string
+ *               openingHours:
+ *                 type: string
+ *               latitude:
+ *                 type: number
+ *                 nullable: true
+ *               longitude:
+ *                 type: number
+ *                 nullable: true
+ *               status:
+ *                 type: string
+ *                 enum: [ACTIVE, INACTIVE]
+ *     responses:
+ *       201:
+ *         description: Sede creada
+ *       400:
+ *         description: Validacion
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: Rol no permitido
+ */
+foundationsRoutes.get(
+  '/me/branches',
+  authenticate,
+  authorize('FOUNDATION'),
+  foundationBranchesController.listMine,
+);
+
+foundationsRoutes.post(
+  '/me/branches',
+  authenticate,
+  authorize('FOUNDATION'),
+  validate(createFoundationBranchSchema),
+  foundationBranchesController.create,
+);
+
+/**
+ * @swagger
+ * /foundations/me/branches/{branchId}:
+ *   patch:
+ *     summary: Actualizar sede de acopio
+ *     tags: [Foundations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: branchId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               department:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               reference:
+ *                 type: string
+ *                 nullable: true
+ *               phone:
+ *                 type: string
+ *               openingHours:
+ *                 type: string
+ *               latitude:
+ *                 type: number
+ *                 nullable: true
+ *               longitude:
+ *                 type: number
+ *                 nullable: true
+ *               status:
+ *                 type: string
+ *                 enum: [ACTIVE, INACTIVE]
+ *     responses:
+ *       200:
+ *         description: Sede actualizada
+ *       400:
+ *         description: Validacion
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: Rol no permitido
+ *       404:
+ *         description: Sede no encontrada
+ *   delete:
+ *     summary: Desactivar sede de acopio
+ *     tags: [Foundations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: branchId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Sede desactivada
+ *       400:
+ *         description: No se puede desactivar la ultima sede activa
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: Rol no permitido
+ *       404:
+ *         description: Sede no encontrada
+ */
+foundationsRoutes.patch(
+  '/me/branches/:branchId',
+  authenticate,
+  authorize('FOUNDATION'),
+  validate(foundationBranchIdParamSchema, 'params'),
+  validate(updateFoundationBranchSchema),
+  foundationBranchesController.update,
+);
+
+foundationsRoutes.delete(
+  '/me/branches/:branchId',
+  authenticate,
+  authorize('FOUNDATION'),
+  validate(foundationBranchIdParamSchema, 'params'),
+  foundationBranchesController.deactivate,
+);
+
+foundationsRoutes.post(
+  '/me/branches/:branchId/activate',
+  authenticate,
+  authorize('FOUNDATION'),
+  validate(foundationBranchIdParamSchema, 'params'),
+  foundationBranchesController.activate,
+);
+
+/**
+ * @swagger
  * /foundations/nearby:
  *   get:
  *     summary: Fundaciones verificadas cercanas y tipos en radio 1-10 km
@@ -189,6 +384,70 @@ foundationsRoutes.get(
  * /foundations/{id}:
  *   get:
  *     summary: Obtener fundacion por id
+ *     tags: [Foundations]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Fundacion encontrada
+ *       403:
+ *         description: Fundacion no visible publicamente
+ *       404:
+ *         description: Fundacion no encontrada
+ */
+foundationsRoutes.get(
+  '/:id/posts',
+  optionalAuthenticate,
+  validate(foundationPostsListByIdParamSchema, 'params'),
+  validate(listFoundationPostsQuerySchema, 'query'),
+  postsController.listByFoundation,
+);
+
+/**
+ * @swagger
+ * /foundations/{id}/branches:
+ *   get:
+ *     summary: Listar sedes activas de una fundacion verificada
+ *     tags: [Foundations]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Sedes obtenidas
+ *       403:
+ *         description: Fundacion no visible
+ *       404:
+ *         description: Fundacion no encontrada
+ */
+foundationsRoutes.get(
+  '/:id/branches',
+  optionalAuthenticate,
+  validate(foundationIdParamSchema, 'params'),
+  foundationsController.listPublicBranches,
+);
+
+foundationsRoutes.get(
+  '/:id/posts/:postId',
+  optionalAuthenticate,
+  validate(foundationPostByIdParamSchema, 'params'),
+  postsController.getPublicPost,
+);
+
+/**
+ * @swagger
+ * /foundations/{id}:
+ *   get:
+ *     summary: Obtener detalle publico de fundacion
  *     tags: [Foundations]
  *     parameters:
  *       - in: path

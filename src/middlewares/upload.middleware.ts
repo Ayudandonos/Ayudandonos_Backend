@@ -108,3 +108,42 @@ export const campaignImageUpload = (req: Request, res: Response, next: NextFunct
     }
   });
 };
+
+/**
+ * Entrada: Ninguna.
+ * Proceso: Configura middleware para subida multiple de imagenes de entrega/post.
+ * Salida: Retorna middleware Express para campo "images" (minimo 3 en servicio).
+ */
+export const postImagesUpload = (req: Request, res: Response, next: NextFunction) => {
+  upload.array('images', 10)(req, res, (err) => {
+    try {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          throw new AppError(API_MESSAGES.UPLOAD_FILE_TOO_LARGE, 400);
+        }
+        throw new AppError(API_MESSAGES.UPLOAD_INVALID_FILE, 400);
+      }
+
+      if (err) {
+        throw err;
+      }
+
+      const files = req.files;
+      if (!Array.isArray(files) || files.length === 0) {
+        throw new AppError(API_MESSAGES.UPLOAD_FILE_REQUIRED, 400);
+      }
+
+      const allowedMimeTypes: readonly string[] = uploadConfig.allowedLogoMimeTypes;
+
+      for (const file of files) {
+        if (!allowedMimeTypes.includes(file.mimetype)) {
+          throw new AppError(API_MESSAGES.UPLOAD_INVALID_MIME_TYPE, 400);
+        }
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  });
+};

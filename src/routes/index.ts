@@ -11,6 +11,8 @@ import { adminRoutes } from '../modules/admin/admin.routes.js';
 import { notificationsRoutes } from '../modules/notifications/notifications.routes.js';
 import { locationsRoutes } from '../modules/locations/locations.routes.js';
 import { impactRoutes } from '../modules/impact/impact.routes.js';
+import { inventoryRoutes } from '../modules/inventory/index.js';
+import { postsRoutes } from '../modules/posts/index.js';
 
 const apiRouter = Router();
 
@@ -26,5 +28,7 @@ apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/notifications', notificationsRoutes);
 apiRouter.use('/locations', locationsRoutes);
 apiRouter.use('/impact', impactRoutes);
+apiRouter.use('/inventory', inventoryRoutes);
+apiRouter.use('/posts', postsRoutes);
 
 export { apiRouter };

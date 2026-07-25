@@ -6,7 +6,7 @@ import {
   isFoundationOperationalReady,
 } from '../foundations/foundation-profile.util.js';
 import { foundationsRepository } from '../foundations/foundations.repository.js';
-import { resolveCoordinatesForPersist } from '../locations/resolve-coordinates.util.js';
+import { foundationBranchesRepository } from '../foundations/foundation-branches.repository.js';
 import type {
   CreateDonationDto,
   CreateMessageDto,
@@ -14,7 +14,6 @@ import type {
   ListDonationsQueryDto,
   ListMessagesQueryDto,
   MessageDto,
-  UpdateDonationDeliveryDto,
   UpdateDonationStatusDto,
 } from './donations.dto.js';
 import {
@@ -32,10 +31,8 @@ type RequesterContext = {
 };
 
 const ALLOWED_TRANSITIONS: Record<DonationStatus, DonationStatus[]> = {
-  [DonationStatus.COMMITTED]: [DonationStatus.IN_TRANSIT, DonationStatus.CANCELLED],
-  [DonationStatus.IN_TRANSIT]: [DonationStatus.DELIVERED, DonationStatus.CANCELLED],
-  [DonationStatus.DELIVERED]: [DonationStatus.CONFIRMED],
-  [DonationStatus.CONFIRMED]: [],
+  [DonationStatus.COMMITTED]: [DonationStatus.RECEIVED, DonationStatus.CANCELLED],
+  [DonationStatus.RECEIVED]: [],
   [DonationStatus.CANCELLED]: [],
 };
 
@@ -69,7 +66,7 @@ export class DonationsService {
 
     const created = await donationsRepository.createWithConversationAndHistory(
       donorUserId,
-      need.id,
+      need,
       input,
     );
 
@@ -88,12 +85,12 @@ export class DonationsService {
           recipientUserId: need.campaign.foundation.userId,
           donationId: created.id,
           senderName: created.donor.fullName,
-          linkPath: `/foundation/requests/${created.id}`,
+          linkPath: `/foundation/messages/${created.id}`,
         }),
       );
     }
 
-    return this.toDto(created);
+    return await this.toDto(created, { id: donorUserId, email: '', role: 'USER' });
   }
 
   /**
@@ -110,9 +107,12 @@ export class DonationsService {
       query,
     );
     const totalPages = Math.ceil(total / query.limit) || 1;
+    const requester = { id: donorUserId, email: '', role: 'USER' };
 
     return {
-      data: { items: items.map((item) => this.toDto(item)) },
+      data: {
+        items: await Promise.all(items.map((item) => this.toDto(item, requester))),
+      },
       meta: {
         page: query.page,
         limit: query.limit,
@@ -130,6 +130,7 @@ export class DonationsService {
   async listFoundationRequests(
     foundationId: string,
     query: ListDonationsQueryDto,
+    foundationUserId: string,
   ): Promise<{ data: { items: DonationDto[] }; meta: ApiResponseMeta }> {
     const { items, total } = await donationsRepository.findByFoundationPaginated(
       foundationId,
@@ -138,7 +139,13 @@ export class DonationsService {
     const totalPages = Math.ceil(total / query.limit) || 1;
 
     return {
-      data: { items: items.map((item) => this.toDto(item)) },
+      data: {
+        items: await Promise.all(
+          items.map((item) =>
+            this.toDto(item, { id: foundationUserId, email: '', role: 'FOUNDATION' }),
+          ),
+        ),
+      },
       meta: {
         page: query.page,
         limit: query.limit,
@@ -156,7 +163,35 @@ export class DonationsService {
   async getById(id: string, requester: RequesterContext): Promise<DonationDto> {
     const donation = await this.requireDonation(id);
     this.assertCanAccessDonation(donation, requester);
-    return this.toDto(donation);
+    return await this.toDto(donation, requester);
+  }
+
+  /**
+   * Entrada: donationId: identificador; requester: usuario autenticado.
+   * Proceso: Marca como leidos los mensajes de la conversacion para el participante.
+   * Salida: Retorna void.
+   */
+  async markMessagesAsRead(donationId: string, requester: RequesterContext): Promise<void> {
+    const donation = await this.requireDonation(donationId);
+    this.assertCanAccessDonation(donation, requester);
+
+    const conversationId =
+      donation.conversation?.id ??
+      (await donationsRepository.ensureConversationByDonationId(donationId));
+
+    const foundationUserId = donation.need.campaign.foundation.userId;
+    const readerRole =
+      requester.id === donation.donorUserId
+        ? 'donor'
+        : requester.id === foundationUserId
+          ? 'foundation'
+          : null;
+
+    if (!readerRole) {
+      throw new AppError(API_MESSAGES.MESSAGES_CANNOT_ACCESS, 403);
+    }
+
+    await donationsRepository.markConversationAsRead(conversationId, readerRole);
   }
 
   /**
@@ -179,6 +214,13 @@ export class DonationsService {
       throw new AppError(API_MESSAGES.DONATIONS_CANNOT_MANAGE, 403);
     }
 
+    if (donation.status === input.status) {
+      if (donation.status === DonationStatus.RECEIVED) {
+        throw new AppError(API_MESSAGES.DONATIONS_ALREADY_RECEIVED, 400);
+      }
+      return await this.toDto(donation, requester);
+    }
+
     if (isFoundationOwner) {
       await this.assertFoundationOperational(requester.id);
       this.assertFoundationStatusTransition(donation.status, input.status);
@@ -186,18 +228,31 @@ export class DonationsService {
       this.assertDonorStatusTransition(donation.status, input.status);
     }
 
-    if (donation.status === input.status) {
-      return this.toDto(donation);
-    }
+    let updated: DonationWithRelations;
 
-    const updated = await donationsRepository.updateStatusWithHistory(
-      donation.id,
-      donation.needId,
-      donation.quantity,
-      donation.status,
-      input.status,
-      requester.id,
-    );
+    if (input.status === DonationStatus.RECEIVED) {
+      const receivedQuantity = input.receivedQuantity ?? donation.quantity;
+
+      if (receivedQuantity < 1) {
+        throw new AppError(API_MESSAGES.DONATIONS_RECEIVED_QUANTITY_INVALID, 400);
+      }
+
+      updated = await donationsRepository.confirmReceptionWithInventory(
+        donation,
+        receivedQuantity,
+        input.receptionNotes ?? null,
+        requester.id,
+      );
+    } else {
+      updated = await donationsRepository.updateStatusWithHistory(
+        donation.id,
+        donation.needId,
+        donation.quantity,
+        donation.status,
+        input.status,
+        requester.id,
+      );
+    }
 
     const recipientUserId = isDonor
       ? foundationUserId
@@ -215,68 +270,7 @@ export class DonationsService {
       }),
     );
 
-    return this.toDto(updated);
-  }
-
-  /**
-   * Entrada: id: identificador; input: datos de entrega; foundationUserId: dueno operativo.
-   * Proceso: Actualiza entrega solo si la fundacion es duena de la campana.
-   * Salida: Retorna el DTO actualizado.
-   */
-  async updateDelivery(
-    id: string,
-    input: UpdateDonationDeliveryDto,
-    foundationUserId: string,
-    foundationId: string,
-  ): Promise<DonationDto> {
-    const donation = await this.requireDonation(id);
-
-    if (donation.need.campaign.foundationId !== foundationId) {
-      throw new AppError(API_MESSAGES.DONATIONS_CANNOT_MANAGE, 403);
-    }
-
-    if (donation.need.campaign.foundation.userId !== foundationUserId) {
-      throw new AppError(API_MESSAGES.DONATIONS_CANNOT_MANAGE, 403);
-    }
-
-    const payload: UpdateDonationDeliveryDto = { ...input };
-    const foundationProfile = await foundationsRepository.findByIdWithRelations(foundationId);
-    const nextAddress =
-      input.deliveryAddress !== undefined
-        ? input.deliveryAddress
-        : donation.deliveryAddress;
-    const addressChanged =
-      input.deliveryAddress !== undefined &&
-      input.deliveryAddress !== donation.deliveryAddress;
-
-    if (nextAddress?.trim() && foundationProfile) {
-      const resolved = await resolveCoordinatesForPersist({
-        currentLatitude: donation.deliveryLatitude,
-        currentLongitude: donation.deliveryLongitude,
-        incomingLatitude: input.deliveryLatitude,
-        incomingLongitude: input.deliveryLongitude,
-        locationChanged: addressChanged,
-        location: {
-          street: nextAddress,
-          city: foundationProfile.city,
-          state: foundationProfile.department,
-          country: foundationProfile.country,
-        },
-      });
-      payload.deliveryLatitude = resolved.latitude;
-      payload.deliveryLongitude = resolved.longitude;
-    }
-
-    const updated = await donationsRepository.updateDelivery(id, payload);
-
-    await this.safeNotify(() =>
-      notificationsService.notifyDonationDeliveryUpdated({
-        donorUserId: donation.donorUserId,
-        donationId: donation.id,
-      }),
-    );
-
-    return this.toDto(updated);
+    return await this.toDto(updated, requester);
   }
 
   /**
@@ -301,6 +295,8 @@ export class DonationsService {
       query,
     );
     const totalPages = Math.ceil(total / query.limit) || 1;
+
+    await this.markMessagesAsRead(donationId, requester);
 
     return {
       data: {
@@ -332,6 +328,8 @@ export class DonationsService {
       donation.conversation?.id ??
       (await donationsRepository.ensureConversationByDonationId(donationId));
 
+    await this.assertCanSendMessage(donation, conversationId, requester);
+
     const message = await donationsRepository.createMessage(
       conversationId,
       requester.id,
@@ -345,8 +343,8 @@ export class DonationsService {
         : donation.donorUserId;
     const linkPath =
       recipientUserId === foundationUserId
-        ? `/foundation/requests/${donation.id}`
-        : `/my-donations/${donation.id}`;
+        ? `/foundation/messages/${donation.id}`
+        : `/my-donations/chats/${donation.id}`;
 
     await this.safeNotify(() =>
       notificationsService.notifyDonationMessage({
@@ -412,6 +410,36 @@ export class DonationsService {
   }
 
   /**
+   * Entrada: donation, conversationId y requester.
+   * Proceso: Valida que la donacion permita enviar mensajes y que la fundacion solo responda.
+   * Salida: Retorna void o lanza AppError.
+   */
+  private async assertCanSendMessage(
+    donation: DonationWithRelations,
+    conversationId: string,
+    requester: RequesterContext,
+  ): Promise<void> {
+    if (donation.status === DonationStatus.CANCELLED) {
+      throw new AppError(API_MESSAGES.MESSAGES_DONATION_CANCELLED, 400);
+    }
+
+    const foundationUserId = donation.need.campaign.foundation.userId;
+
+    if (requester.id === foundationUserId) {
+      await this.assertFoundationOperational(foundationUserId);
+
+      const donorMessageCount = await donationsRepository.countDonorMessages(
+        conversationId,
+        donation.donorUserId,
+      );
+
+      if (donorMessageCount === 0) {
+        throw new AppError(API_MESSAGES.MESSAGES_FOUNDATION_CANNOT_INITIATE, 403);
+      }
+    }
+  }
+
+  /**
    * Entrada: foundationUserId: usuario de la fundacion.
    * Proceso: Exige fundacion verificada y operativa para gestionar estados.
    * Salida: Retorna void o lanza AppError 403.
@@ -423,9 +451,110 @@ export class DonationsService {
       throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
     }
 
-    if (!isFoundationOperationalReady(foundation, foundation.documents)) {
+    const branches = await foundationBranchesRepository.findByFoundationId(foundation.id);
+
+    if (!isFoundationOperationalReady(foundation, foundation.documents, branches)) {
       throw new AppError(API_MESSAGES.FOUNDATIONS_ACCESS_VERIFICATION_REQUIRED, 403);
     }
+  }
+
+  /**
+   * Entrada: donation: entidad con relaciones; requester: usuario autenticado opcional.
+   * Proceso: Mapea la entidad Prisma al DTO de respuesta con resumen de conversacion.
+   * Salida: Retorna DonationDto.
+   */
+  private async toDto(
+    donation: DonationWithRelations,
+    requester?: RequesterContext,
+  ): Promise<DonationDto> {
+    const foundationUserId = donation.need.campaign.foundation.userId;
+    const conversation = donation.conversation;
+    let unreadCount = 0;
+
+    if (requester && conversation) {
+      const isDonor = requester.id === donation.donorUserId;
+      const isFoundation = requester.id === foundationUserId;
+
+      if (isDonor || isFoundation) {
+        const lastReadAt = isDonor
+          ? conversation.donorLastReadAt
+          : conversation.foundationLastReadAt;
+
+        unreadCount = await donationsRepository.countUnreadMessages(
+          conversation.id,
+          requester.id,
+          lastReadAt,
+        );
+      }
+    }
+
+    return {
+      id: donation.id,
+      needId: donation.needId,
+      donorUserId: donation.donorUserId,
+      foundationBranchId: donation.foundationBranchId,
+      status: donation.status,
+      quantity: donation.quantity,
+      receivedQuantity: donation.receivedQuantity,
+      notes: donation.notes,
+      estimatedDeliveryAt: donation.estimatedDeliveryAt?.toISOString() ?? null,
+      receivedAt: donation.receivedAt?.toISOString() ?? null,
+      receptionNotes: donation.receptionNotes,
+      createdAt: donation.createdAt.toISOString(),
+      updatedAt: donation.updatedAt.toISOString(),
+      conversationId: conversation?.id ?? null,
+      conversation: conversation
+        ? {
+            lastMessageAt: conversation.lastMessageAt?.toISOString() ?? null,
+            lastMessageBody: conversation.lastMessageBody,
+            lastMessageSenderId: conversation.lastMessageSenderId,
+            unreadCount,
+          }
+        : null,
+      need: {
+        id: donation.need.id,
+        name: donation.need.name,
+        unit: donation.need.unit,
+        quantity: donation.need.quantity,
+        fulfilledQuantity: donation.need.fulfilledQuantity,
+      },
+      campaign: {
+        id: donation.need.campaign.id,
+        title: donation.need.campaign.title,
+        status: donation.need.campaign.status,
+      },
+      foundation: {
+        id: donation.need.campaign.foundation.id,
+        name: donation.need.campaign.foundation.name,
+        acronym: donation.need.campaign.foundation.acronym,
+        logoUrl: donation.need.campaign.foundation.logoUrl,
+      },
+      branch: {
+        id: donation.foundationBranch.id,
+        name: donation.foundationBranch.name,
+        department: donation.foundationBranch.department,
+        city: donation.foundationBranch.city,
+        address: donation.foundationBranch.address,
+        reference: donation.foundationBranch.reference,
+        phone: donation.foundationBranch.phone,
+        openingHours: donation.foundationBranch.openingHours,
+        latitude: donation.foundationBranch.latitude,
+        longitude: donation.foundationBranch.longitude,
+      },
+      donor: {
+        id: donation.donor.id,
+        fullName: donation.donor.fullName,
+      },
+      statusHistory: donation.statusHistory.map((entry) => ({
+        id: entry.id,
+        fromStatus: entry.fromStatus,
+        toStatus: entry.toStatus,
+        changedById: entry.changedById,
+        changedByFullName: entry.changedBy?.fullName ?? null,
+        note: entry.note,
+        createdAt: entry.createdAt.toISOString(),
+      })),
+    };
   }
 
   /**
@@ -453,60 +582,6 @@ export class DonationsService {
     }
 
     throw new AppError(API_MESSAGES.DONATIONS_INVALID_STATUS_TRANSITION, 400);
-  }
-
-  /**
-   * Entrada: donation: entidad con relaciones.
-   * Proceso: Mapea la entidad Prisma al DTO de respuesta.
-   * Salida: Retorna DonationDto.
-   */
-  private toDto(donation: DonationWithRelations): DonationDto {
-    return {
-      id: donation.id,
-      needId: donation.needId,
-      donorUserId: donation.donorUserId,
-      status: donation.status,
-      quantity: donation.quantity,
-      notes: donation.notes,
-      estimatedDeliveryAt: donation.estimatedDeliveryAt?.toISOString() ?? null,
-      deliveryAddress: donation.deliveryAddress,
-      deliveryLatitude: donation.deliveryLatitude,
-      deliveryLongitude: donation.deliveryLongitude,
-      createdAt: donation.createdAt.toISOString(),
-      updatedAt: donation.updatedAt.toISOString(),
-      conversationId: donation.conversation?.id ?? null,
-      need: {
-        id: donation.need.id,
-        name: donation.need.name,
-        unit: donation.need.unit,
-        quantity: donation.need.quantity,
-        fulfilledQuantity: donation.need.fulfilledQuantity,
-      },
-      campaign: {
-        id: donation.need.campaign.id,
-        title: donation.need.campaign.title,
-        status: donation.need.campaign.status,
-      },
-      foundation: {
-        id: donation.need.campaign.foundation.id,
-        name: donation.need.campaign.foundation.name,
-        acronym: donation.need.campaign.foundation.acronym,
-        logoUrl: donation.need.campaign.foundation.logoUrl,
-      },
-      donor: {
-        id: donation.donor.id,
-        fullName: donation.donor.fullName,
-      },
-      statusHistory: donation.statusHistory.map((entry) => ({
-        id: entry.id,
-        fromStatus: entry.fromStatus,
-        toStatus: entry.toStatus,
-        changedById: entry.changedById,
-        changedByFullName: entry.changedBy?.fullName ?? null,
-        note: entry.note,
-        createdAt: entry.createdAt.toISOString(),
-      })),
-    };
   }
 
   /**

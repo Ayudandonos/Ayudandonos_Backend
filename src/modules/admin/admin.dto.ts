@@ -96,6 +96,13 @@ export interface AdminCampaignListItemDto {
     city: string | null;
     department: string | null;
   };
+  foundationBranch: {
+    id: string;
+    name: string;
+    city: string;
+    department: string;
+    address: string;
+  } | null;
   createdBy: {
     fullName: string;
     email: string;

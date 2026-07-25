@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { DonationStatus } from '@prisma/client';
 import { ApiResponseBuilder } from '../../shared/responses/api.response.js';
 import { API_MESSAGES } from '../../shared/constants/messages.constants.js';
 import { AppError } from '../../shared/errors/app.error.js';
@@ -11,7 +12,6 @@ import type {
   DonationIdParamInput,
   ListDonationsQueryInput,
   ListMessagesQueryInput,
-  UpdateDonationDeliveryInput,
   UpdateDonationStatusInput,
 } from './donations.validations.js';
 
@@ -76,31 +76,12 @@ export class DonationsController {
     const body = req.body as UpdateDonationStatusInput;
     const data = await donationsService.updateStatus(id, body, user);
 
-    res.status(200).json(
-      ApiResponseBuilder.success(data, API_MESSAGES.DONATIONS_STATUS_UPDATE_SUCCESS),
-    );
-  });
+    const message =
+      body.status === DonationStatus.RECEIVED
+        ? API_MESSAGES.DONATIONS_RECEIVE_SUCCESS
+        : API_MESSAGES.DONATIONS_STATUS_UPDATE_SUCCESS;
 
-  /**
-   * Entrada: req: peticion de fundacion operativa con datos de entrega; res: respuesta HTTP.
-   * Proceso: Delega la actualizacion de entrega al servicio.
-   * Salida: No retorna valor; responde 200 con donacion actualizada.
-   */
-  updateDelivery = asyncHandler(async (req: Request, res: Response) => {
-    const user = this.requireUser(req);
-    const foundation = this.requireFoundation(req);
-    const { id } = req.params as DonationIdParamInput;
-    const body = req.body as UpdateDonationDeliveryInput;
-    const data = await donationsService.updateDelivery(
-      id,
-      body,
-      user.id,
-      foundation.id,
-    );
-
-    res.status(200).json(
-      ApiResponseBuilder.success(data, API_MESSAGES.DONATIONS_DELIVERY_UPDATE_SUCCESS),
-    );
+    res.status(200).json(ApiResponseBuilder.success(data, message));
   });
 
   /**
@@ -140,6 +121,21 @@ export class DonationsController {
   });
 
   /**
+   * Entrada: req: peticion autenticada con id de donacion; res: respuesta HTTP.
+   * Proceso: Delega la confirmacion de lectura de mensajes al servicio.
+   * Salida: No retorna valor; responde 200.
+   */
+  markMessagesRead = asyncHandler(async (req: Request, res: Response) => {
+    const user = this.requireUser(req);
+    const { id } = req.params as DonationIdParamInput;
+    await donationsService.markMessagesAsRead(id, user);
+
+    res.status(200).json(
+      ApiResponseBuilder.success(null, API_MESSAGES.MESSAGES_MARK_READ_SUCCESS),
+    );
+  });
+
+  /**
    * Entrada: req: peticion autenticada.
    * Proceso: Exige usuario autenticado en la peticion.
    * Salida: Retorna el usuario o lanza AppError 401.
@@ -152,21 +148,6 @@ export class DonationsController {
     }
 
     return user;
-  }
-
-  /**
-   * Entrada: req: peticion de fundacion operativa.
-   * Proceso: Exige que el middleware haya adjuntado la fundacion operativa.
-   * Salida: Retorna la fundacion o lanza AppError 404.
-   */
-  private requireFoundation(req: Request) {
-    const { foundation } = req as AuthenticatedRequest;
-
-    if (!foundation) {
-      throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
-    }
-
-    return foundation;
   }
 }
 

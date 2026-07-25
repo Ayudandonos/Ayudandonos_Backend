@@ -1,4 +1,5 @@
-import { FoundationDocumentType, type Foundation, type FoundationDocument } from '@prisma/client';
+import { FoundationDocumentType, type Foundation, type FoundationBranch, type FoundationDocument } from '@prisma/client';
+import { FoundationBranchStatus } from '@prisma/client';
 
 export const REQUIRED_FOUNDATION_DOCUMENT_TYPES: FoundationDocumentType[] = [
   FoundationDocumentType.RUT,
@@ -43,6 +44,50 @@ export function hasRequiredFoundationDocuments(
 }
 
 /**
+ * Entrada: branch: sede de la fundacion.
+ * Proceso: Verifica que la sede activa tenga datos minimos de acopio.
+ * Salida: Retorna true si la sede esta lista para operar.
+ */
+export function isFoundationBranchComplete(branch: Pick<
+  FoundationBranch,
+  'status' | 'name' | 'department' | 'city' | 'address' | 'phone' | 'openingHours'
+>): boolean {
+  if (branch.status !== FoundationBranchStatus.ACTIVE) {
+    return false;
+  }
+
+  const placeholders = new Set(['por completar', 'por definir']);
+
+  const isValid = (value: string | null | undefined) => {
+    const normalized = value?.trim().toLowerCase() ?? '';
+    return normalized.length > 0 && !placeholders.has(normalized);
+  };
+
+  return (
+    isValid(branch.name) &&
+    isValid(branch.department) &&
+    isValid(branch.city) &&
+    isValid(branch.address) &&
+    isValid(branch.phone) &&
+    isValid(branch.openingHours)
+  );
+}
+
+/**
+ * Entrada: branches: sedes de la fundacion.
+ * Proceso: Verifica que exista al menos una sede activa y completa.
+ * Salida: Retorna true si cumple requisito operativo de sedes.
+ */
+export function hasActiveFoundationBranch(
+  branches: Pick<
+    FoundationBranch,
+    'status' | 'name' | 'department' | 'city' | 'address' | 'phone' | 'openingHours'
+  >[],
+): boolean {
+  return branches.some((branch) => isFoundationBranchComplete(branch));
+}
+
+/**
  * Entrada: foundation: entidad de fundacion; documents: documentos asociados.
  * Proceso: Verifica campos obligatorios del perfil y documentos legales requeridos.
  * Salida: Retorna true si la fundacion puede salir del flujo exclusivo de perfil.
@@ -50,8 +95,16 @@ export function hasRequiredFoundationDocuments(
 export function isFoundationProfileReady(
   foundation: Foundation,
   documents: Pick<FoundationDocument, 'type'>[],
+  branches: Pick<
+    FoundationBranch,
+    'status' | 'name' | 'department' | 'city' | 'address' | 'phone' | 'openingHours'
+  >[] = [],
 ): boolean {
-  return isFoundationProfileComplete(foundation) && hasRequiredFoundationDocuments(documents);
+  return (
+    isFoundationProfileComplete(foundation) &&
+    hasRequiredFoundationDocuments(documents) &&
+    hasActiveFoundationBranch(branches)
+  );
 }
 
 /**
@@ -62,6 +115,10 @@ export function isFoundationProfileReady(
 export function isFoundationOperationalReady(
   foundation: Foundation,
   documents: Pick<FoundationDocument, 'type'>[],
+  branches: Pick<
+    FoundationBranch,
+    'status' | 'name' | 'department' | 'city' | 'address' | 'phone' | 'openingHours'
+  >[] = [],
 ): boolean {
-  return foundation.status === 'VERIFIED' && isFoundationProfileReady(foundation, documents);
+  return foundation.status === 'VERIFIED' && isFoundationProfileReady(foundation, documents, branches);
 }

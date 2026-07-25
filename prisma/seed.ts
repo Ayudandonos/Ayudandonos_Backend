@@ -3,7 +3,9 @@ import {
   DonationStatus,
   FoundationStatus,
   NotificationType,
+  PostReactionType,
   PrismaClient,
+  StockMovementType,
   UserRole,
   type User,
 } from '@prisma/client';
@@ -82,7 +84,17 @@ async function resetDatabase(): Promise<void> {
       "donation_status_history",
       "donations",
       "needs",
+      "post_comments",
+      "post_reactions",
+      "foundation_post_images",
+      "foundation_post_lines",
+      "foundation_posts",
+      "stock_movements",
+      "inventory_outbound_lines",
+      "inventory_outbounds",
+      "inventory_items",
       "campaigns",
+      "foundation_branches",
       "foundation_admin_observations",
       "foundation_documents",
       "foundation_social_links",
@@ -92,6 +104,30 @@ async function resetDatabase(): Promise<void> {
   `);
 
   console.log('[SEED] Base de datos vaciada. Se cargara solo el dataset del seed.');
+}
+
+/**
+ * Entrada: Ninguna.
+ * Proceso: Verifica que migraciones recientes esten aplicadas antes de sembrar.
+ * Salida: Retorna void o lanza error con instrucciones de despliegue.
+ */
+async function assertMigrationsApplied(): Promise<void> {
+  const rows = await prisma.$queryRaw<Array<{ exists: boolean }>>`
+    SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'donations'
+        AND column_name = 'foundation_branch_id'
+    ) AS "exists"
+  `;
+
+  if (!rows[0]?.exists) {
+    throw new Error(
+      'El esquema de la base de datos no esta actualizado (falta donations.foundation_branch_id). ' +
+        'Ejecuta: npm run db:deploy  o  npm run db:setup',
+    );
+  }
 }
 
 /**
@@ -206,6 +242,14 @@ async function seedSocialLinks(
  */
 async function seedCampaigns(
   foundationId: string,
+  foundationBranchId: string,
+  branchSnapshot: {
+    address: string;
+    city: string;
+    department: string;
+    latitude: number | null;
+    longitude: number | null;
+  },
   campaigns: SeedFoundationInput['campaigns'],
 ): Promise<string[]> {
   const needIds: string[] = [];
@@ -218,15 +262,16 @@ async function seedCampaigns(
     const campaign = await prisma.campaign.create({
       data: {
         foundationId,
+        foundationBranchId,
         title: campaignSeed.title,
         description: campaignSeed.description,
         imageUrl: campaignSeed.imageUrl,
         status: campaignSeed.status,
         startDate: daysFromNow(campaignSeed.startOffsetDays),
         endDate: daysFromNow(campaignSeed.endOffsetDays),
-        deliveryAddress: campaignSeed.deliveryAddress,
-        deliveryLatitude: campaignSeed.deliveryLatitude,
-        deliveryLongitude: campaignSeed.deliveryLongitude,
+        deliveryAddress: `${branchSnapshot.address}, ${branchSnapshot.city}, ${branchSnapshot.department}`,
+        deliveryLatitude: branchSnapshot.latitude,
+        deliveryLongitude: branchSnapshot.longitude,
         createdAt: campaignCreatedAt,
         updatedAt: campaignCreatedAt,
       },
@@ -325,7 +370,36 @@ async function seedFoundation(
 
   await seedFoundationDocuments(foundation.id, createdAt);
   await seedSocialLinks(foundation.id, seed.socialLinks, createdAt);
-  const needIds = await seedCampaigns(foundation.id, seed.campaigns);
+
+  const branch = await prisma.foundationBranch.create({
+    data: {
+      foundationId: foundation.id,
+      name: 'Sede principal',
+      department: seed.department,
+      city: seed.city,
+      address: seed.address,
+      reference: 'Punto de acopio principal de la fundacion.',
+      phone: seed.phone,
+      openingHours: 'Lunes a viernes 8:00 - 17:00',
+      latitude: seed.latitude,
+      longitude: seed.longitude,
+      createdAt,
+      updatedAt,
+    },
+  });
+
+  const needIds = await seedCampaigns(
+    foundation.id,
+    branch.id,
+    {
+      address: branch.address,
+      city: branch.city,
+      department: branch.department,
+      latitude: branch.latitude,
+      longitude: branch.longitude,
+    },
+    seed.campaigns,
+  );
 
   console.log(`[SEED] Fundacion lista: ${foundation.name} (${foundation.status})`);
   return needIds;
@@ -339,28 +413,28 @@ async function seedFoundation(
 function donationStatusForAge(offsetDays: number, index: number): DonationStatus {
   if (offsetDays < -100) {
     const pool = [
-      DonationStatus.CONFIRMED,
-      DonationStatus.CONFIRMED,
-      DonationStatus.DELIVERED,
+      DonationStatus.RECEIVED,
+      DonationStatus.RECEIVED,
+      DonationStatus.RECEIVED,
       DonationStatus.CANCELLED,
     ];
-    return pool[index % pool.length] ?? DonationStatus.CONFIRMED;
+    return pool[index % pool.length] ?? DonationStatus.RECEIVED;
   }
 
   if (offsetDays < -50) {
     const pool = [
-      DonationStatus.CONFIRMED,
-      DonationStatus.DELIVERED,
-      DonationStatus.IN_TRANSIT,
+      DonationStatus.RECEIVED,
+      DonationStatus.RECEIVED,
+      DonationStatus.COMMITTED,
     ];
-    return pool[index % pool.length] ?? DonationStatus.DELIVERED;
+    return pool[index % pool.length] ?? DonationStatus.RECEIVED;
   }
 
   const pool = [
     DonationStatus.COMMITTED,
-    DonationStatus.IN_TRANSIT,
-    DonationStatus.DELIVERED,
-    DonationStatus.CONFIRMED,
+    DonationStatus.COMMITTED,
+    DonationStatus.RECEIVED,
+    DonationStatus.CANCELLED,
   ];
   return pool[index % pool.length] ?? DonationStatus.COMMITTED;
 }
@@ -412,12 +486,29 @@ async function seedHistoricalDonations(
     const status = donationStatusForAge(offsetDays, index);
     const { createdAt, updatedAt } = timestampsAt(offsetDays);
 
+    const need = await prisma.need.findFirstOrThrow({
+      where: { id: needId },
+      select: {
+        campaign: { select: { foundationBranchId: true } },
+      },
+    });
+
+    const quantity = 2 + (index % 7);
+    const isReceived = status === DonationStatus.RECEIVED;
+    const receptionDate = new Date(createdAt);
+    if (isReceived) {
+      receptionDate.setUTCDate(receptionDate.getUTCDate() + 3);
+    }
+
     const donation = await prisma.donation.create({
       data: {
         needId,
         donorUserId: donor.id,
+        foundationBranchId: need.campaign.foundationBranchId,
         status,
-        quantity: 2 + (index % 7),
+        quantity,
+        receivedQuantity: isReceived ? quantity : null,
+        receivedAt: isReceived ? receptionDate : null,
         notes: 'Donacion de demostracion generada por seed historico.',
         estimatedDeliveryAt: daysFromNow(offsetDays + 5),
         createdAt,
@@ -477,7 +568,7 @@ async function seedDemoNotifications(donors: User[], admins: User[]): Promise<vo
             userId: demoDonor.id,
             type: NotificationType.DONATION_STATUS_CHANGED,
             title: 'Actualización de donación',
-            body: 'El estado de tu donación cambió a IN_TRANSIT.',
+            body: 'El estado de tu donación cambió a RECEIVED.',
             linkPath: `/my-donations/${donation.id}`,
             resourceType: 'DONATION',
             resourceId: donation.id,
@@ -486,9 +577,9 @@ async function seedDemoNotifications(donors: User[], admins: User[]): Promise<vo
           },
           {
             userId: demoDonor.id,
-            type: NotificationType.DONATION_DELIVERY_UPDATED,
-            title: 'Entrega actualizada',
-            body: 'La fundación actualizó los datos de entrega de tu donación.',
+            type: NotificationType.DONATION_STATUS_CHANGED,
+            title: 'Donación recibida',
+            body: 'La fundación confirmó la recepción de tu donación.',
             linkPath: `/my-donations/${donation.id}`,
             resourceType: 'DONATION',
             resourceId: donation.id,
@@ -555,6 +646,414 @@ async function seedDemoNotifications(donors: User[], admins: User[]): Promise<vo
   console.log('[SEED] Notificaciones demo creadas: 2 (admin demo)');
 }
 
+/** Imagenes publicas de entregas demo (Unsplash). */
+const SEED_POST_IMAGE_URLS = [
+  'https://images.unsplash.com/photo-1488521787991-ed7bbaae773f?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1532629345422-7515f3d2a388?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1593113598332-cf28858ce811?auto=format&fit=crop&w=900&q=80',
+] as const;
+
+const RECEIVED_DONATION_STATUSES: DonationStatus[] = [DonationStatus.RECEIVED];
+
+interface InventoryItemSeedRef {
+  id: string;
+  foundationId: string;
+  name: string;
+  unit: string;
+}
+
+interface OutboundLineSeed {
+  inventoryItemId: string;
+  quantity: number;
+  name: string;
+  unit: string;
+}
+
+/**
+ * Entrada: foundationSlug, title e indice de salida.
+ * Proceso: Genera slug unico para publicacion de impacto.
+ * Salida: Retorna slug URL-safe.
+ */
+function buildSeedPostSlug(foundationSlug: string, title: string, index: number): string {
+  const normalized = title
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40);
+
+  return `${foundationSlug}-${normalized || 'entrega'}-${index}`;
+}
+
+/**
+ * Entrada: parametros de salida, lineas, imagenes y fecha historica.
+ * Proceso: Crea salida OUT, movimientos y publicacion obligatoria en una transaccion.
+ * Salida: Retorna id del post creado.
+ */
+async function createOutboundWithPostAt(params: {
+  foundationId: string;
+  campaignId: string;
+  foundationBranchId: string;
+  title: string;
+  description: string;
+  observations?: string | null;
+  slug: string;
+  lines: OutboundLineSeed[];
+  imageUrls: string[];
+  createdById: string | null;
+  eventDate: Date;
+}): Promise<string> {
+  const totalQuantityDelivered = params.lines.reduce((sum, line) => sum + line.quantity, 0);
+
+  const result = await prisma.$transaction(async (tx) => {
+    for (const line of params.lines) {
+      const item = await tx.inventoryItem.findFirst({
+        where: { id: line.inventoryItemId, foundationId: params.foundationId },
+      });
+
+      if (!item || item.quantityAvailable < line.quantity) {
+        throw new Error(`INSUFFICIENT_STOCK:${line.name}`);
+      }
+    }
+
+    const outbound = await tx.inventoryOutbound.create({
+      data: {
+        foundationId: params.foundationId,
+        campaignId: params.campaignId,
+        foundationBranchId: params.foundationBranchId,
+        title: params.title,
+        description: params.description,
+        observations: params.observations ?? null,
+        totalQuantityDelivered,
+        createdById: params.createdById,
+        createdAt: params.eventDate,
+      },
+    });
+
+    for (const line of params.lines) {
+      await tx.inventoryItem.update({
+        where: { id: line.inventoryItemId },
+        data: { quantityAvailable: { decrement: line.quantity } },
+      });
+
+      await tx.inventoryOutboundLine.create({
+        data: {
+          outboundId: outbound.id,
+          inventoryItemId: line.inventoryItemId,
+          quantity: line.quantity,
+        },
+      });
+
+      await tx.stockMovement.create({
+        data: {
+          foundationId: params.foundationId,
+          inventoryItemId: line.inventoryItemId,
+          outboundId: outbound.id,
+          campaignId: params.campaignId,
+          foundationBranchId: params.foundationBranchId,
+          type: StockMovementType.OUT,
+          quantity: line.quantity,
+          note: 'Salida demo vinculada a entrega comunitaria.',
+          createdById: params.createdById,
+          createdAt: params.eventDate,
+        },
+      });
+    }
+
+    const post = await tx.foundationPost.create({
+      data: {
+        foundationId: params.foundationId,
+        campaignId: params.campaignId,
+        foundationBranchId: params.foundationBranchId,
+        outboundId: outbound.id,
+        title: params.title,
+        description: params.description,
+        totalQuantityDelivered,
+        slug: params.slug,
+        publishedAt: params.eventDate,
+        createdAt: params.eventDate,
+        updatedAt: params.eventDate,
+        lines: {
+          create: params.lines.map((line) => ({
+            inventoryItemId: line.inventoryItemId,
+            itemName: line.name,
+            unit: line.unit,
+            quantity: line.quantity,
+          })),
+        },
+        images: {
+          create: params.imageUrls.map((imageUrl, index) => ({
+            imageUrl,
+            sortOrder: index,
+          })),
+        },
+      },
+    });
+
+    return post.id;
+  });
+
+  return result;
+}
+
+/**
+ * Entrada: donors: usuarios donantes del seed.
+ * Proceso: Crea inventario desde donaciones recibidas, salidas con posts y actividad social demo.
+ * Salida: No retorna valor.
+ */
+async function seedInventoryFromDonations(donors: User[]): Promise<void> {
+  const receivedDonations = await prisma.donation.findMany({
+    where: { status: { in: RECEIVED_DONATION_STATUSES } },
+    include: {
+      need: {
+        select: {
+          name: true,
+          unit: true,
+          campaign: {
+            select: { id: true, title: true, foundationId: true, foundationBranchId: true },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  if (receivedDonations.length === 0) {
+    console.log('[SEED] Inventario omitido: no hay donaciones recibidas (RECEIVED).');
+    return;
+  }
+
+  const itemByKey = new Map<string, InventoryItemSeedRef>();
+  let stockInMovements = 0;
+
+  for (const donation of receivedDonations) {
+    const campaign = donation.need.campaign;
+    const key = `${campaign.foundationId}:${donation.need.name}:${donation.need.unit}`;
+    let item = itemByKey.get(key);
+
+    if (!item) {
+      const created = await prisma.inventoryItem.create({
+        data: {
+          foundationId: campaign.foundationId,
+          name: donation.need.name,
+          unit: donation.need.unit,
+          quantityAvailable: 0,
+        },
+      });
+
+      item = {
+        id: created.id,
+        foundationId: created.foundationId,
+        name: created.name,
+        unit: created.unit,
+      };
+      itemByKey.set(key, item);
+    }
+
+    const receptionDate = new Date(donation.createdAt);
+    receptionDate.setUTCDate(receptionDate.getUTCDate() + 3);
+
+    const receivedQty = donation.receivedQuantity ?? donation.quantity;
+
+    await prisma.inventoryItem.update({
+      where: { id: item.id },
+      data: { quantityAvailable: { increment: receivedQty } },
+    });
+
+    await prisma.stockMovement.create({
+      data: {
+        foundationId: item.foundationId,
+        inventoryItemId: item.id,
+        donationId: donation.id,
+        campaignId: campaign.id,
+        foundationBranchId: donation.foundationBranchId,
+        type: StockMovementType.IN,
+        quantity: receivedQty,
+        note: `Recepcion de donacion demo (${donation.id.slice(0, 8)}).`,
+        createdAt: receptionDate,
+      },
+    });
+
+    stockInMovements += 1;
+  }
+
+  const verifiedFoundations = await prisma.foundation.findMany({
+    where: { status: FoundationStatus.VERIFIED },
+    select: { id: true, name: true, slug: true, userId: true },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  const outboundTemplates = [
+    {
+      title: 'Entrega a familias en territorio priorizado',
+      description:
+        'Distribuimos los aportes recibidos de donantes en especie a hogares identificados por la fundacion.',
+    },
+    {
+      title: 'Jornada de entrega comunitaria',
+      description:
+        'Salida de inventario para apoyar la campana activa con productos donados y verificados en bodega.',
+    },
+    {
+      title: 'Entrega institucional de apoyos en especie',
+      description:
+        'Los productos acopiados fueron entregados a instituciones aliadas que atienden poblacion vulnerable.',
+    },
+  ];
+
+  const createdPostIds: string[] = [];
+  let outboundCount = 0;
+
+  for (const foundation of verifiedFoundations) {
+    const foundationSlug = foundation.slug ?? foundation.id.slice(0, 8);
+    const foundationItems = await prisma.inventoryItem.findMany({
+      where: { foundationId: foundation.id, quantityAvailable: { gt: 0 } },
+      orderBy: { quantityAvailable: 'desc' },
+    });
+
+    if (foundationItems.length === 0) {
+      continue;
+    }
+
+    const foundationCampaigns = await prisma.campaign.findMany({
+      where: {
+        foundationId: foundation.id,
+        needs: {
+          some: {
+            donations: {
+              some: {
+                status: { in: RECEIVED_DONATION_STATUSES },
+              },
+            },
+          },
+        },
+      },
+      select: { id: true, title: true, foundationBranchId: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (foundationCampaigns.length === 0) {
+      continue;
+    }
+
+    const outboundsForFoundation = Math.min(2, foundationCampaigns.length);
+
+    for (let index = 0; index < outboundsForFoundation; index += 1) {
+      const campaign = foundationCampaigns[index % foundationCampaigns.length];
+      if (!campaign) {
+        continue;
+      }
+
+      const refreshedItems = await prisma.inventoryItem.findMany({
+        where: { foundationId: foundation.id, quantityAvailable: { gt: 0 } },
+        orderBy: { quantityAvailable: 'desc' },
+        take: 2,
+      });
+
+      if (refreshedItems.length === 0) {
+        break;
+      }
+
+      const lines: OutboundLineSeed[] = refreshedItems
+        .map((item) => {
+          const quantity = Math.max(1, Math.min(item.quantityAvailable, Math.floor(item.quantityAvailable * 0.35)));
+          return {
+            inventoryItemId: item.id,
+            quantity,
+            name: item.name,
+            unit: item.unit,
+          };
+        })
+        .filter((line) => line.quantity > 0);
+
+      if (lines.length === 0) {
+        continue;
+      }
+
+      const template = outboundTemplates[(outboundCount + index) % outboundTemplates.length];
+      if (!template) {
+        continue;
+      }
+
+      const eventDate = daysFromNow(-20 - outboundCount * 12 - index * 5);
+      const postImages = [
+        SEED_POST_IMAGE_URLS[outboundCount % SEED_POST_IMAGE_URLS.length],
+        SEED_POST_IMAGE_URLS[(outboundCount + 1) % SEED_POST_IMAGE_URLS.length],
+        SEED_POST_IMAGE_URLS[(outboundCount + 2) % SEED_POST_IMAGE_URLS.length],
+      ];
+
+      const postId = await createOutboundWithPostAt({
+        foundationId: foundation.id,
+        campaignId: campaign.id,
+        foundationBranchId: campaign.foundationBranchId,
+        title: `${template.title} — ${campaign.title}`,
+        description: template.description,
+        observations: 'Entrega demo registrada desde seed.',
+        slug: buildSeedPostSlug(foundationSlug, template.title, outboundCount + 1),
+        lines,
+        imageUrls: postImages,
+        createdById: foundation.userId,
+        eventDate,
+      });
+
+      createdPostIds.push(postId);
+      outboundCount += 1;
+    }
+
+    console.log(`[SEED] Inventario demo listo: ${foundation.name}`);
+  }
+
+  if (createdPostIds.length > 0 && donors.length > 0) {
+    const commentBodies = [
+      'Gracias por compartir el impacto de esta entrega.',
+      'Excelente trabajo de la fundacion con las familias.',
+      'Me alegra ver que la donacion llego a quienes lo necesitaban.',
+    ];
+
+    const reactionTypes: PostReactionType[] = [
+      PostReactionType.LIKE,
+      PostReactionType.LOVE,
+      PostReactionType.PROUD,
+    ];
+
+    for (let postIndex = 0; postIndex < createdPostIds.length; postIndex += 1) {
+      const postId = createdPostIds[postIndex];
+      if (!postId) {
+        continue;
+      }
+
+      const donorA = donors[postIndex % donors.length];
+      const donorB = donors[(postIndex + 1) % donors.length];
+
+      if (donorA) {
+        await prisma.postReaction.create({
+          data: {
+            postId,
+            userId: donorA.id,
+            type: reactionTypes[postIndex % reactionTypes.length] ?? PostReactionType.LIKE,
+          },
+        });
+      }
+
+      if (donorB && donorB.id !== donorA?.id) {
+        await prisma.postComment.create({
+          data: {
+            postId,
+            userId: donorB.id,
+            body: commentBodies[postIndex % commentBodies.length] ?? commentBodies[0]!,
+          },
+        });
+      }
+    }
+  }
+
+  console.log(
+    `[SEED] Inventario: ${stockInMovements} entradas desde donaciones recibidas; ${outboundCount} salidas con publicacion.`,
+  );
+}
+
 /**
  * Entrada: Ninguna.
  * Proceso: Vacia la BD y carga unicamente el dataset del seed.
@@ -569,6 +1068,7 @@ async function main(): Promise<void> {
     );
   }
 
+  await assertMigrationsApplied();
   await resetDatabase();
 
   const adminPasswordHash = await hashPassword(adminPassword);
@@ -605,6 +1105,7 @@ async function main(): Promise<void> {
 
   await seedHistoricalDonations(donors, allNeedIds, verifierId);
   await seedDemoNotifications(donors, admins);
+  await seedInventoryFromDonations(donors);
 
   console.log('[SEED] Dataset completo listo (solo seeders).');
   console.log('[SEED] Historial simulado: ~6 meses para reportes administrativos.');

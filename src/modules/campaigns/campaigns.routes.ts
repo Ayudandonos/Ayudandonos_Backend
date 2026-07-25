@@ -142,12 +142,15 @@ campaignsRoutes.get(
  *         application/json:
  *           schema:
  *             type: object
- *             required: [title, description]
+ *             required: [title, description, foundationBranchId]
  *             properties:
  *               title:
  *                 type: string
  *               description:
  *                 type: string
+ *               foundationBranchId:
+ *                 type: string
+ *                 format: uuid
  *               status:
  *                 type: string
  *                 enum: [DRAFT, PUBLISHED]
@@ -202,6 +205,9 @@ campaignsRoutes.post(
  *                 type: string
  *               description:
  *                 type: string
+ *               foundationBranchId:
+ *                 type: string
+ *                 format: uuid
  *               status:
  *                 type: string
  *                 enum: [DRAFT, PUBLISHED, FINISHED, CANCELLED]

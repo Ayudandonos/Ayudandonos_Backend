@@ -60,6 +60,19 @@ export interface FoundationListItemDto {
   representative: FoundationRepresentativeDto;
 }
 
+export interface FoundationPublicBranchDto {
+  id: string;
+  name: string;
+  department: string;
+  city: string;
+  address: string;
+  reference: string | null;
+  phone: string;
+  openingHours: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+
 export interface FoundationDetailDto extends FoundationListItemDto {
   mission: string | null;
   vision: string | null;
@@ -81,6 +94,8 @@ export interface FoundationDetailDto extends FoundationListItemDto {
   observations: FoundationAdminObservationDto[];
   isProfileComplete: boolean;
   hasRequiredDocuments: boolean;
+  hasActiveBranch: boolean;
+  branches: FoundationPublicBranchDto[];
 }
 
 export interface UpdateFoundationDto {

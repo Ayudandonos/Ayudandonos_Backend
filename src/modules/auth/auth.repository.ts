@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client';
+import { FoundationBranchStatus } from '@prisma/client';
 import { prisma } from '../../database/prisma.client.js';
 import type { CreateFoundationData, CreateUserData } from './auth.dto.js';
 
@@ -82,6 +83,20 @@ export class AuthRepository {
         },
         include: {
           documents: { select: { type: true } },
+        },
+      });
+
+      await tx.foundationBranch.create({
+        data: {
+          foundationId: foundation.id,
+          name: 'Sede principal',
+          department: 'Por completar',
+          city: 'Por completar',
+          address: 'Por completar',
+          reference: 'Completa los datos de esta sede en tu perfil.',
+          phone: 'Por completar',
+          openingHours: 'Por definir',
+          status: FoundationBranchStatus.INACTIVE,
         },
       });
 

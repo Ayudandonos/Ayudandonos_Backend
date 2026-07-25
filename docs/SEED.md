@@ -13,13 +13,13 @@ No es idempotente por upsert: siempre deja la BD exactamente igual al seed.
 
 ### Tablas truncadas
 
-`notifications`, `messages`, `conversations`, `donation_status_history`, `donations`, `needs`, `campaigns`, `foundation_admin_observations`, `foundation_documents`, `foundation_social_links`, `foundations`, `users`.
+`notifications`, `messages`, `conversations`, `donation_status_history`, `donations`, `needs`, `post_comments`, `post_reactions`, `foundation_post_images`, `foundation_post_lines`, `foundation_posts`, `stock_movements`, `inventory_outbound_lines`, `inventory_outbounds`, `inventory_items`, `campaigns`, `foundation_branches`, `foundation_admin_observations`, `foundation_documents`, `foundation_social_links`, `foundations`, `users`.
 
 ### Cuando se ejecuta
 
 | Contexto | Comando / momento |
 | -------- | ----------------- |
-| Local | `npm run prisma:seed` o `npm run db:setup` |
+| Local | `npm run prisma:seed` (aplica migraciones y luego seed) o `npm run db:setup` |
 | Vercel (cada deploy) | `scripts/vercel-build.mjs` tras `migrate deploy` |
 
 **Advertencia:** en produccion, cualquier dato creado fuera del seed se pierde en el siguiente deploy.
@@ -70,9 +70,20 @@ Password de cuentas `FOUNDATION`: misma que donantes demo.
 
 Aproximadamente **40 donaciones** distribuidas en los ultimos 6 meses, con estados variados (`COMMITTED`, `IN_TRANSIT`, `DELIVERED`, `CONFIRMED`, `CANCELLED`) segun antiguedad.
 
+### Inventario y publicaciones de impacto
+
+Tras crear las donaciones, el seed genera inventario **coherente con donaciones recibidas** (`DELIVERED` y `CONFIRMED`):
+
+1. **Entradas (IN):** una por cada donacion recibida, con producto alineado al nombre y unidad de la necesidad (`need`).
+2. **Salidas (OUT):** hasta 2 por fundacion verificada, con stock descontado y campana asociada a donaciones reales.
+3. **Publicaciones:** cada salida crea un `foundation_post` obligatorio con minimo 3 imagenes Unsplash, lineas de producto y slug publico.
+4. **Actividad social demo:** reacciones y comentarios de donantes en las publicaciones creadas.
+
+Ejemplo de log: `Inventario: 28 entradas desde donaciones recibidas; 9 salidas con publicacion.`
+
 ## Imagenes
 
-Los `logoUrl` de fundaciones y `imageUrl` de campanas usan URLs publicas de Unsplash (`images.unsplash.com`).
+Los `logoUrl` de fundaciones, `imageUrl` de campanas y fotos de publicaciones de impacto usan URLs publicas de Unsplash (`images.unsplash.com`).
 
 No usar thumbnails de Wikimedia con tamanos arbitrarios: suelen responder HTTP 400.
 
@@ -85,6 +96,19 @@ npm run prisma:seed
 # Migraciones + seed
 npm run db:setup
 ```
+
+## Errores frecuentes
+
+### `The column foundation_branch_id does not exist` (P2022)
+
+El cliente Prisma esta al dia con el schema, pero la base de datos local no tiene las migraciones aplicadas.
+
+```bash
+npm run db:deploy
+npm run prisma:seed
+```
+
+O en un solo paso: `npm run db:setup`.
 
 ## Relacionado
 

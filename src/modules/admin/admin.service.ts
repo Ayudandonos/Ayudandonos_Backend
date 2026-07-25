@@ -30,9 +30,7 @@ const FOUNDATION_STATUS_LABELS: Record<string, string> = {
 
 const DONATION_STATUS_LABELS: Record<string, string> = {
   COMMITTED: 'Comprometidas',
-  IN_TRANSIT: 'En tránsito',
-  DELIVERED: 'Entregadas',
-  CONFIRMED: 'Confirmadas',
+  RECEIVED: 'Recibidas',
   CANCELLED: 'Canceladas',
 };
 
@@ -185,6 +183,15 @@ export class AdminService {
             city: campaign.foundation.city,
             department: campaign.foundation.department,
           },
+          foundationBranch: campaign.foundationBranch
+            ? {
+                id: campaign.foundationBranch.id,
+                name: campaign.foundationBranch.name,
+                city: campaign.foundationBranch.city,
+                department: campaign.foundationBranch.department,
+                address: campaign.foundationBranch.address,
+              }
+            : null,
           createdBy: {
             fullName: campaign.foundation.user.fullName,
             email: campaign.foundation.user.email,

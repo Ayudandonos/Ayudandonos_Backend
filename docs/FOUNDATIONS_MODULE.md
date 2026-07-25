@@ -11,7 +11,13 @@ Base: `/api/v1/foundations`
 | GET | `/` | Opcional | Listado paginado. Publico: solo `VERIFIED`. Admin: todas + `data.stats`. |
 | GET | `/nearby` | Publico | Fundaciones `VERIFIED` en radio 1–10 km + tipos (categorias). |
 | GET | `/me` | JWT (FOUNDATION) | Perfil completo de la fundacion del usuario autenticado. |
-| GET | `/:id` | Opcional | Detalle. Publico si `VERIFIED`; admin u owner si otro estado. |
+| GET | `/me/branches` | JWT (FOUNDATION) | Listado de sedes de acopio de la fundacion autenticada. |
+| POST | `/me/branches` | JWT (FOUNDATION) | Crear sede de acopio. |
+| PATCH | `/me/branches/:branchId` | JWT (FOUNDATION) | Actualizar sede (ubicacion, horarios, estado). |
+| DELETE | `/me/branches/:branchId` | JWT (FOUNDATION) | Desactivar sede (`INACTIVE`; bloqueada si tiene campanas `PUBLISHED`). |
+| POST | `/me/branches/:branchId/activate` | JWT (FOUNDATION) | Reactivar sede inactiva. |
+| GET | `/:id/branches` | Opcional | Sedes activas publicas de fundacion verificada. |
+| GET | `/:id` | Opcional | Detalle con `branches` y `hasActiveBranch`. |
 | GET | `/:id/documents/:type/download` | JWT (owner o ADMIN) | Descarga documento por tipo (almacenamiento privado). |
 | PATCH | `/:id` | JWT (owner o ADMIN) | Actualizar perfil (texto, redes, `latitude`/`longitude`). |
 | PATCH | `/:id/status` | JWT (**ADMIN**) | Verificacion / rechazo / suspension. |
@@ -39,7 +45,13 @@ Registro (PENDING)
 | `REJECTED` | Rechazada (exige `rejectionReason`) | No |
 | `SUSPENDED` | Suspendida por admin | No |
 
-Para pasar a `VERIFIED` el backend exige perfil completo + documentos `RUT`, `LEGAL_EXISTENCE_CERTIFICATE` y `LEGAL_REPRESENTATIVE_ID`.
+Para pasar a `VERIFIED` el backend exige perfil completo + documentos obligatorios + al menos una sede activa con datos completos.
+
+Al registrar fundacion (`POST /auth/register/foundation`) se crea automaticamente la sede principal "Sede principal" en estado `INACTIVE` con placeholders. Al actualizar el perfil (`PATCH /foundations/:id`) se sincronizan ciudad, departamento, direccion y telefono en la sede principal; el horario de atencion debe completarse en el gestor de sedes para activarla.
+
+`GET /foundations/nearby` usa coordenadas de **sedes activas** (`foundation_branches`), no solo las de la entidad fundacion.
+
+Al editar una sede vinculada a campanas, el snapshot `deliveryAddress` / coordenadas de esas campanas se sincroniza automaticamente.
 
 Endpoint: `PATCH /api/v1/foundations/:id/status` (solo `authorize('ADMIN')`).
 
@@ -53,8 +65,8 @@ Endpoint: `PATCH /api/v1/foundations/:id/status` (solo `authorize('ADMIN')`).
 | `longitude` | requerido | Origen |
 | `radiusKm` | 5 | Entre 1 y 10 |
 
-Solo incluye fundaciones **`VERIFIED`** con `latitude`/`longitude` cargadas.  
-Respuesta: `categories` (tipos en la zona) + `items` con `distanceKm`.
+Solo incluye fundaciones **`VERIFIED`** con sedes activas que tengan `latitude`/`longitude`.  
+Respuesta: `categories` (tipos en la zona) + `items` con `distanceKm` (una entrada por fundacion, sede mas cercana).
 
 ## Query params (GET `/`)
 
@@ -122,6 +134,42 @@ Tipos:
 
 Historial de observaciones administrativas (1:N). Se crea registro al cambiar estado con `adminNotes`.
 
+### Enum `FoundationBranchStatus`
+
+- `ACTIVE` — sede disponible para acopio
+- `INACTIVE` — sede desactivada (no se elimina fisicamente)
+
+### Tabla `foundation_branches`
+
+Sedes de acopio donde los donantes entregan aportes en especie (1:N con `foundations`).
+
+| Campo | Tipo | Notas |
+| ----- | ---- | ----- |
+| id | UUID | PK |
+| foundationId | UUID | FK foundations |
+| name | string | Nombre de la sede |
+| department, city, address | string | Ubicacion textual |
+| reference | string? | Punto de referencia opcional |
+| phone | string | Contacto de la sede |
+| openingHours | string | Horarios de atencion |
+| latitude, longitude | float? | Coordenadas para mapa |
+| status | FoundationBranchStatus | Default ACTIVE |
+| createdAt, updatedAt | datetime | |
+
+Reglas: solo rol FOUNDATION gestiona sus sedes; debe permanecer al menos una sede `ACTIVE`; geocodificacion opcional al crear/actualizar direccion.
+
+### Campanas y sedes (Fase B)
+
+Cada campana referencia una sede activa mediante `foundation_branch_id` (FK obligatoria). Al crear o cambiar la sede, el backend copia direccion y coordenadas de la sede a `delivery_*` para compatibilidad con listados y mapas existentes.
+
+| Campo API create/update | Descripcion |
+| ----------------------- | ----------- |
+| `foundationBranchId` | UUID de sede `ACTIVE` de la fundacion (requerido al crear) |
+
+La respuesta de campana incluye objeto `branch` con nombre, direccion, horarios, telefono y coordenadas de la sede asociada.
+
+Frontend: `/foundation/campaigns/new` y edicion usan selector de sedes (`GET /foundations/me/branches`) en lugar de mapa editable.
+
 ## Reglas de negocio
 
 1. El listado publico y `/nearby` solo exponen fundaciones `VERIFIED`.
@@ -157,7 +205,14 @@ src/modules/foundations/
   foundations.repository.ts
   foundations.validations.ts
   foundations.dto.ts
+  foundation-branches.controller.ts
+  foundation-branches.service.ts
+  foundation-branches.repository.ts
+  foundation-branches.validations.ts
+  foundation-branches.dto.ts
 ```
+
+Los endpoints de sedes se registran en `foundations.routes.ts` bajo `/me/branches`.
 
 Util geo: `src/shared/utils/geo.util.ts` (Haversine + bounding box).
 
@@ -177,6 +232,6 @@ Rutas UI:
 
 - `/foundations` — listado publico
 - `/foundations/:id` — detalle
-- `/foundation/profile` — edicion perfil (FOUNDATION), incluir coords
+- `/foundation/profile` — edicion perfil (FOUNDATION), incluir coords y sedes de acopio
 - `/admin/foundations` — verificacion (ADMIN)
 - Mapa / zona cercana — consumir `GET /foundations/nearby`
