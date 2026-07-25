@@ -1,6 +1,45 @@
 -- AlterTable
 ALTER TABLE "campaigns" ADD COLUMN "foundation_branch_id" UUID;
 
+-- Crear sede principal para fundaciones sin sedes (datos legacy en produccion)
+INSERT INTO "foundation_branches" (
+  "id",
+  "foundation_id",
+  "name",
+  "department",
+  "city",
+  "address",
+  "reference",
+  "phone",
+  "opening_hours",
+  "latitude",
+  "longitude",
+  "status",
+  "created_at",
+  "updated_at"
+)
+SELECT
+  gen_random_uuid(),
+  f."id",
+  'Sede principal',
+  f."department",
+  f."city",
+  COALESCE(NULLIF(TRIM(f."address"), ''), 'Direccion pendiente'),
+  'Sede creada automaticamente durante migracion.',
+  COALESCE(NULLIF(TRIM(f."phone"), ''), '0000000000'),
+  'Horario por confirmar',
+  f."latitude",
+  f."longitude",
+  'ACTIVE',
+  CURRENT_TIMESTAMP,
+  CURRENT_TIMESTAMP
+FROM "foundations" AS f
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM "foundation_branches" AS b
+  WHERE b."foundation_id" = f."id"
+);
+
 -- Backfill: sede principal activa de cada fundacion
 UPDATE "campaigns" AS c
 SET "foundation_branch_id" = (
