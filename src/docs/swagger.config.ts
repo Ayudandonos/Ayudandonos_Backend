@@ -67,3 +67,23 @@ const options: swaggerJsdoc.Options = {
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
+
+/** Version alineada con swagger-ui-dist instalado en el proyecto. */
+const SWAGGER_UI_DIST_VERSION = '5.32.8';
+
+const swaggerUiCdnBase = `https://cdn.jsdelivr.net/npm/swagger-ui-dist@${SWAGGER_UI_DIST_VERSION}`;
+
+/**
+ * Opciones de Swagger UI con assets en CDN (compatible con Vercel/serverless).
+ * Evita servir archivos estaticos locales que en serverless devuelven text/html.
+ */
+export const swaggerUiOptions = {
+  customCssUrl: `${swaggerUiCdnBase}/swagger-ui.css`,
+  customJs: [
+    `${swaggerUiCdnBase}/swagger-ui-bundle.js`,
+    `${swaggerUiCdnBase}/swagger-ui-standalone-preset.js`,
+  ],
+  swaggerOptions: {
+    persistAuthorization: true,
+  },
+};

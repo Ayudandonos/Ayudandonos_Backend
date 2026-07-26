@@ -11,7 +11,7 @@ import { corsConfig } from './config/cors.config.js';
 import { rateLimitConfig } from './config/rate-limit.config.js';
 import { isDevelopment, uploadConfig } from './config/env.config.js';
 import { apiRouter } from './routes/index.js';
-import { swaggerSpec } from './docs/swagger.config.js';
+import { swaggerSpec, swaggerUiOptions } from './docs/swagger.config.js';
 import { errorHandler, notFoundHandler } from './middlewares/index.js';
 import { ApiResponseBuilder } from './shared/responses/api.response.js';
 import { API_MESSAGES } from './shared/constants/messages.constants.js';
@@ -35,6 +35,21 @@ export function createApp(): Express {
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          baseUri: ["'self'"],
+          fontSrc: ["'self'", 'https:', 'data:'],
+          formAction: ["'self'"],
+          frameAncestors: ["'self'"],
+          imgSrc: ["'self'", 'data:'],
+          objectSrc: ["'none'"],
+          scriptSrc: ["'self'", 'https://cdn.jsdelivr.net'],
+          scriptSrcAttr: ["'none'"],
+          styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
+          upgradeInsecureRequests: [],
+        },
+      },
     }),
   );
   app.use(cors(corsConfig));
@@ -59,7 +74,11 @@ export function createApp(): Express {
     app.use(morgan('combined'));
   }
 
-  app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.use(
+    '/api/v1/docs',
+    swaggerUi.serveFiles(swaggerSpec, swaggerUiOptions),
+    swaggerUi.setup(swaggerSpec, swaggerUiOptions),
+  );
 
   const apiRootPayload = {
     name: 'Ayudandonos API',
