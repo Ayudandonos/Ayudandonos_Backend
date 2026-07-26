@@ -4,9 +4,11 @@ import { mapUnknownError } from '../../shared/errors/map-unknown-error.js';
 import { API_MESSAGES } from '../../shared/constants/messages.constants.js';
 import { deleteStoredFile, resolveDocumentFile, saveFoundationFile } from '../../shared/utils/upload.util.js';
 import {
+  getMissingFoundationProfileFields,
   hasRequiredFoundationDocuments,
   hasActiveFoundationBranch,
   isFoundationProfileComplete,
+  pickBranchLocationForFoundationProfile,
   REQUIRED_FOUNDATION_DOCUMENT_TYPES,
 } from './foundation-profile.util.js';
 import type {
@@ -340,7 +342,7 @@ export class FoundationsService {
   ): Promise<FoundationDetailDto> {
     this.assertIsAdmin(requester);
 
-    const foundation = await foundationsRepository.findByIdWithRelations(id);
+    let foundation = await foundationsRepository.findByIdWithRelations(id);
 
     if (!foundation || !foundation.user.isActive) {
       throw new AppError(API_MESSAGES.FOUNDATIONS_NOT_FOUND, 404);
@@ -351,6 +353,7 @@ export class FoundationsService {
     }
 
     if (input.status === FoundationStatus.VERIFIED) {
+      foundation = await this.syncProfileLocationFromBranches(foundation);
       await this.assertProfileReadyForVerification(foundation);
     }
 
@@ -539,15 +542,94 @@ export class FoundationsService {
   }
 
   /**
+   * Entrada: foundation: entidad con relaciones.
+   * Proceso: Si faltan pais/ciudad/departamento/direccion en el perfil, los copia
+   *   desde una sede activa usable y opcionalmente geocodifica.
+   * Salida: Retorna la fundacion (actualizada o la original si no hubo cambios).
+   */
+  private async syncProfileLocationFromBranches(
+    foundation: FoundationWithRelations,
+  ): Promise<FoundationWithRelations> {
+    const isBlank = (value: string | null | undefined): boolean =>
+      !value || value.trim().length === 0;
+
+    if (
+      !isBlank(foundation.country) &&
+      !isBlank(foundation.city) &&
+      !isBlank(foundation.department) &&
+      !isBlank(foundation.address)
+    ) {
+      return foundation;
+    }
+
+    const branches = await foundationBranchesRepository.findByFoundationId(foundation.id);
+    const location = pickBranchLocationForFoundationProfile(branches);
+
+    if (!location) {
+      return foundation;
+    }
+
+    const profileData: {
+      country?: string;
+      city?: string;
+      department?: string;
+      address?: string;
+      latitude?: number | null;
+      longitude?: number | null;
+    } = {};
+
+    if (isBlank(foundation.country)) {
+      profileData.country = 'Colombia';
+    }
+    if (isBlank(foundation.city)) {
+      profileData.city = location.city;
+    }
+    if (isBlank(foundation.department)) {
+      profileData.department = location.department;
+    }
+    if (isBlank(foundation.address)) {
+      profileData.address = location.address;
+    }
+
+    if (Object.keys(profileData).length === 0) {
+      return foundation;
+    }
+
+    const resolvedCoords = await resolveCoordinatesForPersist({
+      currentLatitude: foundation.latitude,
+      currentLongitude: foundation.longitude,
+      incomingLatitude: undefined,
+      incomingLongitude: undefined,
+      locationChanged: true,
+      location: {
+        street: profileData.address ?? foundation.address,
+        city: profileData.city ?? foundation.city,
+        state: profileData.department ?? foundation.department,
+        country: profileData.country ?? foundation.country,
+      },
+    });
+
+    profileData.latitude = resolvedCoords.latitude;
+    profileData.longitude = resolvedCoords.longitude;
+
+    return foundationsRepository.updateById(foundation.id, profileData);
+  }
+
+  /**
    * Entrada: foundation: entidad con relaciones completas.
    * Proceso: Valida que el perfil cumpla requisitos minimos para verificacion admin.
-   * Salida: Retorna void o lanza AppError 400 con detalle.
+   * Salida: Retorna void o lanza AppError 400 con detalle de campos faltantes.
    */
   private async assertProfileReadyForVerification(
     foundation: FoundationWithRelations,
   ): Promise<void> {
-    if (!isFoundationProfileComplete(foundation)) {
-      throw new AppError(API_MESSAGES.FOUNDATIONS_PROFILE_INCOMPLETE, 400);
+    const missingFields = getMissingFoundationProfileFields(foundation);
+
+    if (missingFields.length > 0) {
+      const errors = Object.fromEntries(
+        missingFields.map((field) => [field, ['Campo requerido para verificación']]),
+      );
+      throw new AppError(API_MESSAGES.FOUNDATIONS_PROFILE_INCOMPLETE, 400, true, errors);
     }
 
     if (!hasRequiredFoundationDocuments(foundation.documents)) {

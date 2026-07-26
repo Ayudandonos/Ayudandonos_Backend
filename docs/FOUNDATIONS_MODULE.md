@@ -173,7 +173,7 @@ Frontend: `/foundation/campaigns/new` y edicion usan selector de sedes (`GET /fo
 ## Reglas de negocio
 
 1. El listado publico y `/nearby` solo exponen fundaciones `VERIFIED`.
-2. La verificacion (`VERIFIED`) la realiza **unicamente un ADMIN** y exige perfil completo + documentos obligatorios.
+2. La verificacion (`VERIFIED`) la realiza **unicamente un ADMIN** y exige perfil completo + documentos obligatorios + al menos una sede activa completa. Si el perfil no tiene `country`/`city`/`department`/`address` pero una sede activa si, el backend los copia al perfil antes de validar. Si aun falta algo, el 400 incluye `errors` con los campos faltantes.
 3. El NIT debe ser unico en la plataforma.
 4. Rechazo requiere `rejectionReason`.
 5. Documentos legales y logos se almacenan en **Vercel Blob** en produccion (`BLOB_READ_WRITE_TOKEN`). En local sin token, se usa disco (`uploads/`).
