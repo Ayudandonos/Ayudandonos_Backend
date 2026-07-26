@@ -2,7 +2,9 @@
 
 API REST para la plataforma de donaciones en especie entre fundaciones verificadas y donantes.
 
-**Repositorio:** https://github.com/Erickpe8/Ayudandonos_Backend
+**Estado:** MVP completado (RF01–RF18). Documentacion academica: [Ayudandonos_Documentacion](https://github.com/Ayudandonos/Ayudandonos_Documentacion).
+
+**Repositorio:** https://github.com/Ayudandonos/Ayudandonos_Backend
 
 ## Stack
 
@@ -92,15 +94,14 @@ Seed / dataset demo: [docs/SEED.md](./docs/SEED.md).
 | `npm run db:setup` | Migraciones + seed |
 | `npm run vercel-build` | Build de Vercel: generate + migrate + seed + tsc |
 
-## Desarrollo con IA
+## Documentacion y convenciones
 
 | Archivo | Proposito |
 | ------- | --------- |
-| [AGENTS.md](./AGENTS.md) | Instrucciones para agentes de IA |
-| [docs/AI_WORKFLOW.md](./docs/AI_WORKFLOW.md) | Flujo de trabajo iterativo |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | Guia de contribucion |
+| [docs/DEVELOPMENT_RULES.md](./docs/DEVELOPMENT_RULES.md) | Reglas obligatorias del equipo |
 | [docs/GIT_WORKFLOW.md](./docs/GIT_WORKFLOW.md) | GitFlow: una rama por tarea |
 | [specs/](./specs/) | Especificaciones tecnicas |
-| [.cursor/skills/](./.cursor/skills/) | Skills del proyecto |
 
 ## Arquitectura
 

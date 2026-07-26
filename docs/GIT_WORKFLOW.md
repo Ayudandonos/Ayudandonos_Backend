@@ -126,12 +126,3 @@ git push -u origin hotfix/descripcion-corta
 4. Resolver conflictos en la rama de feature antes del merge.
 5. No hacer `push --force` a `main` ni `develop`.
 6. Cada PR debe poder revisarse de forma independiente.
-
-## Agentes de IA
-
-Antes de implementar una tarea:
-
-1. Confirmar rama base (`develop`) y nombre de rama con el usuario si no existe.
-2. Crear o cambiar a `feature/<tarea>` antes de modificar codigo.
-3. No mezclar cambios de tareas distintas en un mismo commit o rama.
-4. Indicar en la explicacion desde que rama se trabaja y hacia donde ira el PR.

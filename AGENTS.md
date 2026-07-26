@@ -1,16 +1,19 @@
-# Instrucciones para agentes de IA — Backend Ayudándonos
+# Guia de desarrollo — Backend
 
-Este repositorio contiene la API REST del proyecto **Ayudándonos**. Lee este archivo antes de modificar codigo.
+Este archivo se mantiene por compatibilidad. La guia actual del equipo esta en:
+
+- [CONTRIBUTING.md](./CONTRIBUTING.md)
+- [docs/DEVELOPMENT_RULES.md](./docs/DEVELOPMENT_RULES.md)
+- [docs/GIT_WORKFLOW.md](./docs/GIT_WORKFLOW.md)
+- Repo documentacion: `Ayudandonos_Documentacion` — `docs/00-meta/contributing-backend.md` y `docs/06-architecture/reglas-desarrollo.md`
 
 ## Contexto del proyecto
 
 Plataforma para conectar fundaciones verificadas con donantes en especie. Sin pagos ni pasarelas. Comunicacion exclusiva via API REST versionada `/api/v1`.
 
-**Repositorio relacionado:** Frontend en `https://github.com/Erickpe8/Ayudandonos_Frontend`
+**Estado:** MVP completado (fases 1–5). Modulos: auth, users, foundations, campaigns, needs, donations, notifications, admin, statistics.
 
-## Stack
-
-Node.js, Express, TypeScript, Prisma, PostgreSQL, JWT, bcrypt, Zod, Swagger, Helmet, CORS, Rate Limit.
+**Repositorio relacionado:** Frontend en `https://github.com/Ayudandonos/Ayudandonos_Frontend`
 
 ## Arquitectura obligatoria
 
@@ -18,104 +21,4 @@ Node.js, Express, TypeScript, Prisma, PostgreSQL, JWT, bcrypt, Zod, Swagger, Hel
 Routes -> Controller -> Service -> Repository -> Prisma
 ```
 
-- **Controller:** solo HTTP; sin logica de negocio.
-- **Service:** logica de negocio; lanza `AppError`.
-- **Repository:** unica capa con acceso a Prisma.
-- **Validations:** esquemas Zod en `*.validations.ts`.
-- **DTO:** tipos de entrada/salida en `*.dto.ts`.
-
-## Reglas no negociables
-
-1. Codigo en **ingles**; documentacion y comentarios en **espanol**.
-2. Comentarios en funciones: **un unico bloque JSDoc** con lineas `Entrada`, `Proceso` y `Salida` (ver `docs/CONVENTIONS.md`).
-3. Sin emojis en ningun artefacto.
-4. Mensajes al usuario en `src/shared/constants/messages.constants.ts`.
-5. Respuesta API: `{ success, message, data, errors }`.
-6. No reorganizar carpetas sin autorizacion.
-7. No implementar funcionalidades no solicitadas (YAGNI).
-8. Documentar endpoints en Swagger al crearlos.
-9. Esperar aprobacion antes de avanzar de fase.
-10. Trabajar en rama `feature/*` (una tarea por rama); PR hacia `develop`. Ver `docs/GIT_WORKFLOW.md`.
-
-## Git (GitFlow por tarea)
-
-- `main`: estable. `develop`: integracion.
-- Crear `feature/<modulo>-<tarea>` desde `develop` antes de codificar.
-- No mezclar tareas en la misma rama ni commitear directo en `main`.
-
-## Estructura de modulos
-
-Cada modulo en `src/modules/<nombre>/`:
-
-```
-<nombre>.controller.ts
-<nombre>.service.ts
-<nombre>.repository.ts
-<nombre>.routes.ts
-<nombre>.validations.ts
-<nombre>.dto.ts
-index.ts
-```
-
-## Fase actual
-
-**Fase 1 COMPLETADA:** configuracion base, skeleton de modulos, health check.
-
-**Fase 2 COMPLETADA:** Auth JWT, usuarios, seed ADMIN, Docker PostgreSQL.
-
-**Fase 3 — Fundaciones COMPLETADA:** perfil extendido, documentos, verificacion admin, historial de observaciones (backend + frontend).
-
-**Fase 4 — Campanas COMPLETADA:** CRUD, estados, listado publico, punto de entrega, Needs, Donations (historial + chat + delivery).
-
-**Panel admin COMPLETADO:** `GET /admin/dashboard`, `GET /admin/reports`, `GET /admin/campaigns`.
-
-**Fase 5 — Notificaciones COMPLETADA:** modulo in-app; hooks desde Donations; `initialMessage` al crear donacion.
-
-**Perfil donante COMPLETADO:** campos de perfil, `GET/PATCH /users/me`, `donationStats`.
-
-**Fundaciones nearby COMPLETADO:** coordenadas + `GET /foundations/nearby` (solo `VERIFIED` por admin).
-
-**Seed demo COMPLETADO:** en cada `prisma db seed` (y en cada deploy Vercel) se hace `TRUNCATE` de tablas de negocio y se carga solo el dataset de `prisma/seed-data.ts`. Ver `docs/SEED.md`.
-
-**Flujo donacion + inventario trazable COMPLETADO:** estados `COMMITTED | RECEIVED | CANCELLED`, sede en compromiso, recepcion con entrada automatica de inventario, sin logistica ni entradas manuales. Ver `docs/DONATIONS_MODULE.md` y `docs/INVENTORY_MODULE.md`.
-
-**Cierre de fase operativa COMPLETADO:** sedes (principal al registro, checklist, guards, sync campanas, publico, nearby por sedes), mensajeria (ultimo mensaje, no leidos, lectura), inventario automatico y publicaciones obligatorias en salidas. Ver `docs/FOUNDATIONS_MODULE.md`, `docs/MESSAGING_MODULE.md`, `docs/INVENTORY_MODULE.md`.
-
-**Siguiente:** Storage cloud (Blob/S3); paginacion infinita en inbox de mensajes.
-
-## Documentacion interna
-
-| Recurso | Ruta |
-| ------- | ---- |
-| Flujo de trabajo con IA | `docs/AI_WORKFLOW.md` |
-| Arquitectura | `docs/ARCHITECTURE.md` |
-| Convenciones | `docs/CONVENTIONS.md` |
-| Reglas de desarrollo | `docs/DEVELOPMENT_RULES.md` |
-| Referencia de API | `docs/API_REFERENCE.md` |
-| Seed / dataset demo | `docs/SEED.md` |
-| Deploy Vercel | `docs/DEPLOYMENT_VERCEL.md` |
-| Usuarios / perfil donante | `docs/USERS_MODULE.md` |
-| Fundaciones | `docs/FOUNDATIONS_MODULE.md` |
-| Mensajeria donante-fundacion | `docs/MESSAGING_MODULE.md` |
-| Admin | `docs/ADMIN_MODULE.md` |
-| Especificaciones API | `specs/API_OVERVIEW.md` |
-| Plantilla de modulo | `specs/MODULE_TEMPLATE.md` |
-| Skills del proyecto | `.cursor/skills/` |
-
-## Comandos utiles
-
-```bash
-npm run dev          # Desarrollo con hot-reload
-npm run build        # Compilar TypeScript
-npm run lint         # ESLint
-npm run prisma:generate
-npm run prisma:migrate
-npm run prisma:seed       # TRUNCATE + dataset demo (requiere SEED_ADMIN_PASSWORD)
-npm run db:setup          # Migraciones + seed
-```
-
-## Variables de entorno
-
-Copiar `.env.example` a `.env`. Nunca commitear `.env`.
-
-Seed: `SEED_ADMIN_PASSWORD` (obligatoria) y `SEED_DEMO_PASSWORD` (opcional). Detalle en `docs/SEED.md`.
+Ver [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) y [specs/](./specs/).

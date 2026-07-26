@@ -24,7 +24,7 @@ Al terminar: push, PR hacia `develop`, revision y merge. No commitear directo en
 
 ## Flujo de desarrollo
 
-1. Leer `AGENTS.md` y `docs/AI_WORKFLOW.md`
+1. Leer [docs/DEVELOPMENT_RULES.md](./docs/DEVELOPMENT_RULES.md) y [docs/GIT_WORKFLOW.md](./docs/GIT_WORKFLOW.md)
 2. Crear o usar rama `feature/*` para la tarea
 3. Consultar spec en `specs/modules/` antes de implementar
 4. Seguir arquitectura por capas

@@ -1,6 +1,6 @@
 # Reglas de desarrollo — Backend
 
-Reglas obligatorias para humanos y agentes de IA.
+Reglas obligatorias para el equipo de desarrollo.
 
 ## Arquitectura
 
