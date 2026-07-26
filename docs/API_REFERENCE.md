@@ -116,7 +116,7 @@ Las fundaciones en `PENDING`, `REJECTED` o `SUSPENDED` **no aparecen**.
 
 Coordenadas: el backend puede geocodificar al guardar perfil (`PATCH /foundations/:id`)
 desde `address` + `city`/`department`/`country`, o via `GET /locations/geocode`.  
-Verificacion: `PATCH /foundations/:id/status` solo **ADMIN**. Sedes: `docs/FOUNDATIONS_MODULE.md`.
+Verificacion: `PATCH /foundations/:id/status` solo **ADMIN**. Antes de `VERIFIED`, si faltan ubicacion en el perfil se sincroniza desde una sede activa; el 400 de perfil incompleto puede incluir `errors` por campo. Sedes: `docs/FOUNDATIONS_MODULE.md`.
 ---
 
 ## Campaigns — `/campaigns`
